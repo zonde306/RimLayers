@@ -5,7 +5,7 @@ using Verse;
 
 namespace RimLayers.Vehicles;
 
-public sealed class Building_VehicleConnector:Building
+public sealed partial class Building_VehicleConnector:Building
 {
     public bool IsLift=>def.GetModExtension<VehicleConnectorProperties>()?.lift==true;
     public bool Powered=>!IsLift||this.TryGetComp<CompPowerTrader>()?.PowerOn==true;
@@ -22,6 +22,7 @@ public sealed class Building_VehicleConnector:Building
     {
         foreach(var gizmo in base.GetGizmos())yield return gizmo;
         if(!Spawned||!IsLift||Faction!=Faction.OfPlayer)yield break;
+        foreach(var command in ShaftExcavationGizmos())yield return command;
         yield return new Command_Action
         {
             defaultLabel="RL_VehicleRecover".Translate(),defaultDesc="RL_VehicleRecoverHelp".Translate(),
@@ -38,6 +39,7 @@ public sealed class Building_VehicleConnector:Building
     {
         var text=base.GetInspectString()+"\n"+(IsLift?(Powered?"RL_VehicleLiftPowered":"RL_VehicleLiftPaused"):"RL_VehicleRampWidth").Translate();
         if(Spawned&&IsLift&&Traffic.StationStatus(this) is {Length:>0} status)text+="\n"+status;
+        if(Spawned&&IsLift)text+="\n"+ShaftExcavationStatus();
         return text.Trim();
     }
 }

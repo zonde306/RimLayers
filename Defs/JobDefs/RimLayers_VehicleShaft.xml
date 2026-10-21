@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <JobDef><defName>RL_ExcavateVehicleShaft</defName><driverClass>RimLayers.Vehicles.JobDriver_VehicleShaft</driverClass><reportString>excavating a vehicle lift shaft.</reportString></JobDef>
+  <WorkGiverDef><defName>RL_ExcavateVehicleShaft</defName><label>excavate vehicle lift shaft</label><giverClass>RimLayers.Vehicles.WorkGiver_VehicleShaft</giverClass><workType>Mining</workType><priorityInType>109</priorityInType><verb>excavate</verb><gerund>excavating</gerund><requiredCapacities><li>Manipulation</li></requiredCapacities></WorkGiverDef>
+</Defs>

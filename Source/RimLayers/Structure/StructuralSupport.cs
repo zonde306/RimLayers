@@ -25,7 +25,7 @@ public sealed class StructuralSupport
         return SupportedRoof(owner.map.roofGrid.RoofAt(owner.Adjacent(upper,-1)));
     }
     public bool HasSurface(IntVec3 cell) =>
-        owner.TryDecode(cell, out var logical) &&
+        owner.TryDecode(cell, out var logical) && owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir &&
         (logical.LayerId == 0 || owner.Mountains.IsNaturalFloor(cell) || owner.StructuralCells.Contains(cell) && HasRequiredRoof(cell) ||
          RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell));
 

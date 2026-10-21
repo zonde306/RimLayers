@@ -1,0 +1,69 @@
+{
+  "installedAt": "2026-10-21T20:28:59+01:00",
+  "scope": "RimLayers underground vehicle lift support",
+  "game": "1.7.4984 rev1242",
+  "provider": "Steel Horizon 4.9.2",
+  "targetFramework": "net10.0",
+  "release": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Tests\\Artifacts\\vehicle-underground-release-20261022",
+  "previousAssemblies": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Tests\\Artifacts\\vehicle-underground-release-20261022\\previous-assemblies",
+  "installed": [
+    {
+      "path": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Assemblies\\RimLayers.dll",
+      "bytes": 1987072
+    },
+    {
+      "path": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Assemblies\\RimLayers.pdb",
+      "bytes": 429768
+    }
+  ],
+  "validation": [
+    {
+      "directory": "Tests/Artifacts/vehicle-ground-20261022-031429",
+      "scenario": "underground excavation, lift transit and restart recovery",
+      "passed": 73,
+      "total": 73,
+      "processes": 4
+    },
+    {
+      "directory": "Tests/Artifacts/vehicle-ground-20261022-032054",
+      "scenario": "above-ground lift behavior regression",
+      "passed": 45,
+      "total": 45,
+      "processes": 3
+    },
+    {
+      "directory": "Tests/Artifacts/vehicle-ground-20261022-032218",
+      "scenario": "manual ramp behavior regression",
+      "passed": 18,
+      "total": 18,
+      "processes": 2
+    },
+    {
+      "directory": "Tests/Artifacts/vehicle-bindings-20261022-032323",
+      "scenario": "no framework normal startup",
+      "result": "No Vehicle Framework provider enabled"
+    },
+    {
+      "scenario": "pure vehicle tests",
+      "passed": 48,
+      "total": 48
+    },
+    {
+      "scenario": "Release build",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "scenario": "XML parse",
+      "files": 62,
+      "vehicleLocalizationKeysPerLanguage": 51
+    }
+  ],
+  "candidateEvidence": "The final build changed only the above-ground test parking location and shared full-cabin-clear assertion after the underground run; underground production code and inputs are unchanged.",
+  "logLimitations": [
+    "Above-ground generate log: 3 Verse.Prefs.get_UIScale NullReferenceExceptions at 03:20:56 before Root.Start/CheckGlobalInit; later scenario completed.",
+    "Manual ramp load log: 556 BFS FloodFill AccessViolationExceptions in Vehicles world pathfinding after NativeAllocationRuntime.Shutdown/EngineApplication.Dispose at 03:23:22.876 onward; behavior report completed at 03:23:22.728. Exit code 0. The full startup/shutdown logs are not error-free.",
+    "External baseline Vulkan overlay manifest and unrelated duplicate package ID errors remain unchanged."
+  ],
+  "rollback": "Previous DLL/PDB are retained for diagnosis. Full rollback requires matching previous source/Defs and a pre-excavation save; do not load newly excavated shafts with the old floor semantics. Player saves were not modified."
+}

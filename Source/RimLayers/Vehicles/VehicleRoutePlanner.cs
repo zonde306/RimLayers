@@ -41,7 +41,11 @@ internal static class VehicleRoutePlanner
         {
             var cell=owner.AtElevation(e,from.X,from.Z);
             var station=traffic.Connectors.FirstOrDefault(c=>c.Spawned&&c.IsLift&&c.Position==cell);
-            if(station==null||powered&&!station.Powered||!VehicleFacilitySpace.ShaftClear(owner,station,e<Math.Max(owner.Elevation(from.LayerId),owner.Elevation(to.LayerId))))return false;
+            if(station==null||station.ExcavatingShaft||powered&&!station.Powered||!VehicleFacilitySpace.ShaftClear(owner,station,e<Math.Max(owner.Elevation(from.LayerId),owner.Elevation(to.LayerId))))return false;
+            // Every intermediate floor must retract, including the surface and B1/B2.
+            // A roof removed by another mod is not permission to pass through solid earth.
+            if(e>Math.Min(owner.Elevation(from.LayerId),owner.Elevation(to.LayerId))&&
+                station.OccupiedRect().Any(c=>owner.map.terrainGrid.TerrainAt(c).defName!="RL_VehicleDeck"))return false;
         }
         return true;
     }

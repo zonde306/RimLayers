@@ -15,6 +15,7 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
     public string Provider { get; }
     internal readonly Type VehicleType, PatherType;
     internal Action<Pawn,double>? AfterCommit;
+    internal Func<Pawn,double?>? GroundHeading;
     private readonly FieldInfo pather,actor,nextCell,currentPath;
     private readonly PropertyInfo pathCurrent;
     private readonly PropertyInfo regionUpdater;
@@ -98,7 +99,7 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
     public VehicleVisual Visual(Pawn vehicle,Vector3 position)=>visualCall(vehicle,position);
     public bool IsVehicle(Thing thing)=>VehicleType.IsInstanceOfType(thing);
     public bool CanMove(Pawn vehicle)=>IsVehicle(vehicle)&&canMoveCall(vehicle)&&draftedCall(vehicle);
-    public double Heading(Pawn vehicle)=>headingCall(vehicle);
+    public double Heading(Pawn vehicle)=>GroundHeading?.Invoke(vehicle)??headingCall(vehicle);
     public IEnumerable<IntVec3> OccupiedCells(Pawn vehicle,IntVec3 position,double heading)=>occupiedCall(vehicle,position,heading);
     public void SetHeading(Pawn vehicle,double heading)=>headingSetCall(vehicle,heading);
     public VehicleHull Hull(Pawn vehicle)=>new(vehicle.def.size.x,vehicle.def.size.z,vehicle.def.GetModExtension<VehicleClearance>()?.height??3);

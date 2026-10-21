@@ -11,4 +11,5 @@
     <vehicleStats><MoveSpeed>3</MoveSpeed><Mass>300</Mass><CargoCapacity>1000</CargoCapacity></vehicleStats>
     <components><li><key>body</key><label>test chassis</label><health>500</health><efficiencyWeight>1</efficiencyWeight><hitbox><side>Body</side></hitbox><categories><li>MoveSpeed</li><li>BodyIntegrity</li></categories></li></components>
   </Vehicles.VehicleDef>
+  <HediffDef><defName>RL_TestShaftMiner</defName><label>accelerated shaft test worker</label><description>Isolated fixture: 200 times mining speed for the native shaft job.</description><hediffClass>Hediff</hediffClass><isBad>false</isBad><stages><li><statFactors><MiningSpeed>200</MiningSpeed></statFactors></li></stages></HediffDef>
 </Defs>

@@ -41,4 +41,14 @@
   <RL_VehicleLandingRestriction>不符合该机型的降落限制。</RL_VehicleLandingRestriction>
   <RL_VehicleLandingHeld>{0}：已暂停降落。{1} 请重新选择落点。</RL_VehicleLandingHeld>
   <RL_VehicleChooseLanding>重新选择落点</RL_VehicleChooseLanding>
+  <RL_VehicleDigNeedStation>先在紧邻下层的同位置建好载具升降机站。</RL_VehicleDigNeedStation>
+  <RL_VehicleDigBusy>井道有载具运输任务；先完成或取消运输。</RL_VehicleDigBusy>
+  <RL_VehicleDigClear>先挖走两站载车区内的岩石，移开车辆及其他障碍。</RL_VehicleDigClear>
+  <RL_VehicleDigNatural>只能开凿干燥天然地面；先人工移除铺装、地基和楼板。</RL_VehicleDigNatural>
+  <RL_VehicleDigComplete>下层井段已贯通</RL_VehicleDigComplete>
+  <RL_VehicleDigStart>开凿下层井段</RL_VehicleDigStart>
+  <RL_VehicleDigCancel>暂停井段开凿</RL_VehicleDigCancel>
+  <RL_VehicleDigHelp>先用普通地下通道扩层，在同位置挖出 9×9 净载车区并建站。矿工从本站逐格开凿通往紧邻地下站的井段，每格需 600 工作量；完工后可双向通车。暂停保留已完成井口和工作进度。不会自动扩层或拆除岩石、建筑及铺装。</RL_VehicleDigHelp>
+  <RL_VehicleDigProgress>下层井段：{0}/{1} 格已贯通</RL_VehicleDigProgress>
+  <RL_VehicleDigRoof>先人工拆除下层载车区的建筑屋顶。</RL_VehicleDigRoof>
 </LanguageData>

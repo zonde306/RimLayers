@@ -24,7 +24,7 @@ internal static class VehicleFacilitySpace
         var terrain=owner.map.terrainGrid.TerrainAt(cell);
         // The open shaft bypasses the native terrain-affordance test only inside its cabin.
         // The source and supporting platform still obey BuildingBase's Light foundation rule.
-        return !terrain.IsWater&&terrain.passability!=Traversability.Impassable&&terrain.affordances.Any(a=>a.defName=="Light")&&
+        return terrain.defName!="RL_VehicleDeck"&&!terrain.IsWater&&terrain.passability!=Traversability.Impassable&&terrain.affordances.Any(a=>a.defName=="Light")&&
             (at.LayerId==0||owner.Mountains.IsNaturalFloor(cell)||owner.StructuralCells.Contains(cell)&&owner.Structure.HasRequiredRoof(cell));
     }
     internal static bool DeckSupported(LayerMapComponent owner,CellRect rect)
@@ -82,13 +82,24 @@ internal static class VehicleFacilitySpace
                 if(lower.IsValid&&owner.map.roofGrid.RoofAt(lower)!=null)return "RL_VehicleShaftClear".Translate();
             }
         }
-        else if(rect.Any(c=>!NativeSurface(owner,c)))return "RL_VehicleNoSurface".Translate();
+        else
+        {
+            if(!DeckSupported(owner,rect))return "RL_VehicleDeckSupport".Translate();
+            foreach(var c in rect)
+            {
+                if(NativeSurface(owner,c))continue;
+                var lower=owner.Adjacent(c,-1);
+                var terrain=owner.map.terrainGrid.TerrainAt(c);
+                if(!lower.IsValid||owner.map.roofGrid.RoofAt(lower)!=null||
+                    terrain!=RimLayersDefOf.RL_OpenAir&&terrain.defName!="RL_VehicleDeck")return "RL_VehicleNoSurface".Translate();
+            }
+        }
         return true;
     }
     internal static void InstallDeck(Building_VehicleConnector station)
     {
         if(!station.IsLift||LayerMapComponent.For(station.Map) is not {} owner||
-            !owner.TryDecode(station.Position,out var at)||owner.Elevation(at.LayerId)<=0)return;
+            !owner.TryDecode(station.Position,out _))return;
         var deck=DefDatabase<TerrainDef>.GetNamed("RL_VehicleDeck");
         foreach(var c in station.OccupiedRect())
             if(station.Map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_OpenAir)station.Map.terrainGrid.SetTerrain(c,deck);

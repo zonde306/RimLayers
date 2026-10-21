@@ -1,4 +1,4 @@
-param([string]$CandidatePath=(Join-Path $PSScriptRoot 'Artifacts/vehicle-candidate/RimLayers.dll'),[switch]$NormalStartup,[switch]$UseCandidate,[switch]$PlatformLoss,[switch]$World,[switch]$AirRoute,[switch]$Crash,[switch]$Flat,[switch]$BasicOnly,[switch]$Obstruction,[switch]$Manual,[switch]$Expansion,[string]$LoadProfile='', [ValidateSet('vehicle-ground','vehicle-lift','vehicle-ramp','vehicle-flight')][string]$Scenario='vehicle-ground',[int]$TimeoutSeconds=240,[ValidateSet('None','VVE','Technical')][string]$ContentProfile='None',[ValidatePattern('^[A-Za-z0-9_]+$')][string]$VehicleDef='RL_TestVehicle')
+param([string]$CandidatePath=(Join-Path $PSScriptRoot 'Artifacts/vehicle-candidate/RimLayers.dll'),[switch]$Underground,[switch]$NormalStartup,[switch]$UseCandidate,[switch]$PlatformLoss,[switch]$World,[switch]$AirRoute,[switch]$Crash,[switch]$Flat,[switch]$BasicOnly,[switch]$Obstruction,[switch]$Manual,[switch]$Expansion,[string]$LoadProfile='', [ValidateSet('vehicle-ground','vehicle-lift','vehicle-ramp','vehicle-flight')][string]$Scenario='vehicle-ground',[int]$TimeoutSeconds=240,[ValidateSet('None','VVE','Technical')][string]$ContentProfile='None',[ValidatePattern('^[A-Za-z0-9_]+$')][string]$VehicleDef='RL_TestVehicle')
 $ErrorActionPreference='Stop'
 if($PSBoundParameters.ContainsKey('CandidatePath') -and !$UseCandidate){throw 'CandidatePath requires -UseCandidate; omit it to build the default vehicle candidate.'}
 $root=Split-Path -Parent $PSScriptRoot
@@ -7,7 +7,8 @@ if(Get-Process RimWorld -ErrorAction SilentlyContinue){throw 'Close RimWorld bef
 $run=Join-Path $PSScriptRoot ('Artifacts/vehicle-ground-'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path (Join-Path $run 'Config') | Out-Null
 if($Flat -and $Scenario -ne 'vehicle-ground'){throw 'Flat uses vehicle-ground only.'}
-$modes=@('generate','load')
+if($Underground -and $Scenario -ne 'vehicle-lift'){throw 'Underground uses vehicle-lift only.'}
+$modes=if($Underground){@('generate','excavate','load')}else{@('generate','load')}
 if($LoadProfile){
     $source=(Resolve-Path -LiteralPath $LoadProfile).Path
     $artifacts=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'Artifacts')).Path
@@ -50,11 +51,13 @@ try {
     }
     Copy-Item -LiteralPath $CandidatePath -Destination $live
     foreach($mode in $modes){
-        $gameMode=if($mode -eq 'recover'){'load'}else{$mode}
+        $gameMode=if($mode -in @('recover','excavate')){'load'}else{$mode}
         $arguments=@('-savedatafolder='+$run,'-quicktest','-rimlayersv1test','-rimlayerscase='+$Scenario,'-rimlayersmode='+$gameMode,'-rimlayersvehicledef='+$VehicleDef,'-screen-width=1024','-screen-height=768','-screen-fullscreen=0')
         if(!$NormalStartup){$arguments+='-rimlayersvehiclesprototype'}
         if($mode -eq 'recover'){Copy-Item -LiteralPath (Join-Path $run ('load-'+$Scenario+'-results.json')) -Destination (Join-Path $run ('first-load-'+$Scenario+'-results.json'))}
         if($mode -eq 'recover'){$arguments+='-rimlayersvehiclerecovery'}
+        if($Underground){$arguments+='-rimlayersvehicleunderground'}
+        if($mode -eq 'excavate'){$arguments+='-rimlayersvehicleshaftresume'}
         if($PlatformLoss){$arguments+='-rimlayersvehicleplatformloss'}
         if($World){$arguments+='-rimlayersvehicleworld'}
         if($AirRoute){$arguments+='-rimlayersvehicleairroute'}
@@ -68,10 +71,12 @@ try {
         if(!$process.WaitForExit($TimeoutSeconds*1000)){$process.Kill();$process.WaitForExit();throw "Vehicle scenario timed out: $run"}
         $gameLog='C:/Users/zonre/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log'
         if(Test-Path -LiteralPath $gameLog){Copy-Item -LiteralPath $gameLog -Destination (Join-Path $run ($mode+'-Player.log'))}
+        if($mode -eq 'excavate'){Move-Item -LiteralPath (Join-Path $run ('load-'+$Scenario+'-results.json')) -Destination (Join-Path $run ('excavate-'+$Scenario+'-results.json'))}
         if($mode -eq 'recover'){Move-Item -LiteralPath (Join-Path $run ('load-'+$Scenario+'-results.json')) -Destination (Join-Path $run ('recover-'+$Scenario+'-results.json'))}
         $report=Join-Path $run ($mode+'-'+$Scenario+'-results.json')
         if(!(Test-Path -LiteralPath $report)){throw "Missing vehicle report: $run"}
         $result=Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+        if($process.ExitCode -ne 0){throw "Game exited with code $($process.ExitCode): $run"}
         $result.checks | Format-Table name,pass,detail -AutoSize
         if($result.failures -ne 0){throw "Vehicle scenario failed: $report"}
     }

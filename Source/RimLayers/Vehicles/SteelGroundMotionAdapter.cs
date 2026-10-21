@@ -12,6 +12,7 @@ internal sealed class SteelGroundMotionAdapter
     private readonly Type motionType;
     private readonly Action<ThingComp,Vector3,float> begin;
     private readonly Func<ThingComp,bool> driving;
+    private readonly Func<ThingComp,float> heading;
     private readonly Func<Pawn,Vector3> trueCenter;
     private readonly Func<ThingComp,float> payment;
     private readonly FieldInfo remaining;
@@ -41,6 +42,7 @@ internal sealed class SteelGroundMotionAdapter
         var converted=Expression.Convert(comp,motionType);
         begin=Expression.Lambda<Action<ThingComp,Vector3,float>>(Expression.Call(converted,start,position,heading),comp,position,heading).Compile();
         driving=Expression.Lambda<Func<ThingComp,bool>>(Expression.Property(converted,pathDriving),comp).Compile();
+        this.heading=Expression.Lambda<Func<ThingComp,float>>(Expression.Property(converted,FrameworkVehicleAdapter.Property(motionType,"Heading")),comp).Compile();
         payment=Expression.Lambda<Func<ThingComp,float>>(Expression.Property(converted,pathPayment),comp).Compile();
     }
 
@@ -51,6 +53,9 @@ internal sealed class SteelGroundMotionAdapter
             var result=new SteelGroundMotionAdapter(extension,basic);
             patches.Patch(FrameworkVehicleAdapter.Method(basic.PatherType,"PatherTick",typeof(void)),
                 postfix:new HarmonyMethod(typeof(SteelGroundMotionAdapter),nameof(FinishSubnormalStep)){priority=Priority.Last});
+            // Native FullRotation is the cardinal grid proxy while Steel steers diagonally.
+            // Sweep from the real chassis heading, not from an imaginary 45-degree snap.
+            basic.GroundHeading=pawn=>pawn.AllComps.FirstOrDefault(result.motionType.IsInstanceOfType) is {} comp&&result.driving(comp)?result.heading(comp):null;
             installed=result;
             diagnostic="Steel ground pose synchronization installed.";
             return result;

@@ -52,7 +52,8 @@ public sealed class MountainService
     public bool Initialized=>state.Initialized;
     public IReadOnlyDictionary<IntVec3,ThingDef> Columns=>state.Columns;
     public MountainService(LayerMapComponent owner)=>this.owner=owner;
-    public bool IsNaturalFloor(IntVec3 cell)=>state.Floors.Contains(cell)||owner.Underground.IsNaturalFloor(cell);
+    public bool IsNaturalFloor(IntVec3 cell)=>(state.Floors.Contains(cell)||owner.Underground.IsNaturalFloor(cell))&&
+        owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir&&owner.map.terrainGrid.TerrainAt(cell).defName!="RL_VehicleDeck";
     public bool TryGetRock(IntVec3 cell,out ThingDef rock)
     {
         rock=null!;

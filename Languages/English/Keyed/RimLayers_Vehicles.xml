@@ -41,4 +41,14 @@
   <RL_VehicleLandingRestriction>The aircraft’s landing restrictions are not met.</RL_VehicleLandingRestriction>
   <RL_VehicleLandingHeld>{0}: landing suspended. {1} Choose another landing site.</RL_VehicleLandingHeld>
   <RL_VehicleChooseLanding>Choose landing site</RL_VehicleChooseLanding>
+  <RL_VehicleDigNeedStation>Build an aligned vehicle lift station on the floor immediately below first.</RL_VehicleDigNeedStation>
+  <RL_VehicleDigBusy>Finish or cancel vehicle journeys in this shaft first.</RL_VehicleDigBusy>
+  <RL_VehicleDigClear>Mine the rock and clear vehicles and other obstructions from both cabins first.</RL_VehicleDigClear>
+  <RL_VehicleDigNatural>Excavation requires dry natural ground. Remove flooring, foundations and slabs first.</RL_VehicleDigNatural>
+  <RL_VehicleDigComplete>Shaft to the floor below is open</RL_VehicleDigComplete>
+  <RL_VehicleDigStart>Excavate shaft below</RL_VehicleDigStart>
+  <RL_VehicleDigCancel>Pause shaft excavation</RL_VehicleDigCancel>
+  <RL_VehicleDigHelp>Create underground access first, mine an aligned 9×9 cabin and build the lower station. Miners at this station open the shaft one cell at a time, requiring 600 work per cell. The completed shaft supports travel in both directions. Pausing retains openings and work. This order does not create floors or remove rock Things, buildings or flooring.</RL_VehicleDigHelp>
+  <RL_VehicleDigProgress>Shaft below: {0}/{1} cells open</RL_VehicleDigProgress>
+  <RL_VehicleDigRoof>Remove the constructed roof over the lower cabin first.</RL_VehicleDigRoof>
 </LanguageData>

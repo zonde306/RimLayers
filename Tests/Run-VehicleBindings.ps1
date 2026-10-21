@@ -1,5 +1,6 @@
-param([switch]$UseCandidate,[int]$TimeoutSeconds=180,[switch]$Install,[switch]$NoFramework,[ValidateSet('None','VVE','Technical')][string]$ContentProfile='None')
+param([string]$CandidatePath=(Join-Path $PSScriptRoot 'Artifacts/vehicle-candidate/RimLayers.dll'),[switch]$UseCandidate,[int]$TimeoutSeconds=180,[switch]$Install,[switch]$NoFramework,[ValidateSet('None','VVE','Technical')][string]$ContentProfile='None')
 $ErrorActionPreference='Stop'
+if($PSBoundParameters.ContainsKey('CandidatePath') -and !$UseCandidate){throw 'CandidatePath requires -UseCandidate; omit it to build the default vehicle candidate.'}
 $root=Split-Path -Parent $PSScriptRoot
 $game=Split-Path -Parent (Split-Path -Parent $root)
 if(Get-Process RimWorld -ErrorAction SilentlyContinue){throw 'Close RimWorld before swapping a candidate DLL for this isolated test.'}
@@ -21,10 +22,12 @@ if(!$UseCandidate){
     & dotnet build (Join-Path $root 'Source/RimLayers/RimLayers.csproj') -c Release '-p:OutputPath=../../Tests/Artifacts/vehicle-candidate/' --nologo
     if($LASTEXITCODE -ne 0){throw 'Candidate build failed'}
 }
+if(!(Test-Path -LiteralPath $CandidatePath -PathType Leaf)){throw "Candidate not found: $CandidatePath"}
+$CandidatePath=(Resolve-Path -LiteralPath $CandidatePath).Path
 Copy-Item -LiteralPath $live -Destination $backup
 $process=$null
 try {
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Artifacts/vehicle-candidate/RimLayers.dll') -Destination $live
+    Copy-Item -LiteralPath $CandidatePath -Destination $live
     $report=Join-Path $run 'vehicle-bindings.txt'
     $args=@('-savedatafolder='+$run,'-rimlayersvehiclebindings','-rimlayersvehicleprobeexit','-rimlayersvehiclebindingreport='+$report,'-screen-width=1024','-screen-height=768','-screen-fullscreen=0')
     if($Install){$args+='-rimlayersvehiclesprototype'}
@@ -33,6 +36,7 @@ try {
     $gameLog='C:/Users/zonre/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log'
     if(Test-Path -LiteralPath $gameLog){Copy-Item -LiteralPath $gameLog -Destination (Join-Path $run 'Player.log')}
     if(!(Test-Path -LiteralPath $report)){throw "Missing binding report: $run"}
+    if($process.ExitCode -ne 0){throw "Game exited with code $($process.ExitCode): $run"}
     $result=Get-Content -LiteralPath $report -Raw
     Write-Output $result
     ${expected}=if($NoFramework){'^No Vehicle Framework provider enabled'}elseif($Install){'^Ground hook installation accepted'}else{'^Steel Horizon ground binding signatures accepted'}
