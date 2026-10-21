@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><LanguageData><RL_CargoManualUp.label>手动物品吊篮（向上）</RL_CargoManualUp.label><RL_CargoManualUp.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoManualUp.description>
+<RL_CargoManualDown.label>手动物品吊篮（向下）</RL_CargoManualDown.label><RL_CargoManualDown.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoManualDown.description>
+<RL_CargoElectricUp.label>电动物品吊篮（向上）</RL_CargoElectricUp.label><RL_CargoElectricUp.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoElectricUp.description>
+<RL_CargoElectricDown.label>电动物品吊篮（向下）</RL_CargoElectricDown.label><RL_CargoElectricDown.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoElectricDown.description>
+<RL_CargoManualShaft.label>手动竖井吊篮</RL_CargoManualShaft.label><RL_CargoManualShaft.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoManualShaft.description>
+<RL_CargoElectricShaft.label>电动竖井吊篮</RL_CargoElectricShaft.label><RL_CargoElectricShaft.description>可存放3堆物品的实体吊篮。Pawn 通过搬运工作放入物品，在任一连通存取口呼叫吊篮并取货。只有已经入篮的货物可以跨层取用；不运送人员，不开辟楼层。</RL_CargoElectricShaft.description>
+<RL_CargoShaftStation.label>吊篮扩展站</RL_CargoShaftStation.label><RL_CargoShaftStation.description>连接相邻的现有吊篮竖井。增加存取站，不增加储物容量。</RL_CargoShaftStation.description>
+<RL_CargoPort.label>吊篮存取口</RL_CargoPort.label><RL_CargoPort.description>相邻式物品吊篮的另一端，与主机共用一个实体篮子。</RL_CargoPort.description></LanguageData>

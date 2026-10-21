@@ -36,7 +36,7 @@ internal static class LandingMarkers
     }
     internal static void OnGUI(LayerMapComponent owner)
     {
-        if(owner!=LayerView.Current || !RimLayersMod.Settings.LandingMarkers || LayerTransition.HasPicture)return;
+        if(owner!=LayerView.Current || !RimLayersMod.Settings.ReturnButtons || LayerTransition.HasPicture)return;
         foreach(var stair in Visible(owner))
         {
             var point=GenMapUI.LabelDrawPosFor(stair.UpperCell);

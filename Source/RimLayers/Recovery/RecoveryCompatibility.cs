@@ -23,6 +23,14 @@ public static class RecoveryCompatibility
     internal static bool TransactionActive=>Generation.GenerationScope.Active!=null||MapGenerator.mapBeingGenerated!=null||
         ShipLayers.Capture!=null||ShipLayers.Placing!=null||SkyPayload.Current!=null||WorldComponent_GravshipController.CutsceneInProgress;
     internal static bool SupportedKind(Thing thing)=>thing is Pawn or Corpse||thing.def.category==ThingCategory.Item;
+    internal static bool ValidFloorConstruction(Thing thing,LayerMapComponent owner,IntVec3 at)
+    {
+        if(thing is not (Blueprint or Frame)||thing.def.entityDefToBuild is not TerrainDef floor)return false;
+        if(floor!=RimLayersDefOf.RL_StructuralFloor&&floor.defName!="RL_ShipStructuralFloor")return false;
+        // A planned slab is meant to occupy air until built. Validate its roof/ship rules,
+        // not the walkable surface it will create; distant cells may await adjacent work.
+        return owner.Structure.Validate(floor,at,thing.Rotation,planning:true).Accepted;
+    }
     internal static bool Excluded(Thing thing,LayerMapComponent owner)
     {
         if(IsClaimed(thing)||thing.Destroyed||thing.BeingTransportedOnGravship||thing is Projectile or Mote or Skyfaller or PawnFlyer or ActiveTransporter)return true;

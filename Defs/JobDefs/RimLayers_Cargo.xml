@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><Defs><JobDef><defName>RL_CallCargo</defName><driverClass>RimLayers.Cargo.JobDriver_CallCargo</driverClass><reportString>calling the item hoist.</reportString><casualInterruptible>true</casualInterruptible></JobDef></Defs>

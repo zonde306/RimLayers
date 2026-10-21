@@ -829,3 +829,9 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 保留所有失败目录。最初银堆未真正拾取是诊断误用 bool TryStartCarry，修为数量重载并先验证真实持有；预热屋顶最初放在轨迹尚未接触的 x=51，改到实际相交的 x=53 并增加受阻前置检查。未放宽物品身份、数量、队列身份或穿板断言。细节见 JUMP-VALIDATION.md。
 
 最终全 DLC 中文场景 58/11、纯几何 58，以及 Core 原有射击 14/9 通过；实际检查选点射程圈、轨迹、中文状态、飞行与重载落地截图。新布局不迁移；在途新载体依赖新 DLL。用户说明与范围见 JUMP-PACK.md。
+
+## 2026-10-21：降落物品、Pawn、植物对齐原版
+
+核实当前 1.7.4984 的 IsValidCell 与 SpawnFoundations/SpawnTerrain/ClearThingsAt：原版不按 Item/Plant 类别拒绝，Pawn 仅 Humanlike 或敌对时阻挡；实际基架格清理可销毁实体。用户确认后移除 RimLayers 四处全物品/全 Pawn 拒绝，统一 BlocksLanding，保留显式禁止标记和既有建筑保护。植物无需额外放行；普通草/树/作物继续遵循原版，特殊禁止标记仍有效。未增加竖直柱清理，也未更改原版放置流程。
+
+新增 ship-landing-items 独立场景，真实三层镂空载荷在地面与旋转高层放置，验证覆盖格清理、镂空/船外保留、只读预览、特殊标记、人形/敌对 Pawn 拒绝及原货物身份。最终 v1-ship-landing-items-20261021-193127 为37/37、errors=[]，Release 0警告/错误。中间夹具上层设置和地图边缘失败、源码位置、复现命令记入 SHIP-COLONY-VALIDATION.md；原生结论与成员证据补入根 docs/odyssey-gravship.md / sources.md。运行与并行 Cargo 任务串行协调，保留其注册、参数及船舶吊篮夹具。

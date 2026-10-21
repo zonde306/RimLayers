@@ -23,8 +23,18 @@ internal static partial class V1Integration
         if(pawn.needs.rest!=null)pawn.needs.rest.CurLevelPercentage=1;
         integritySource=GenSpawn.Spawn(ThingDefOf.Silver,At(2,62,62),map);integritySource.stackCount=75;
         storageCell=At(2,55,62);
+        if(GenCommandLine.CommandLineArgPassed("rimlayersshelf"))
+        {
+            var shelf=(Building_Storage)GenSpawn.Spawn(ThingMaker.MakeThing(DefDatabase<ThingDef>.GetNamed("ShelfSmall"),ThingDefOf.WoodLog),storageCell,map);
+            shelf.SetFaction(Faction.OfPlayer);shelf.GetStoreSettings().filter.SetDisallowAll();
+            shelf.GetStoreSettings().filter.SetAllow(ThingDefOf.Silver,true);shelf.GetStoreSettings().Priority=StoragePriority.Critical;
+            Check("ordinary-shelf-keeps-native-storage-and-no-cargo-owner",shelf.GetType()==typeof(Building_Storage)&&RimLayers.Cargo.CargoNetwork.For(map).Ports.Count==0);
+        }
+        else
+        {
         var zone=new Zone_Stockpile(StorageSettingsPreset.DefaultStockpile,map.zoneManager);map.zoneManager.RegisterZone(zone);zone.AddCell(storageCell);
         zone.GetStoreSettings().filter.SetDisallowAll();zone.GetStoreSettings().filter.SetAllow(ThingDefOf.Silver,true);zone.GetStoreSettings().Priority=StoragePriority.Critical;
+        }
         integrityDestination=GenSpawn.Spawn(ThingDefOf.Silver,storageCell,map);integrityDestination.stackCount=5;
         integrityCompetitor=map.mapPawns.FreeColonistsSpawned.First(p=>p!=pawn);
         integrityTotal=SilverCount();StartIntegrityHaul();

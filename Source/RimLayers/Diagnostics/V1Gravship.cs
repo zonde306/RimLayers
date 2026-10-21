@@ -107,6 +107,7 @@ internal static partial class V1Integration
         shipTable.SetFaction(Faction.OfPlayer);
         shipTable.BillStack.AddBill(new Bill_Production(DefDatabase<RecipeDef>.GetNamed("ButcherCorpseFlesh"),null){repeatCount=7});
         shipItem=ThingMaker.MakeThing(ThingDefOf.Silver);shipItem.stackCount=37;GenSpawn.Spawn(shipItem,At(2,86,78),map);
+        AddShipCargoFixture();
         shipPawn.Position=At(2,83,77);shipPawn.Notify_Teleported();shipPawn.drafter.Drafted=true;
         var inventory=ThingMaker.MakeThing(ThingDefOf.Steel);inventory.stackCount=5;shipPawn.inventory.innerContainer.TryAdd(inventory);
         var clothes=(Building_OutfitStand)GenSpawn.Spawn(ThingMaker.MakeThing(DefDatabase<ThingDef>.GetNamed("Building_OutfitStand"),ThingDefOf.WoodLog),At(1,87,78),map);
@@ -187,6 +188,7 @@ internal static partial class V1Integration
             var split=GenSpawn.Spawn(ThingMaker.MakeThing(DefDatabase<ThingDef>.GetNamed("TableButcher"),ThingDefOf.WoodLog),At(1,90,75),map);
             Check("partial-upper-building-is-classified-without-preview-destruction",ShipLayers.Prepare(shipEngine,out var splitReport) is {} splitCapture&&splitReport.Accepted&&splitCapture.Straddlers.Contains(split)&&split.Spawned&&shipPawn.Spawned&&shipItem.Spawned);split.Destroy(DestroyMode.Vanish);
             CheckIndependentShipLinks();
+            CheckCargoShipBoundary();
             if(scenario=="ship-structure"){CheckShipBoarding();CheckSingleElevatedDeck();Finish();return;}
             if(ShipDecks>3)ExtendShipTestDecks();
             shipExpected=map.listerThings.AllThings.Where(t=>t is not Mote && t.def.bringAlongOnGravship && t is not Skyfaller &&
@@ -283,6 +285,7 @@ internal static partial class V1Integration
     private static void CompleteShipCapture()
     {
         map=shipSource;owner=LayerMapComponent.For(map)!;
+        VerifyShipCargo(layerShip.Things,"departed");
             Check("native-gravship-has-persistent-layer-facts",ShipLayers.TryData(layerShip,out var payload)&&payload.floors.Count>0,$"floors={payload?.floors.Count}");
             Check("native-world-container-owns-original-upper-pawn",layerShip.Pawns.Contains(shipPawn)&&!shipPawn.Spawned&&shipExpectedPositions.ContainsKey(shipPawn.ThingID));
             Check("native-world-container-owns-upper-items-and-workbench",layerShip.Things.Contains(shipItem)&&layerShip.Things.Contains(shipTable)&&!shipItem.Spawned&&!shipTable.Spawned);
@@ -419,6 +422,7 @@ internal static partial class V1Integration
         {
             shipEngine=(Building_GravEngine)Find.Maps.SelectMany(m=>m.listerThings.AllThings).Single(t=>t.ThingID==d.GetProperty("engine").GetString());
             shipDestination=shipEngine.Map;map=shipDestination;owner=LayerMapComponent.For(map)!;
+            VerifyShipCargo(map.listerThings.AllThings,"landed");
             if(ExistingShipDestination)ValidateExistingShipDestination();
             shipPawn=map.mapPawns.AllPawnsSpawned.Single(p=>p.ThingID==d.GetProperty("pawn").GetString());
             Check("landed-save-retains-upper-pawn-and-floor",owner.TryDecode(shipPawn.Position,out var p)&&p.LayerId==2&&owner.Structure.HasSurface(shipPawn.Position));
@@ -440,6 +444,7 @@ internal static partial class V1Integration
         shipPawn=layerShip.Pawns.Single(p=>p.ThingID==d.GetProperty("pawn").GetString());
         shipItem=layerShip.Things.Single(t=>t.ThingID==d.GetProperty("item").GetString());
         shipTable=(Building_WorkTable)layerShip.Things.Single(t=>t.ThingID==d.GetProperty("table").GetString());
+        VerifyShipCargo(layerShip.Things,"reloaded-flight");
         shipOutside=shipSource.listerThings.AllThings.Single(t=>t.ThingID==d.GetProperty("outside").GetString());
         Check("in-flight-restart-keeps-layer-facts-and-native-identities",ShipLayers.TryData(layerShip,out var payload)&&payload.floors.Count==d.GetProperty("floorCount").GetInt32()&&!shipPawn.Spawned&&!shipItem.Spawned);
         Check("flight-payload-reads-or-upgrades-to-version-two",payload is {version:2}&&payload.engineDeckOffset==ShipEngineLayer);
@@ -491,7 +496,7 @@ internal static partial class V1Integration
         map.roofCollapseBuffer.CellsMarkedToCollapse.RemoveAll(c=>new CellRect(45,45,45,45).Contains(c));
         var first=payload!.floors.First();var rotated=PrefabUtility.GetAdjustedLocalPosition(first.local,Rot4.East);
         var blocked=owner!.ToStorage(new LayerCell(rotated.y,shipLandingRoot.x+rotated.x,shipLandingRoot.z+rotated.z));
-        var blocker=GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Steel),blocked,map);
+        var blocker=GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Wall,ThingDefOf.Steel),blocked,map);
         Check("upper-landing-collision-rejected-before-spawning-cargo",!ShipLanding.Check(layerShip,shipLandingRoot,map).Accepted&&!shipPawn.Spawned);
         if(NativeShip)
         {
@@ -521,6 +526,7 @@ internal static partial class V1Integration
     private static void ValidateShipLanding()
     {
         using var baseline=JsonDocument.Parse(File.ReadAllText(Path.Combine(directory,"gravship-baseline.json")));var d=baseline.RootElement;
+        VerifyShipCargo(map.listerThings.AllThings,"landed");
         if(ExistingShipDestination)ValidateExistingShipDestination();
         Check("core-retains-selected-deck-offset-after-rotation-and-landing",owner.TryDecode(shipEngine.Position,out var coreAt)&&coreAt.LayerId==ShipEngineLayer);
         Check("native-placement-returns-original-core-on-new-main-map",shipEngine.Spawned&&shipEngine.Map==map&&Find.CurrentMap==map);

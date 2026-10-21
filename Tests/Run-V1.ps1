@@ -2,8 +2,10 @@ param(
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
-    [ValidateSet("jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
+    [ValidateSet("ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
     [switch]$CheckPure,
+    [switch]$TemperatureCore,
+    [ValidateSet("travel","handling","queue")][string]$CargoCheckpoint="travel",
     [switch]$NativeShip,
     [ValidateRange(0,2)][int]$Vge=0,
     [switch]$LegacyFlight,
@@ -11,6 +13,7 @@ param(
     [switch]$ShipVisual,
     [switch]$BootstrapLift,
     [switch]$LiftWork,
+    [switch]$Shelf,
     [switch]$TravelMultipliers,
     [ValidateRange(0,2)][int]$EngineLayer=0,
     [switch]$Nanami,
@@ -44,8 +47,8 @@ $expansions = @('ludeon.rimworld.royalty','ludeon.rimworld.ideology','ludeon.rim
 $active = @('ludeon.rimworld')
 if ($AllDlc) { $active += $expansions }
 elseif ($Scenario -in @('jump','combat-shields','combat-shield-save','combat-shield-pass')) { $active += 'ludeon.rimworld.royalty' }
-elseif ($Scenario -eq 'mechanitor') { $active += 'ludeon.rimworld.biotech' }
-elseif ($Scenario -in @('ship-coexistence','gravship','ship-structure','work-container')) { $active += 'ludeon.rimworld.odyssey' }
+elseif ($Scenario -in @('mechanitor','temperature') -and -not ($Scenario -eq 'temperature' -and $TemperatureCore)) { $active += 'ludeon.rimworld.biotech' }
+elseif ($Scenario -in @('ship-landing-items','ship-coexistence','gravship','ship-structure','work-container')) { $active += 'ludeon.rimworld.odyssey' }
 $active += @('brrainz.harmony','rimlayers.core')
 if($Vge -gt 0){$active=@($active|Where-Object {$_ -ne 'rimlayers.core'});$active+=@('oskarpotocki.vanillafactionsexpanded.core','vanillaexpanded.gravship');if($Vge -eq 2){$active+='vanillaexpanded.gravship2'};$active+='rimlayers.core'}
 if($Dashboard){$active+=@('rimiris.rimiris.beta','rimiris.dashboard')}
@@ -84,7 +87,7 @@ if($Scenario -eq 'combat-raid-audit') {
     $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
     Copy-Item -LiteralPath $RaidAuditSave -Destination (Join-Path $saves 'RimLayers_V1RaidEnd.rws')
 }
-$modes = if($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
+$modes = if($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
 foreach ($mode in $modes) {
     $arguments = @(
         ('-savedatafolder=' + $runRoot),
@@ -102,8 +105,11 @@ foreach ($mode in $modes) {
     if($ShipVisual){$arguments+='-rimlayersshipvisual'}
     if($BootstrapLift){$arguments+='-rimlayersbootlift'}
     if($LiftWork){$arguments+='-rimlayersliftwork'}
+    if($Shelf){$arguments+='-rimlayersshelf'}
     if($TravelMultipliers){$arguments+='-rimlayerstravelmultipliers'}
     $arguments+=('-rimlayersenginelayer='+$EngineLayer)
+    if($Scenario -eq "cargo"){$arguments+=("-rimlayerscargocheckpoint="+$CargoCheckpoint)}
+    if($TemperatureCore){$arguments+='-rimlayerstemperaturecore'}
     if($CorpseDamage){$arguments+='-rimlayerscorpsedamage'}
     if($River){$arguments+='-rimlayersriver'}
     if($Space){$arguments+='-rimlayersspace'}

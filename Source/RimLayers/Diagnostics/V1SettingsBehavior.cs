@@ -23,6 +23,7 @@ internal static partial class V1Integration
         Check("all-default-settings-match-fresh-instance",SettingsValues()==JsonSerializer.Serialize(typeof(RimLayersSettings).GetFields().ToDictionary(f=>f.Name,f=>f.GetValue(new RimLayersSettings()))));
         File.WriteAllText(Path.Combine(directory,"settings-def-baseline.json"),JsonSerializer.Serialize(SettingsDefsSnapshot()));
         foreach(var f in typeof(RimLayersSettings).GetFields())if(f.FieldType==typeof(bool))f.SetValue(s,false);
+        s.ReturnButtons=true; // Opposite to LandingMarkers: persist the independent choice.
         s.UpperLimit=7;s.UndergroundLimit=6;s.GlobalLimit=77;
         s.StairTime=.5f;s.PoweredLiftTime=2;s.EmergencyLiftTime=3;
         s.MaterialCost=2;s.WorkCost=3;s.LiftPower=.5f;s.Minerals=2.5f;s.HeightRange=0;

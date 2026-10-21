@@ -22,6 +22,7 @@ internal static partial class V1Integration
     {
         if(GenCommandLine.TryGetCommandLineArg("rimlayersuiscale",out var scale))Prefs.UIScale=float.Parse(scale,CultureInfo.InvariantCulture);
         ResolutionUtility.SetResolutionRaw(ScaleArgument("screen-width",1280,1024,3840),ScaleArgument("screen-height",720,720,2160),ScaleArgument("screen-height",720,720,2160)>=1080);
+        CheckLandingDisplayPersistence();
         settingsUiPage=-3;stage=450;
     }
     private static void SettingsUiPicture(string name)
@@ -82,7 +83,7 @@ internal static partial class V1Integration
     private static bool SettingsInputDown(int __0,ref bool __result){if(!settingsInputBusy)return true;__result=__0==0&&settingsInputKind==EventType.MouseDown;return false;}
     // A fast checkbox click has both down/up transitions in one input frame; native
     // draggable widgets then retain the same backend control ID for the complete click.
-    private static bool SettingsInputUp(int __0,ref bool __result){if(!settingsInputBusy)return true;__result=__0==0&&(settingsInputKind==EventType.MouseUp||settingsInputPhase==0);return false;}
+    private static bool SettingsInputUp(int __0,ref bool __result){if(!settingsInputBusy)return true;__result=__0==0&&(settingsInputKind==EventType.MouseUp||settingsInputPhase is 0 or 9 or 11 or 13);return false;}
     private static bool SettingsInputHeld(int __0,ref bool __result){if(!settingsInputBusy)return true;__result=__0==0&&settingsInputKind!=EventType.MouseUp;return false;}
     private static bool SettingsInputMouse(ref Vector3 __result){if(!settingsInputBusy)return true;__result=new(settingsInputPoint.x*Prefs.UIScale,(UI.screenHeight-settingsInputPoint.y)*Prefs.UIScale,0);return false;}
     private static bool SettingsInputUiMouse(ref Vector2 __result){if(!settingsInputBusy)return true;__result=new(settingsInputPoint.x,UI.screenHeight-settingsInputPoint.y);return false;}
@@ -138,11 +139,13 @@ internal static partial class V1Integration
             0 or 1=>new(rect.x+rect.width*.5f,rect.y+122),
             2 or 3=>new(rect.x+rect.width*.5f,rect.y+16),
             4 or 5 or 6=>new(rect.x+rect.width*.8f,rect.y+122),
+            9 or 10 or 13 or 14=>new(rect.x+rect.width*.5f,rect.y+198),
+            11 or 12=>new(rect.x+rect.width*.5f,rect.y+234),
             _=>new(rect.x+90,rect.yMax-19)
         };
         settingsInputLocal=local;
         settingsInputPoint=new(settingsUiWindow.windowRect.x+18+local.x,settingsUiWindow.windowRect.y+18+local.y);
-        settingsInputKind=settingsInputPhase is 0 or 2 or 4 or 7?EventType.MouseDown:settingsInputPhase==5?EventType.MouseDrag:EventType.MouseUp;
+        settingsInputKind=settingsInputPhase is 0 or 2 or 4 or 7 or 9 or 11 or 13?EventType.MouseDown:settingsInputPhase==5?EventType.MouseDrag:EventType.MouseUp;
         Event.current=new Event{type=settingsInputKind,rawType=settingsInputKind,button=0,clickCount=1,mousePosition=local};
     }
     private static void SettingsInputEnd(Event? __state)
@@ -159,6 +162,15 @@ internal static partial class V1Integration
                 Check("restore-defaults-button-opens-confirmation",confirm!=null);
                 if(confirm!=null){confirm.buttonAAction();confirm.Close(false);}
                 Check("confirmed-reset-restores-clicked-settings",RimLayersMod.Settings.FloorPanel&&RimLayersMod.Settings.StairTime==1);
+                AccessTools.Field(typeof(SettingsMenu),"page").SetValue(settingsUiMenu,0);
+            }
+            if(settingsInputPhase==10)Check("native-marker-checkbox-keeps-return-buttons-on",!RimLayersMod.Settings.LandingMarkers&&RimLayersMod.Settings.ReturnButtons);
+            if(settingsInputPhase==12)Check("native-return-checkbox-can-disable-buttons-separately",!RimLayersMod.Settings.LandingMarkers&&!RimLayersMod.Settings.ReturnButtons);
+            if(settingsInputPhase==14)
+            {
+                Check("native-marker-checkbox-does-not-reenable-return-buttons",RimLayersMod.Settings.LandingMarkers&&!RimLayersMod.Settings.ReturnButtons);
+                RimLayersMod.Settings.Reset();
+                Check("defaults-enable-both-independent-landing-controls",RimLayersMod.Settings.LandingMarkers&&RimLayersMod.Settings.ReturnButtons);
                 settingsInputDone=true;
             }
             settingsInputPhase++;

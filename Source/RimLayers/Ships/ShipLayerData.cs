@@ -129,6 +129,16 @@ internal static class ShipLayers
                 }
             }
         }
+        foreach(var hoist in RimLayers.Cargo.CargoNetwork.For(owner.map).Hoists)
+        {
+            var ports=RimLayers.Cargo.CargoNetwork.For(owner.map).Ports.Where(p=>p.Master==hoist).ToArray();
+            if(ports.Any(p=>cells.Contains(p.Position))&&ports.Any(p=>!cells.Contains(p.Position)))
+            {
+                if(ports.Any(p=>!cells.Contains(p.Position)&&owner.Ships.ClaimAt(p.Position)!=0&&owner.Ships.ClaimAt(p.Position)!=engine.thingIDNumber))
+                {report="RL_ShipSplitObject".Translate(hoist.LabelCap);return null;}
+                foreach(var port in ports)capture.Straddlers.Add(port);
+            }
+        }
         if(capture.Straddlers.Contains(engine))
         {report="RL_ShipSplitFacility".Translate();return null;}
         report=ShipSeparation.CheckClearance(capture);if(!report.Accepted)return null;

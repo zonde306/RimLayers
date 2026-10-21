@@ -65,7 +65,7 @@ internal static partial class V1Integration
         if (GenCommandLine.TryGetCommandLineArg("rimlayersmode", out var value)) mode = value;
         if (mode != "generate" && mode != "load") throw new ArgumentException("Invalid V1 test mode.");
         if (GenCommandLine.TryGetCommandLineArg("rimlayerscase", out var testCase)) scenario = testCase;
-        if (scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
+        if (scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
         Directory.CreateDirectory(directory);
         var h = new Harmony("rimlayers.core.v1test");
         if(scenario=="mountains")
@@ -170,7 +170,7 @@ internal static partial class V1Integration
                 if (mode == "generate") { if(GenCommandLine.CommandLineArgPassed("rimlayerscorpsefixture")) BeginCorpseFixture();else Seed(); }
                 else
                 {
-                    if(scenario=="jump") { RestoreJumps(); } else if(scenario=="transition") { RestoreTransitions(); }
+                    if(scenario=="cargo") { RestoreCargo(); } else if(scenario=="temperature") { RestoreTemperature(); } else if(scenario=="jump") { RestoreJumps(); } else if(scenario=="transition") { RestoreTransitions(); }
                     else if(scenario=="settings-behavior") { RestoreSettingsBehavior(); }
                     else if(scenario=="settings-recovery") { RestoreSettingsRecovery(); }
                     else if(scenario=="combat-raid-audit") { AuditSavedRaid(); }
@@ -246,7 +246,7 @@ internal static partial class V1Integration
     {
         int dlcCount=(ModsConfig.RoyaltyActive?1:0)+(ModsConfig.IdeologyActive?1:0)+(ModsConfig.BiotechActive?1:0)+
             (ModsConfig.AnomalyActive?1:0)+(ModsConfig.OdysseyActive?1:0);
-        int expectedDlc=GenCommandLine.CommandLineArgPassed("rimlayersalldlc")?5:scenario is "jump" or "ship-coexistence" or "gravship" or "ship-structure" or "mechanitor" or "combat-shields" or "combat-shield-save" or "combat-shield-pass" or "work-container"?1:0;
+        int expectedDlc=GenCommandLine.CommandLineArgPassed("rimlayersalldlc")?5:scenario=="temperature"&&GenCommandLine.CommandLineArgPassed("rimlayerstemperaturecore")?0:scenario is "temperature" or "jump" or "ship-landing-items" or "ship-coexistence" or "gravship" or "ship-structure" or "mechanitor" or "combat-shields" or "combat-shield-save" or "combat-shield-pass" or "work-container"?1:0;
         Check("test-profile-loads-requested-official-dlc",dlcCount==expectedDlc,$"expected={expectedDlc}, actual={dlcCount}");
         if(scenario=="jump"){BeginJumps();return;} if(scenario=="settings-behavior"){BeginSettingsBehavior();return;}
         if(scenario=="settings-perf"){BeginSettingsPerf();return;}
@@ -299,10 +299,14 @@ internal static partial class V1Integration
         pawn.pather.ResetToCurrentPosition();
         pawn.Drawer.tweener.Notify_Teleported();
         if(scenario=="corpse-refresh") { BeginCorpseRefresh();return; }
+        if(scenario=="cargo") { BeginCargo();return; }
+        if(scenario=="temperature") { BeginTemperature();return; }
+        if(scenario=="reinstall") { BeginReinstall();return; }
         if(scenario=="command-input") { BeginCommandInput();return; }
         if(scenario=="elevators") { BeginElevators();return; }
         if(scenario is "gravship" or "ship-structure") { BeginGravship();return; }
         if(scenario=="ship-vge") { BeginVge();return; }
+        if(scenario=="ship-landing-items") { BeginShipLandingItems();return; }
         if(scenario=="ship-coexistence") { BeginShipCoexistence();return; }
         if(scenario=="migration") { BeginMigration();return; }
         if(scenario=="reachability") { BeginReachability();return; }
@@ -368,6 +372,8 @@ internal static partial class V1Integration
 
     private static void Step()
     {
+        if(scenario=="cargo"){CargoStep();return;}
+        if(stage==540){TemperatureStep();return;}
         if(scenario=="jump"){JumpStep();return;} if(stage==460){SettingsPerfStep();return;}
         if(stage==450){SettingsUiStep();return;}
         if(stage==440){ticks++;SettingsRecoveryStep();return;}
@@ -384,6 +390,7 @@ internal static partial class V1Integration
         if(stage==340){ticks++;ExpansionStep();return;}
         if(stage==320){CorpseRefreshStep();return;}
         if(stage==330){ticks++;GravshipStep();return;}
+        if(stage==520){ReinstallStep();return;}
         if(stage==310){CommandInputStep();return;}
         if(stage==290){PresentationStep();return;}
         ticks++;
@@ -836,7 +843,7 @@ internal static partial class V1Integration
     private static void OnGUI()
     {
         JumpsOnGUI();TransitionsOnGUI();
-        CommandInputOnGUI();
+        ReinstallOnGUI();CommandInputOnGUI();
         UsabilityKeysOnGUI();
         if (!loadPending || Event.current.type != EventType.Repaint) return;
         loadPending = false; loadIssued = true;
@@ -862,11 +869,13 @@ internal static partial class V1Integration
             "home"=>"RimLayers_V1Home",
             "scale"=>"RimLayers_V1Scale",
             "lord"=>"RimLayers_V1Lord",
+            "temperature"=>"RimLayers_Temperature",
             "roping"=>"RimLayers_V1Roping",
             "mechanitor"=>"RimLayers_V1Mechanitor",
             "combat-shield-save" or "combat-shield-pass"=>"RimLayers_V1ShieldBoundary",
             "combat-grenade-flee"=>"RimLayers_V1GrenadeFlee",
             "skyfall"=>"RimLayers_V1Skyfall",
+            "cargo"=>"RimLayers_V1Cargo",
             "work-container"=>"RimLayers_V1Container",
             "work-save"=>"RimLayers_V1Work",
             "navigation-maze"=>"RimLayers_V1Maze",

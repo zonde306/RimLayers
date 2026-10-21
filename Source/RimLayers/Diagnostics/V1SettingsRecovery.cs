@@ -53,6 +53,7 @@ internal static partial class V1Integration
         ClearRecoveryColumn(map,new CellRect(75,75,24,24));
         CheckRecoveryLandingRules();
         CheckRecoveryExclusions();
+        CheckRecoveryConstructionWarnings();
         recoveryHostile=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfAncientsHostile);
         GenSpawn.Spawn(recoveryHostile,At(2,79,96),map);
         recoveryHostile.jobs.StartJob(JobMaker.MakeJob(JobDefOf.Wait_MaintainPosture,5000),JobCondition.InterruptForced);

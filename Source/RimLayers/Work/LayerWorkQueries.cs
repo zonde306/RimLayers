@@ -162,7 +162,8 @@ internal static class BillCandidatePatch
         float searchRadius, ref bool __result)
     {
         var owner = LayerMapComponent.For(pawn.Map);
-        if (owner == null || !owner.Connectors.HasAny || billGiver is Pawn) return true;
+        if (owner == null || !owner.Connectors.HasAny && !RimLayers.Cargo.CargoNetwork.For(pawn.Map).Hoists.Any() || billGiver is Pawn) return true;
+        var cargoCostScope=RimLayers.Cargo.CargoBillCosts.Begin(pawn);
         Map? previous = QueryGeometry.CurrentMap;
         QueryGeometry.CurrentMap = pawn.Map;
         try
@@ -176,6 +177,12 @@ internal static class BillCandidatePatch
             if (foundAllIngredientsAndChoose(candidates)) { __result = true; return false; }
             void Add(Thing item, Thing parent, bool requireSpawned)
             {
+                if (RimLayers.Cargo.CargoNetwork.OwnerOf(item) is {} hoist)
+                {
+                    var port=RimLayers.Cargo.CargoNetwork.For(pawn.Map).BestPort(hoist,pawn,pawn.Position,out _);
+                    if(port==null)return;
+                    parent=port;
+                }
                 if (!seen.Add(item) || requireSpawned && !item.Spawned || !thingValidator(item) ||
                     item.IsForbidden(pawn) || !pawn.CanReserve(item) ||
                     QueryGeometry.DistanceSquared(owner, parent.PositionHeld, billGiver.Position) >= searchRadius * searchRadius ||
@@ -195,7 +202,7 @@ internal static class BillCandidatePatch
             __result = foundAllIngredientsAndChoose(candidates);
             return false;
         }
-        finally { QueryGeometry.CurrentMap = previous; }
+        finally { QueryGeometry.CurrentMap = previous; RimLayers.Cargo.CargoBillCosts.End(cargoCostScope); }
     }
 }
 

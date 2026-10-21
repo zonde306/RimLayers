@@ -43,10 +43,14 @@ public static class LayerView
         component.SetViewedLayer(layer);
         // Actors remain selected so a floor switch can actually be used to give a cross-floor order.
         // A targeting command also owns a stable caster reference (including a selected turret).
+        // Install/reinstall resolves its source through SingleSelectedThing on every update.
+        // Keep that selection and the existing tool instance (including rotation/material).
+        var installSource = Find.DesignatorManager.SelectedDesignator is Designator_Install
+            ? Find.Selector.SingleSelectedThing : null;
         if(!Find.Targeter.IsTargeting)
             foreach(object selected in Find.Selector.SelectedObjectsListForReading.ToList())
-                if(selected is not Pawn) Find.Selector.Deselect(selected);
-        Find.DesignatorManager.Deselect();
+                if(selected is not Pawn && !ReferenceEquals(selected, installSource)) Find.Selector.Deselect(selected);
+        // Only the old drag belongs to the outgoing floor; a new placement uses the new floor.
         EndDrag(Find.DesignatorManager);
         camera.SetRootPosAndSize(position, camera.RootSize);
         return true;

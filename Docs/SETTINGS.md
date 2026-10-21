@@ -7,7 +7,7 @@
 | 页面 / 设置 | 范围；默认 | 生效时机 |
 |---|---|---|
 | 显示：换层过渡动画 | 开启 | 即时；关闭恢复瞬切 |
-| 显示：楼层面板、快捷键提示、楼梯标记/返层按钮、规划边界 | 各自开关；全开 | 即时 |
+| 显示：楼层面板、快捷键提示、楼梯标记、返层按钮、规划边界 | 各自开关；全开 | 即时 |
 | 显示：下层背景与拾取、漂浮雾效、战斗信息框、轨迹预览 | 各自开关；全开 | 即时 |
 | 楼层：单图地上 / 地下上限 | 分别 0–9；各 2 | 仅限制新增 |
 | 楼层：全局额外楼层上限 | 0–100；20 | 限制跨地图新增，含运输预留 |
@@ -23,6 +23,8 @@
 恢复默认需要确认，不删除已有层或暂存内容。重启类设置改动后显示提示；已有蓝图需求和拆解返还使用当前定义，不保存历史造价。
 
 换层动画用轻微缩放、上下位移和交叉淡入表达升降，持续 320 毫秒，不受暂停和游戏倍速影响。点击地图下令、拖动或缩放会立即结束动画；自动定位保持瞬切。楼层面板、工具栏和窗口不参与动画。
+
+楼梯标记和返层按钮可分别开关，均默认开启并即时生效。升级时，两个选项都继承原合并开关的状态；之后独立保存。
 
 隐藏楼层面板后，F7/F8 等楼层快捷键仍有效；山体迁移入口保留在“兼容与恢复”。关闭下层背景也关闭不可见下层目标拾取。电梯停站、供电和禁用操作仍在对应建筑的原有控件中。太空不显示大气雾效。
 
@@ -46,7 +48,7 @@
 
 ## 如何恢复异常实体
 
-自动恢复针对 RimLayers 地图上的 Pawn、普通物品和尸体，处理无承托空域、存储隔离带或非法地图坐标。单纯不可寻路不算空域异常；床上的 Pawn、被携带者和容器内容不由通用恢复搬出。飞行、跳跃载体、弹丸、特效、空投和正常运输由各自流程处理。未知建筑、蓝图和框架只告警，不自动搬动或拆开其容器。
+自动恢复针对 RimLayers 地图上的 Pawn、普通物品和尸体，处理无承托空域、存储隔离带或非法地图坐标。单纯不可寻路不算空域异常；床上的 Pawn、被携带者和容器内容不由通用恢复搬出。飞行、跳跃载体、弹丸、特效、空投和正常运输由各自流程处理。无承托的未知建筑、蓝图和框架只告警，不自动搬动或拆开其容器。正常的结构楼板／飞船结构楼板蓝图和框架按施工规划规则检查，不要求未完工楼板已经形成可走表面。
 
 默认顺序：
 
@@ -60,6 +62,8 @@
 保留原对象身份、派系、装备、背包、携带物、物品属性和尸体内容，不销毁重建。兼容纠错不附加伤害；正常结构坍塌保持每下降一层 8 点钝伤，只结算一次。
 
 ### 待恢复列表
+
+“待恢复”提示对应仍在队列中的实体；通知发出前已经恢复的对象不再计入。建筑／施工规划异常及巡检失败使用单独提示，详情见日志，不要求到待恢复列表处理。
 
 打开 **兼容与恢复 → 待恢复列表**：
 
@@ -104,7 +108,7 @@ Open **Mod settings → RimLayers**. Display, Floors, Gameplay, Underground and 
 
 ## Defaults and when changes apply
 
-- **Display:** nine independent toggles, all on. Changes are immediate. Floor transition animation uses a 320 ms zoom/vertical crossfade in real time; UI stays fixed. Map commands, dragging and camera input finish it immediately. Automatic camera jumps remain instant. Disable this toggle for instant manual switches. Hiding the floor panel keeps hotkeys active; mountain migration remains on the Recovery page. Hiding the lower background also disables picking invisible lower-floor targets. Space has no atmospheric mist.
+- **Display:** ten independent toggles, all on. Changes are immediate. Stair markers and return buttons are separate toggles; existing settings migrate both from the former combined switch, then save them independently. Floor transition animation uses a 320 ms zoom/vertical crossfade in real time; UI stays fixed. Map commands, dragging and camera input finish it immediately. Automatic camera jumps remain instant. Disable this toggle for instant manual switches. Hiding the floor panel keeps hotkeys active; mountain migration remains on the Recovery page. Hiding the lower background also disables picking invisible lower-floor targets. Space has no atmospheric mist.
 - **Floors:** upper/lower limits each range from 0–9, default 2. The save-wide extra-floor limit is 0–100, default 20. Space expansion is on by default. These restrict new floors only.
 - **Gameplay:** stair, powered-lift and emergency-lift times are independent 0.25–4 multipliers, default 1, applied to both routing and actual travel. The direct-fire height effect ranges 0–2, default 1; range, AI search and previews share it. Indirect fire is unchanged.
 - **Restart required:** material cost, construction work and lift power are independent 0.25–4 multipliers, default 1. They affect RimLayers definitions only, once per startup. Existing blueprints and demolition refunds use current definitions, not historical prices.
@@ -123,11 +127,13 @@ Ship destinations reserve their missing floors before native fuel use and payloa
 
 ## Recovery preserves the original entity
 
-Eligible Pawns, ordinary items and corpses in unsupported airspace, storage gaps or illegal coordinates enter a deferred recovery queue. Unreachability alone is not an anomaly. Beds, carried/container contents, native flight, jumping carriers, projectiles, effects and normal drop/ship transport retain their own handling. Unknown buildings, blueprints and frames produce warnings instead of being moved or unpacked.
+Eligible Pawns, ordinary items and corpses in unsupported airspace, storage gaps or illegal coordinates enter a deferred recovery queue. Unreachability alone is not an anomaly. Beds, carried/container contents, native flight, jumping carriers, projectiles, effects and normal drop/ship transport retain their own handling. Unsupported unknown buildings, blueprints and frames produce warnings instead of being moved or unpacked. Valid structural-floor and ship-floor blueprints/frames use construction planning rules: the unfinished floor need not already be walkable.
 
 The default search stops at the first physical contact plane, without penetrating a solid floor, roof or rock. Congestion does not allow continuing the fall through that plane. It then tries the last valid position, nearby original-floor cells and suitable cells elsewhere on the same map. Invalid coordinates never imply an altitude through modulo arithmetic. Hostile Pawns are not attracted toward colonists. All placements check support, full footprint, obstacles, occupancy and native immediate hazards including vacuum. Nothing is displaced, wiped or recreated, and recovery does not add floors.
 
 If no legal destination exists, the original entity waits in a persistent game-level suspended holder. Identity, faction, equipment, inventory, carried objects, quality, durability and corpse contents are preserved. Its own simulation pauses under native suspension semantics; world events and quest timers do not. Compatibility correction adds no injury. Physical collapse still applies eight blunt damage per fallen floor once.
+
+Pending-recovery notifications count entities still in the queue, excluding those resolved before the notification. Unsupported building/planning issues and inspection failures have separate messages with details in the log.
 
 Open **Recovery → Pending recovery** to locate the source, retry, or select a map/floor and logical X/Z destination. Automatic retries stay on the original map. If that map is gone, choosing another map requires explicit confirmation. Ordinary unexpanded maps are valid manual destinations without allocating floors. Disabling automatic recovery stops new capture but retains existing contents and manual/automatic retries. Repeated external relocation pauses automatic correction for manual review.
 

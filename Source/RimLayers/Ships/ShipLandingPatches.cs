@@ -11,6 +11,11 @@ namespace RimLayers.Ships;
 
 internal static class ShipLanding
 {
+    // Ordinary items and plants are allowed; native SpawnFoundations clears actual deck cells only.
+    // Pawn policy matches native IsValidCell; colony structures remain protected.
+    internal static bool BlocksLanding(Thing thing)=>thing.def.preventGravshipLandingOn||
+        thing is Building or Blueprint or Frame||thing is Pawn pawn&&(pawn.RaceProps.Humanlike||pawn.HostileTo(Faction.OfPlayer));
+
     internal static AcceptanceReport Check(Gravship ship,IntVec3 root,Map map)
     {
         if(!ShipLayers.IsLayerShip(ship))return true;
@@ -39,7 +44,7 @@ internal static class ShipLanding
                 owner.Mountains.IsNaturalFloor(cell)||owner.StructuralCells.Contains(cell)&&!host)return "RL_ShipUpperBlocked".Translate();
             if(bottom&&origin.LayerId>0&&!host&&!owner.Structure.HasRequiredRoof(cell))return "RL_ShipUnsupportedLanding".Translate();
             if(map.roofGrid.RoofAt(cell)!=null||cell.Fogged(map)||
-                cell.GetThingList(map).Any(t=>t is Pawn or Building or Blueprint or Frame||t.def.category==ThingCategory.Item))
+                cell.GetThingList(map).Any(ShipLanding.BlocksLanding))
                 return "RL_ShipUpperBlocked".Translate();
         }
         // Swept columns include hollow intermediate decks; a stationary floor cannot be flown through.
@@ -51,7 +56,7 @@ internal static class ShipLanding
                 bool host=layer==origin.LayerId&&owner.Underlays.CanHost(cell);
                 if((owner.StructuralCells.Contains(cell)&&!host)||owner.Mountains.IsNaturalFloor(cell)||
                     map.roofGrid.RoofAt(cell)!=null||
-                    cell.GetThingList(map).Any(t=>t is Pawn or Building or Blueprint or Frame||t.def.category==ThingCategory.Item))
+                    cell.GetThingList(map).Any(ShipLanding.BlocksLanding))
                     return "RL_ShipUpperBlocked".Translate();
             }
         }
@@ -89,7 +94,7 @@ internal static class ShipLanding
                     if(here.LayerId>=owner.Layout.LayerCount)continue;
                     bool host=here.LayerId==origin.LayerId&&owner.Underlays.CanHost(cell);
                     if((owner.StructuralCells.Contains(cell)&&!host)||owner.Mountains.IsNaturalFloor(cell)||
-                        map.roofGrid.RoofAt(cell)!=null||cell.GetThingList(map).Any(t=>t is Pawn or Building or Blueprint or Frame||t.def.category==ThingCategory.Item))
+                        map.roofGrid.RoofAt(cell)!=null||cell.GetThingList(map).Any(ShipLanding.BlocksLanding))
                         return "RL_ShipUpperBlocked".Translate();
                 }
             }
@@ -317,7 +322,7 @@ internal static class LayerShipLandingBand
         if(map.landingBlockers?.Any(r=>r.Contains(cell)||r.Contains(ground))==true)
         {__result="GravshipInBlockedArea".Translate();return false;}
         if(cell.Fogged(map)){__result="GravshipBlockedByFog".Translate();return false;}
-        if(map.roofGrid.RoofAt(cell)!=null||cell.GetThingList(map).Any(t=>t is Pawn or Building or Blueprint or Frame||t.def.category==ThingCategory.Item))
+        if(map.roofGrid.RoofAt(cell)!=null||cell.GetThingList(map).Any(ShipLanding.BlocksLanding))
         {__result="RL_ShipUpperBlocked".Translate();return false;}
         __result=owner.Underlays.CanHost(cell)||!owner.StructuralCells.Contains(cell)&&
             !owner.Mountains.IsNaturalFloor(cell)&&owner.Structure.HasRequiredRoof(cell)?true:"RL_ShipUnsupportedLanding".Translate();

@@ -16,9 +16,16 @@ internal static class StorageCellQueryPatch
         ref IntVec3 closestSlot, ref float closestDistSquared, ref StoragePriority foundPriority)
     {
         var owner = LayerMapComponent.For(map);
-        if (owner == null || !owner.Connectors.HasAny) return true;
+        var cargo=RimLayers.Cargo.CargoNetwork.OwnerOf(t);
+        if (owner == null || !owner.Connectors.HasAny && cargo==null) return true;
         if (slotGroup == null || !slotGroup.Settings.AllowedToAccept(t)) return false;
         IntVec3 start = t.SpawnedOrAnyParentSpawned ? t.PositionHeld : carrier.PositionHeld;
+        if(cargo!=null&&carrier!=null)
+        {
+            var port=RimLayers.Cargo.CargoNetwork.For(map).BestPort(cargo,carrier,carrier.Position,out _);
+            if(port==null)return false;
+            start=port.Position;
+        }
         foreach (var cell in slotGroup.CellsList)
         {
             if (!owner.Structure.HasSurface(cell) || !StoreUtility.IsGoodStoreCell(cell, map, t, carrier, faction)) continue;
@@ -43,24 +50,40 @@ internal static class StorageCellQueryPatch
 internal static class StorageContainerDistancePatch
 {
     [ThreadStatic] private static Pawn? carrierContext;
-    static void Prefix(Pawn carrier, out Pawn? __state)
+    [ThreadStatic] private static Thing? sourceContext;
+    static void Prefix(Thing t,Pawn carrier, out (Pawn?,Thing?) __state)
     {
-        __state = carrierContext;
-        carrierContext = carrier;
+        __state = (carrierContext,sourceContext);
+        carrierContext = carrier;sourceContext=t;
     }
-    static Exception? Finalizer(Exception? __exception, Pawn? __state)
+    static Exception? Finalizer(Exception? __exception, (Pawn?,Thing?) __state)
     {
-        carrierContext = __state;
+        (carrierContext,sourceContext) = __state;
         return __exception;
+    }
+    public static IntVec3 SourcePosition(Thing item)
+    {
+        if(carrierContext!=null&&RimLayers.Cargo.CargoNetwork.OwnerOf(item) is {} main)
+            return RimLayers.Cargo.CargoNetwork.For(carrierContext.Map).BestPort(main,carrierContext,carrierContext.Position,out _)?.Position??carrierContext.Position;
+        return item.PositionHeld;
     }
     public static int Distance(IntVec3 start, IntVec3 end)
     {
         Pawn? carrier = carrierContext;
         var owner = LayerMapComponent.For(carrier?.MapHeld);
-        if (owner == null || !owner.Connectors.HasAny) return start.DistanceToSquared(end);
+        if(owner==null)return start.DistanceToSquared(end);
+        var cargo=RimLayers.Cargo.CargoNetwork.OwnerOf(sourceContext);
+        var destination=owner.map.thingGrid.ThingAt<RimLayers.Cargo.Building_CargoPort>(end);
+        if(!owner.Connectors.HasAny&&cargo==null&&destination==null)return start.DistanceToSquared(end);
+        if(cargo!=null)
+        {
+            var port=RimLayers.Cargo.CargoNetwork.For(owner.map).BestPort(cargo,carrier!,carrier!.Position,out _);
+            if(port==null)return int.MaxValue;
+            start=port.Position;
+        }
         using var path = owner.map.pathFinder.FindPathNow(start, end, TraverseParms.For(carrier), null, PathEndMode.ClosestTouch);
         if (!path.Found) return int.MaxValue;
-        double cost = path.TotalCost;
+        double cost = path.TotalCost+(destination?.Master?.EstimatedWait(destination)??0);
         return (int)Math.Min(int.MaxValue - 1d, cost * cost);
     }
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
@@ -71,6 +94,8 @@ internal static class StorageContainerDistancePatch
         foreach (var instruction in instructions)
         {
             if (instruction.Calls(original)) { instruction.operand = replacement; count++; }
+            if(instruction.Calls(AccessTools.PropertyGetter(typeof(Thing),nameof(Thing.PositionHeld))))
+            {instruction.opcode=OpCodes.Call;instruction.operand=AccessTools.Method(typeof(StorageContainerDistancePatch),nameof(SourcePosition));}
             yield return instruction;
         }
         if (count != 1) throw new InvalidOperationException("StoreUtility container distance changed; expected exactly one scoring call.");

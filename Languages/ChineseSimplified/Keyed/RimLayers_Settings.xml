@@ -10,7 +10,8 @@
   <RL_SettingsLayerTransitions>换层过渡动画</RL_SettingsLayerTransitions>
   <RL_SettingsFloorPanel>楼层面板</RL_SettingsFloorPanel>
   <RL_SettingsKeyHints>快捷键提示</RL_SettingsKeyHints>
-  <RL_SettingsLandingMarkers>楼梯标记／返层按钮</RL_SettingsLandingMarkers>
+  <RL_SettingsLandingMarkers>楼梯标记</RL_SettingsLandingMarkers>
+  <RL_SettingsReturnButtons>返层按钮</RL_SettingsReturnButtons>
   <RL_SettingsPlanningBounds>规划边界</RL_SettingsPlanningBounds>
   <RL_SettingsLowerBackground>下层背景与目标拾取</RL_SettingsLowerBackground>
   <RL_SettingsMist>漂浮雾效</RL_SettingsMist>
@@ -78,7 +79,9 @@
   <RL_RecoveryNotStored>该实体当前不在恢复容器中。</RL_RecoveryNotStored>
   <RL_RecoveryCannotLocate>原地图或原坐标已不可用。</RL_RecoveryCannotLocate>
   <RL_RecoveryManualOnly>需要手动检查</RL_RecoveryManualOnly>
-  <RL_RecoveryWarning>RimLayers 检测到 {0} 个恢复问题。请打开 MOD 设置 → RimLayers → 兼容与恢复 → 待恢复列表。未知建筑不会被自动搬移。</RL_RecoveryWarning>
+  <RL_RecoveryWarning>RimLayers：当前有 {0} 个实体待恢复。请打开 MOD 设置 → RimLayers → 兼容与恢复 → 待恢复列表。</RL_RecoveryWarning>
+  <RL_RecoveryBuildingWarning>RimLayers：发现 {0} 个无承托的建筑或施工规划，需要检查。它们不会被自动搬移，也不进入待恢复列表。对象 ID 与位置见日志。</RL_RecoveryBuildingWarning>
+  <RL_RecoveryInspectionWarning>RimLayers：有 {0} 个实体巡检失败，详情见日志。</RL_RecoveryInspectionWarning>
   <RL_RecoveryReasonUnsupported>无承托空域</RL_RecoveryReasonUnsupported>
   <RL_RecoveryReasonIsolation>存储隔离带</RL_RecoveryReasonIsolation>
   <RL_RecoveryReasonInvalidCoordinates>非法地图坐标</RL_RecoveryReasonInvalidCoordinates>

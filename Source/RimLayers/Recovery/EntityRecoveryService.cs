@@ -17,9 +17,10 @@ public sealed class EntityRecoveryService:GameComponent,IThingHolder,ISuspendabl
     private readonly Dictionary<int,RecoveryRecord> byId=new();
     private readonly Dictionary<int,(int Pawn,int Thing,int Audit)> cursors=new();
     private readonly Dictionary<int,int> warnings=new();
+    private readonly Dictionary<Thing,string> pendingWarnings=new();
     private sealed class Location { internal int MapId;internal IntVec3 Registered=IntVec3.Invalid,Safe=IntVec3.Invalid; }
     private readonly ConditionalWeakTable<Thing,Location> locations=new();
-    private int mapCursor,recordCursor,warningCount,nextWarning;
+    private int mapCursor,recordCursor,nextWarning;
     [ThreadStatic] internal static bool Busy;
     [ThreadStatic] internal static Pawn? TransferringPawn;
     private static readonly AccessTools.FieldRef<Thing,IntVec3> RawPosition=AccessTools.FieldRefAccess<Thing,IntVec3>("positionInt");
@@ -91,7 +92,7 @@ public sealed class EntityRecoveryService:GameComponent,IThingHolder,ISuspendabl
         if(RecoveryLanding.HasSupport(owner,thing,at)){Remember(thing,map);return;}
         if(!RecoveryCompatibility.SupportedKind(thing))
         {
-            if(thing is Building or Blueprint or Frame)Warn(thing,"UnknownBuilding");
+            if(thing is (Building or Blueprint or Frame)&&!RecoveryCompatibility.ValidFloorConstruction(thing,owner,at))Warn(thing,"UnknownBuilding");
             return;
         }
         if(byId.ContainsKey(thing.thingIDNumber))return;
@@ -152,11 +153,7 @@ public sealed class EntityRecoveryService:GameComponent,IThingHolder,ISuspendabl
         long ended=Stopwatch.GetTimestamp();RecoveryMilliseconds+=Stopwatch.GetElapsedTime(inspected,ended).TotalMilliseconds;
         MaximumTickMilliseconds=Math.Max(MaximumTickMilliseconds,Stopwatch.GetElapsedTime(started,ended).TotalMilliseconds);
         int now=Find.TickManager.TicksGame;
-        if(warningCount>0&&now>=nextWarning)
-        {
-            Messages.Message("RL_RecoveryWarning".Translate(warningCount),MessageTypeDefOf.CautionInput,false);
-            warningCount=0;nextWarning=now+1800;
-        }
+        if(pendingWarnings.Count>0&&now>=nextWarning)FlushWarnings(now);
         if(now%6000==0){history.RemoveAll(h=>now-h.Tick>6000);foreach(var id in warnings.Where(p=>now-p.Value>6000).Select(p=>p.Key).ToArray())warnings.Remove(id);}
     }
     private void Inspect()
@@ -293,15 +290,39 @@ public sealed class EntityRecoveryService:GameComponent,IThingHolder,ISuspendabl
     {
         if(outcome!=null)LogOutcome(record,record.Thing?.Position??IntVec3.Invalid,outcome);
         record.Search?.Dispose();record.Search=null;record.Stage=RecoveryStage.Completed;
-        records.Remove(record);if(record.Thing!=null)byId.Remove(record.Thing.thingIDNumber);
+        records.Remove(record);if(record.Thing!=null){byId.Remove(record.Thing.thingIDNumber);pendingWarnings.Remove(record.Thing);}
     }
     private static void LogOutcome(RecoveryRecord r,IntVec3 target,string result)=>Log.Message($"[RimLayers.Recovery] id={r.Thing?.ThingID} def={r.Thing?.def.defName} map={r.MapId} from={r.Origin} to={target} reason={r.Reason} result={result}");
     private void Warn(Thing? thing,string reason)
     {
-        int id=thing?.thingIDNumber??0,now=Find.TickManager?.TicksGame??0;
+        if(thing==null)return;
+        int id=thing.thingIDNumber,now=Find.TickManager?.TicksGame??0;
         if(warnings.TryGetValue(id,out int prior)&&now-prior<1800)return;
-        warnings[id]=now;warningCount++;
+        warnings[id]=now;pendingWarnings[thing]=reason;
         if(reason=="UnknownBuilding")Log.Warning($"[RimLayers.Recovery] id={thing?.ThingID} def={thing?.def.defName} from={thing?.Position} reason={reason} result=not-moved");
+    }
+    private void FlushWarnings(int now)
+    {
+        int pending=0,buildings=0,failures=0;
+        foreach(var (thing,reason) in pendingWarnings)
+        {
+            if(thing.Destroyed)continue;
+            if(byId.ContainsKey(thing.thingIDNumber)){pending++;continue;}
+            if(reason=="UnknownBuilding")
+            {
+                if(thing.Spawned&&LayerMapComponent.For(thing.Map) is {} owner&&
+                    !RecoveryCompatibility.Excluded(thing,owner)&&
+                    !RecoveryLanding.HasSupport(owner,thing,thing.Position)&&
+                    !RecoveryCompatibility.ValidFloorConstruction(thing,owner,thing.Position))buildings++;
+            }
+            else if(reason=="Failure")failures++;
+        }
+        pendingWarnings.Clear();
+        // Counts describe current objects, not old events already resolved during the throttle window.
+        if(pending>0)Messages.Message("RL_RecoveryWarning".Translate(records.Count),MessageTypeDefOf.CautionInput,false);
+        if(buildings>0)Messages.Message("RL_RecoveryBuildingWarning".Translate(buildings),MessageTypeDefOf.CautionInput,false);
+        if(failures>0)Messages.Message("RL_RecoveryInspectionWarning".Translate(failures),MessageTypeDefOf.CautionInput,false);
+        if(pending+buildings+failures>0)nextWarning=now+1800;
     }
     public void Retry(RecoveryRecord record)
     {

@@ -36,6 +36,7 @@ internal sealed class SettingsMenu
                     body.Check("FloorPanel",ref settings.FloorPanel);
                     body.Check("KeyHints",ref settings.KeyHints);
                     body.Check("LandingMarkers",ref settings.LandingMarkers);
+                    body.Check("ReturnButtons",ref settings.ReturnButtons);
                     body.Check("PlanningBounds",ref settings.PlanningBounds);
                     body.Check("LowerBackground",ref settings.LowerBackground);
                     body.Check("Mist",ref settings.Mist);

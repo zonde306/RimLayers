@@ -6,7 +6,7 @@ public enum RecoveryPreference { FallThenReset, ResetFirst }
 
 public sealed class RimLayersSettings : ModSettings
 {
-    public bool FloorPanel=true, KeyHints=true, LandingMarkers=true, PlanningBounds=true;
+    public bool FloorPanel=true, KeyHints=true, LandingMarkers=true, ReturnButtons=true, PlanningBounds=true;
     public bool LayerTransitions=true;
     public bool LowerBackground=true, Mist=true, CombatInfo=true, Trajectory=true;
     public int UpperLimit=2, UndergroundLimit=2, GlobalLimit=20;
@@ -24,6 +24,9 @@ public sealed class RimLayersSettings : ModSettings
         Scribe_Values.Look(ref FloorPanel,"floorPanel",true);
         Scribe_Values.Look(ref KeyHints,"keyHints",true);
         Scribe_Values.Look(ref LandingMarkers,"landingMarkers",true);
+        // Old settings used one switch for both. Always write the new value so a
+        // later marker change cannot reinterpret an omitted default on reload.
+        Scribe_Values.Look(ref ReturnButtons,"returnButtons",LandingMarkers,forceSave:true);
         Scribe_Values.Look(ref PlanningBounds,"planningBounds",true);
         Scribe_Values.Look(ref LowerBackground,"lowerBackground",true);
         Scribe_Values.Look(ref Mist,"mist",true);

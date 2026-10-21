@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+<ThingDef Name="RL_CargoBase" ParentName="StorageShelfBase" Abstract="True">
+ <thingClass>RimLayers.Cargo.Building_CargoHoist</thingClass><designationCategory>Furniture</designationCategory>
+ <size>(1,1)</size><rotatable>false</rotatable><tickerType>Normal</tickerType>
+ <passability>Impassable</passability><pathCost>0</pathCost><fillPercent>1</fillPercent><holdsRoof>false</holdsRoof>
+ <terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded><drawOffscreen>false</drawOffscreen>
+ <stuffCategories Inherit="False"/><canOverlapZones>false</canOverlapZones>
+ <graphicData><texPath>RimLayersCargoManual</texPath><graphicClass>RimLayers.Cargo.Graphic_Cargo</graphicClass></graphicData>
+ <drawerType>RealtimeOnly</drawerType><minifiedDef IsNull="True"/><thingCategories Inherit="False"/>
+ <inspectorTabs Inherit="False"><li>ITab_Storage</li><li>RimLayers.Cargo.ITab_CargoContents</li></inspectorTabs>
+ <comps><li Class="CompProperties_Forbiddable"/></comps>
+ <placeWorkers><li>RimLayers.Cargo.PlaceWorker_Cargo</li></placeWorkers>
+ <building><blueprintClass>Blueprint_Build</blueprintClass><storageGroupTag IsNull="True"/><preventDeteriorationOnTop>false</preventDeteriorationOnTop></building>
+</ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoManualUp</defName><designatorDropdown>RL_CargoAdjacentGroup</designatorDropdown><label>manual item hoist (up)</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>1200</WorkToBuild><Mass>30</Mass><Flammability>0.5</Flammability></statBases>
+ <costList><WoodLog>40</WoodLog><Steel>30</Steel></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>false</electric><shaft>false</shaft><station>false</station><direction>1</direction></li></modExtensions>
+ 
+ <building><relatedBuildCommands><li>RL_CargoManualDown</li><li>RL_CargoElectricUp</li><li>RL_CargoElectricDown</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoManualDown</defName><designatorDropdown>RL_CargoAdjacentGroup</designatorDropdown><label>manual item hoist (down)</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>1200</WorkToBuild><Mass>30</Mass><Flammability>0.5</Flammability></statBases>
+ <costList><WoodLog>40</WoodLog><Steel>30</Steel></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>false</electric><shaft>false</shaft><station>false</station><direction>-1</direction></li></modExtensions>
+ 
+ <building><relatedBuildCommands><li>RL_CargoManualUp</li><li>RL_CargoElectricUp</li><li>RL_CargoElectricDown</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoElectricUp</defName><graphicData><texPath>RimLayersCargoElectric</texPath></graphicData><designatorDropdown>RL_CargoAdjacentGroup</designatorDropdown><label>electric item hoist (up)</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>300</MaxHitPoints><WorkToBuild>2200</WorkToBuild><Mass>30</Mass><Flammability>0</Flammability></statBases>
+ <costList><Steel>90</Steel><ComponentIndustrial>2</ComponentIndustrial></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li><li>Electricity</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>true</electric><shaft>false</shaft><station>false</station><direction>1</direction></li></modExtensions>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>30</basePowerConsumption></li></comps>
+ <building><relatedBuildCommands><li>RL_CargoManualUp</li><li>RL_CargoManualDown</li><li>RL_CargoElectricDown</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoElectricDown</defName><graphicData><texPath>RimLayersCargoElectric</texPath></graphicData><designatorDropdown>RL_CargoAdjacentGroup</designatorDropdown><label>electric item hoist (down)</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>300</MaxHitPoints><WorkToBuild>2200</WorkToBuild><Mass>30</Mass><Flammability>0</Flammability></statBases>
+ <costList><Steel>90</Steel><ComponentIndustrial>2</ComponentIndustrial></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li><li>Electricity</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>true</electric><shaft>false</shaft><station>false</station><direction>-1</direction></li></modExtensions>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>30</basePowerConsumption></li></comps>
+ <building><relatedBuildCommands><li>RL_CargoManualUp</li><li>RL_CargoManualDown</li><li>RL_CargoElectricUp</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoManualShaft</defName><designatorDropdown>RL_CargoShaftGroup</designatorDropdown><label>manual cargo shaft</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>2000</WorkToBuild><Mass>30</Mass><Flammability>0.5</Flammability></statBases>
+ <costList><WoodLog>60</WoodLog><Steel>60</Steel></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>false</electric><shaft>true</shaft><station>false</station><direction>0</direction></li></modExtensions>
+ 
+ <building><relatedBuildCommands><li>RL_CargoElectricShaft</li><li>RL_CargoShaftStation</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoElectricShaft</defName><graphicData><texPath>RimLayersCargoElectric</texPath></graphicData><designatorDropdown>RL_CargoShaftGroup</designatorDropdown><label>electric cargo shaft</label><description>A three-stack storage basket shared by connected floors. Pawns haul items into the basket and call it before taking items out. Only actual basket contents can be retrieved remotely. Does not carry people or create floors.</description>
+ <statBases><MaxHitPoints>300</MaxHitPoints><WorkToBuild>3200</WorkToBuild><Mass>30</Mass><Flammability>0</Flammability></statBases>
+ <costList><Steel>140</Steel><ComponentIndustrial>4</ComponentIndustrial></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li><li>Electricity</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>true</electric><shaft>true</shaft><station>false</station><direction>0</direction></li></modExtensions>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>30</basePowerConsumption></li></comps>
+ <building><relatedBuildCommands><li>RL_CargoManualShaft</li><li>RL_CargoShaftStation</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoShaftStation</defName><designatorDropdown>RL_CargoShaftGroup</designatorDropdown><label>cargo shaft station</label><description>An access station for one existing adjacent cargo shaft. Adds a stop, not storage capacity.</description><thingClass>RimLayers.Cargo.Building_CargoPort</thingClass>
+ <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>600</WorkToBuild><Mass>30</Mass><Flammability>0.5</Flammability></statBases>
+ <costList><Steel>30</Steel></costList>
+ <researchPrerequisites Inherit="False"><li>ComplexFurniture</li></researchPrerequisites>
+ <modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><electric>false</electric><shaft>true</shaft><station>true</station><direction>0</direction></li></modExtensions>
+ 
+ <building><relatedBuildCommands><li>RL_CargoManualShaft</li><li>RL_CargoElectricShaft</li></relatedBuildCommands></building>
+ </ThingDef>
+<ThingDef ParentName="RL_CargoBase"><defName>RL_CargoPort</defName><label>hoist access port</label><description>The other end of an adjacent-floor item hoist.</description><thingClass>RimLayers.Cargo.Building_CargoPort</thingClass><designationCategory IsNull="True"/><researchPrerequisites Inherit="False"/><placeWorkers Inherit="False"/><statBases><MaxHitPoints>200</MaxHitPoints><Flammability>0.5</Flammability></statBases><modExtensions><li Class="RimLayers.Cargo.CargoProperties"><capacity>3</capacity><handlingTicks>30</handlingTicks><manualTicksPerFloor>180</manualTicksPerFloor><electricTicksPerFloor>45</electricTicksPerFloor><electricSetupTicks>30</electricSetupTicks><idleWatts>30</idleWatts><runningWatts>120</runningWatts><station>true</station></li></modExtensions></ThingDef>
+<DesignatorDropdownGroupDef><defName>RL_CargoAdjacentGroup</defName><label>item hoists</label></DesignatorDropdownGroupDef>
+<DesignatorDropdownGroupDef><defName>RL_CargoShaftGroup</defName><label>cargo shafts</label></DesignatorDropdownGroupDef>
+</Defs>

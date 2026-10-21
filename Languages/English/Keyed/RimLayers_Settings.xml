@@ -10,7 +10,8 @@
   <RL_SettingsLayerTransitions>Floor transition animation</RL_SettingsLayerTransitions>
   <RL_SettingsFloorPanel>Floor panel</RL_SettingsFloorPanel>
   <RL_SettingsKeyHints>Floor hotkey hints</RL_SettingsKeyHints>
-  <RL_SettingsLandingMarkers>Stair markers and return buttons</RL_SettingsLandingMarkers>
+  <RL_SettingsLandingMarkers>Stair markers</RL_SettingsLandingMarkers>
+  <RL_SettingsReturnButtons>Return buttons</RL_SettingsReturnButtons>
   <RL_SettingsPlanningBounds>Construction planning boundary</RL_SettingsPlanningBounds>
   <RL_SettingsLowerBackground>Lower-floor background and target picking</RL_SettingsLowerBackground>
   <RL_SettingsMist>Drifting atmospheric mist</RL_SettingsMist>
@@ -78,7 +79,9 @@
   <RL_RecoveryNotStored>The entity is no longer in recovery storage.</RL_RecoveryNotStored>
   <RL_RecoveryCannotLocate>The source map or its original coordinates are no longer available.</RL_RecoveryCannotLocate>
   <RL_RecoveryManualOnly>Manual review required</RL_RecoveryManualOnly>
-  <RL_RecoveryWarning>RimLayers detected {0} recovery issues. Open Mod settings → RimLayers → Recovery → Pending recovery. Unknown buildings are not moved.</RL_RecoveryWarning>
+  <RL_RecoveryWarning>RimLayers: {0} entities are still waiting for recovery. Open Mod settings → RimLayers → Recovery → Pending recovery.</RL_RecoveryWarning>
+  <RL_RecoveryBuildingWarning>RimLayers: {0} unsupported buildings or construction plans need inspection. They are not moved or added to Pending recovery. See the log for object IDs and positions.</RL_RecoveryBuildingWarning>
+  <RL_RecoveryInspectionWarning>RimLayers could not inspect {0} entities. See the log for details.</RL_RecoveryInspectionWarning>
   <RL_RecoveryReasonUnsupported>Unsupported airspace</RL_RecoveryReasonUnsupported>
   <RL_RecoveryReasonIsolation>Storage isolation band</RL_RecoveryReasonIsolation>
   <RL_RecoveryReasonInvalidCoordinates>Invalid map coordinates</RL_RecoveryReasonInvalidCoordinates>

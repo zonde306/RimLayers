@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><LanguageData><RL_CargoAccess>Allow access here</RL_CargoAccess>
+<RL_CargoAccessDesc>Allow pawns to load and retrieve goods at this station.</RL_CargoAccessDesc>
+<RL_CargoCall>Call basket here</RL_CargoCall>
+<RL_CargoCallDesc>Choose a pawn to operate this station and wait for the basket.</RL_CargoCallDesc>
+<RL_CargoNoOperator>No available operator.</RL_CargoNoOperator>
+<RL_CargoTake>Haul {0} out</RL_CargoTake>
+<RL_CargoDisconnected>Shaft disconnected</RL_CargoDisconnected>
+<RL_CargoStatus>Basket: {0}\nStacks: {1}/{2} | Queued: {3}</RL_CargoStatus>
+<RL_CargoMoving>Destination: {0} | Remaining: {1} ticks</RL_CargoMoving>
+<RL_CargoNoPower>No power</RL_CargoNoPower>
+<RL_CargoBlocked>Operating position blocked</RL_CargoBlocked>
+<RL_CargoOtherBlocked>Other access port is obstructed.</RL_CargoOtherBlocked>
+<RL_CargoNeedsFloor>Both floors must already exist and have supported surfaces.</RL_CargoNeedsFloor>
+<RL_CargoNeedsShaft>Build next to exactly one existing shaft, vertically aligned.</RL_CargoNeedsShaft>
+<RL_CargoTwoMasters>Two hoist motors cannot share a shaft.</RL_CargoTwoMasters>
+<RL_CargoUnloadFirst>Unload the basket before dismantling its motor.</RL_CargoUnloadFirst>
+<RL_CargoContents>Contents</RL_CargoContents>
+<RL_CargoContentsCount>Stored stacks: {0}/{1}</RL_CargoContentsCount>
+<RL_CargoEmpty>Empty. Pawns fill the basket through hauling work.</RL_CargoEmpty><RL_CargoEquip>Equip {0} from basket</RL_CargoEquip>
+<RL_CargoWear>Wear {0} from basket</RL_CargoWear>
+<RL_CargoEat>Consume {0} from basket</RL_CargoEat>
+<RL_CargoNoDestination>No suitable storage destination. Set another storage area to accept this item.</RL_CargoNoDestination></LanguageData>

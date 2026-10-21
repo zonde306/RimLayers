@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><LanguageData><RL_CargoAccess>允许本站存取</RL_CargoAccess>
+<RL_CargoAccessDesc>允许 Pawn 在本站装入和取出物品。</RL_CargoAccessDesc>
+<RL_CargoCall>呼叫到本站</RL_CargoCall>
+<RL_CargoCallDesc>选择一名 Pawn 到本站操作并等待吊篮。</RL_CargoCallDesc>
+<RL_CargoNoOperator>没有可用操作员。</RL_CargoNoOperator>
+<RL_CargoTake>搬出{0}</RL_CargoTake>
+<RL_CargoDisconnected>井道不连通</RL_CargoDisconnected>
+<RL_CargoStatus>篮子位置：{0}\n堆栈：{1}/{2} | 排队：{3}</RL_CargoStatus>
+<RL_CargoMoving>目的地：{0} | 剩余：{1} tick</RL_CargoMoving>
+<RL_CargoNoPower>断电</RL_CargoNoPower>
+<RL_CargoBlocked>操作位置被堵住</RL_CargoBlocked>
+<RL_CargoOtherBlocked>另一端存取口被阻挡。</RL_CargoOtherBlocked>
+<RL_CargoNeedsFloor>两端楼层必须已存在，并具有受支持的楼面。</RL_CargoNeedsFloor>
+<RL_CargoNeedsShaft>必须与一条现有竖井垂直对齐、相邻连接。</RL_CargoNeedsShaft>
+<RL_CargoTwoMasters>同一竖井不能连接两台主机。</RL_CargoTwoMasters>
+<RL_CargoUnloadFirst>拆除主机前请先卸空吊篮。</RL_CargoUnloadFirst>
+<RL_CargoContents>内容物</RL_CargoContents>
+<RL_CargoContentsCount>储存堆栈：{0}/{1}</RL_CargoContentsCount>
+<RL_CargoEmpty>吊篮为空。Pawn 通过搬运工作放入物品。</RL_CargoEmpty><RL_CargoEquip>从吊篮装备{0}</RL_CargoEquip>
+<RL_CargoWear>从吊篮穿戴{0}</RL_CargoWear>
+<RL_CargoEat>从吊篮食用{0}</RL_CargoEat>
+<RL_CargoNoDestination>没有合适的搬运目的地。请让其他存储区接收此物品。</RL_CargoNoDestination></LanguageData>

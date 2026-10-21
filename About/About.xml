@@ -21,6 +21,7 @@
   <incompatibleWith>
     <li>Peren.IsoRimProjectZ</li>
     <li>Baal.SecondFloor</li>
+    <li>astryl.AsAboveSoBelow2</li>
   </incompatibleWith>
   <description>RimLayers 0.1.5 · RimWorld 1.7 · 开发候选
 向上建造，向下开拓。
