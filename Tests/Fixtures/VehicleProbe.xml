@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <!-- Loaded temporarily by Run-VehicleGround.ps1; never part of normal mod content. -->
+  <Vehicles.VehicleDef ParentName="BaseVehiclePawn">
+    <defName>RL_TestVehicle</defName><label>RimLayers transport test fixture</label>
+    <description>Isolated integration-test vehicle.</description>
+    <size>(2,3)</size><type>Land</type><vehicleCategory>Transport</vehicleCategory>
+    <drawerType>RealtimeOnly</drawerType>
+    <comps />
+    <graphicData><texPath>Things/Building/RimLayers/VehicleFixture</texPath><graphicClass>Vehicles.Graphic_Vehicle</graphicClass><shaderType>Cutout</shaderType><drawSize>(2,3)</drawSize></graphicData>
+    <vehicleStats><MoveSpeed>3</MoveSpeed><Mass>300</Mass><CargoCapacity>1000</CargoCapacity></vehicleStats>
+    <components><li><key>body</key><label>test chassis</label><health>500</health><efficiencyWeight>1</efficiencyWeight><hitbox><side>Body</side></hitbox><categories><li>MoveSpeed</li><li>BodyIntegrity</li></categories></li></components>
+  </Vehicles.VehicleDef>
+</Defs>

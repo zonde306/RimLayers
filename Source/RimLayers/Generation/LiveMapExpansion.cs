@@ -51,6 +51,7 @@ internal static class LiveMapExpansion
         var full=new IntVec3(layout.Width,1,layout.StorageHeight);int oldCount=oldSize.x*oldSize.z,newCount=full.x*full.z;
         var changes=new ExpansionBuffers();
         var oldRoofCollapses=map.roofCollapseBuffer.CellsMarkedToCollapse.ToList();
+        var environmentState=owner.Environment.Snapshot();
         var mountainState=owner.Mountains.Snapshot();var undergroundState=owner.Underground.Snapshot();var mountainThings=new List<Thing>();
         var oldFinder=map.pathFinder;var oldPathing=map.pathing;var oldDrawer=map.mapDrawer;
         PathFinder? newFinder=null;Pathing? newPathing=null;MapDrawer? newDrawer=null;
@@ -58,6 +59,7 @@ internal static class LiveMapExpansion
         var paths=map.mapPawns.AllPawnsSpawned.Where(p=>p.pather.Moving).Select(p=>new Resume(p,p.pather.Destination,
             (PathEndMode)AccessTools.Field(typeof(Pawn_PathFollower),"peMode").GetValue(p.pather)!)).ToList();
         var climates=map.regionGrid.AllRooms.Where(r=>r.CellCount>0).Select(r=>new Climate(r.Cells.First(),r.Temperature,r.Vacuum)).ToList();
+        using var vehicleExpansion=RimLayers.Vehicles.VehiclePathingExpansion.Begin(map);
         try
         {
             // Native path jobs retain map buffer views. Complete them before preparing any replacement.
@@ -84,6 +86,7 @@ internal static class LiveMapExpansion
             newFinder=new PathFinder(map);map.pathFinder=newFinder;
             newDrawer=new MapDrawer(map);map.mapDrawer=newDrawer;
             owner.ReplaceLayout(previous,layout);owner.Sky.Rebuild();configured=true;Lap("install-derivatives");
+            vehicleExpansion?.Install();
             EmptySpace.Fill(map,layout,oldSize.z);Lap("fill-new-band");
             owner.Mountains.InitializeAddedLayers(previous?.LayerCount??1,mountainThings);
             var caveHives=owner.Underground.InitializeAddedLayers(previous?.LayerCount??1,mountainThings);Lap("geology");
@@ -99,6 +102,7 @@ internal static class LiveMapExpansion
             map.glowGrid.DevDirtyRect(new CellRect(0,0,full.x,full.z));
             map.mapDrawer.RegenerateEverythingNow();
             map.glowGrid.GlowGridUpdate_First();Lap("drawing");
+            vehicleExpansion?.Rebuild();
             Validate(map,layout);
             Lap("validate");beforeCommit?.Invoke();
         }
@@ -106,12 +110,16 @@ internal static class LiveMapExpansion
         {
             if(applied)
             {
-                RimLayers.Mountains.MountainService.RemoveSpawned(mountainThings);owner.Mountains.Restore(mountainState);owner.Underground.Restore(undergroundState);
+                RimLayers.Mountains.MountainService.RemoveSpawned(mountainThings);owner.Mountains.Restore(mountainState);owner.Underground.Restore(undergroundState);owner.Environment.Restore(environmentState);
                 map.roofCollapseBuffer.CellsMarkedToCollapse.Clear();map.roofCollapseBuffer.CellsMarkedToCollapse.AddRange(oldRoofCollapses);
                 newFinder?.Dispose();newPathing?.Dispose();DisposeDrawer(newDrawer);
                 if(configured)owner.ReplaceLayout(layout,previous);
                 changes.Restore();map.info.Size=oldSize;map.cellIndices=new CellIndices(map);owner.Sky.Rebuild();
+                vehicleExpansion?.Restore();
                 map.pathFinder=oldFinder;map.pathing=oldPathing;map.mapDrawer=oldDrawer;
+                // The retained finder still receives map events while the temporary larger graph is live.
+                // Recompute its sources after rollback instead of feeding appended-cell deltas into old arrays.
+                AccessTools.Method(typeof(PathFinderMapData),"Notify_MapDirtied").Invoke(oldFinder.MapData,null);
                 map.pathing.RecalculateAllPerceivedPathCosts();map.reachability.ClearCache();
                 RestoreClimate(map,climates);
                 map.glowGrid.DevDirtyRect(new CellRect(0,0,oldSize.x,oldSize.z));
@@ -122,7 +130,7 @@ internal static class LiveMapExpansion
         // All persistent state and derivatives are now usable. Release old owners exactly once.
         oldFinder.Dispose();oldPathing.Dispose();
         try {map.info.Size=oldSize;DisposeDrawer(oldDrawer);}finally {map.info.Size=full;}
-        changes.Commit();ResumePaths(paths);
+        changes.Commit();owner.Underground.CommitGeneration();ResumePaths(paths);
         LayerExpansionQuota.Current?.Allocated(map);
         Log.Message($"[RimLayers] Expanded existing map {map.uniqueID}: {oldSize} -> {full}, {changes.Inventory.Count} field swaps, {timer.Elapsed.TotalMilliseconds:F1}ms.");
         return new(oldSize,full,timer.Elapsed.TotalMilliseconds,changes.Inventory,phases);

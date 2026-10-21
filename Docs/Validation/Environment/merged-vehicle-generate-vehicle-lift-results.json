@@ -1,0 +1,126 @@
+{
+  "mode": "generate",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "test-profile-loads-requested-official-dlc",
+      "pass": true,
+      "detail": "expected=0, actual=0"
+    },
+    {
+      "name": "vehicle-facilities-do-not-create-water-foundations",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-driver-boarded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-vehicle-generated-with-real-cargo",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-ground-permission",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "station-refuses-uncleared-solid-floor",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "station-accepts-cleared-supported-opening",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fixture-starts-with-persistent-component-damage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "vehicle-grid-expansion-rollback-restores-original-graph",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rollback-retains-original-active-vehicle-job",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "expansion-rebuilds-vehicle-pathing-for-new-map-size",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "expansion-retains-original-vehicle-and-active-job",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "lift-nine-by-nine-whole-hull-fits",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "complete-route-includes-lift-and-final-native-leg",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-cross-floor-order-accepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "opposing-vehicle-order-accepted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "boarding-preserves-fuel-and-component-damage",
+      "pass": true,
+      "detail": "TC_BigBread10437"
+    },
+    {
+      "name": "boarding-retains-original-job-and-destination",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "lift-holds-original-unspawned-vehicle",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "opposing-vehicle-waits-outside-reserved-cabin",
+      "pass": true,
+      "detail": "phase=Queued,position=(88, 0, 228)"
+    },
+    {
+      "name": "power-loss-pauses-without-emergency-transit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "brrainz.harmony",
+    "ludeon.rimworld",
+    "baal.vehicleframework",
+    "rimthunder.core",
+    "mo.technicalvehicles",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

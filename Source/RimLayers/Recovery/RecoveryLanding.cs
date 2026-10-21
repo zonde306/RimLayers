@@ -33,7 +33,7 @@ internal static class RecoveryLanding
         }
         foreach(var c in GenAdj.OccupiedRect(at,thing.Rotation,thing.def.Size))
         {
-            if(!c.Standable(map))return false;
+            if(!c.Standable(map)||c.GetTerrain(map).defName is "RL_LavaDeep" or "RL_LavaShallow" or "LavaDeep" or "LavaShallow")return false;
             foreach(var other in c.GetThingList(map))
             {
                 if(other==thing)continue;

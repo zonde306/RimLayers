@@ -9,7 +9,7 @@ using Verse;
 namespace RimLayers.Core;
 
 [Flags]
-public enum LayerChangeKind { Structure = 1, Movement = 2, Air = 4, Heat = 8, Power = 16, Light = 32, Sound = 64, Fire = 128 }
+public enum LayerChangeKind { Structure = 1, Movement = 2, Air = 4, Heat = 8, Power = 16, Light = 32, Sound = 64, Fire = 128, Liquid = 256 }
 
 public sealed class LayerMapComponent : MapComponent
 {
@@ -43,6 +43,7 @@ public sealed class LayerMapComponent : MapComponent
     public AirLinks Air { get; }
     public SkyExposure Sky { get; }
     public HeatLinks Heat { get; }
+    public LayerEnvironment Environment { get; }
     public FireLinks Fire { get; }
     public Acoustics Sound { get; }
     public DangerWarnings Warnings { get; }
@@ -64,6 +65,7 @@ public sealed class LayerMapComponent : MapComponent
         Air = new AirLinks(this);
         Sky = new SkyExposure(this);
         Heat = new HeatLinks(this);
+        Environment = new LayerEnvironment(this);
         Fire = new FireLinks(this);
         Sound = new Acoustics(this);
         Warnings = new DangerWarnings(this);
@@ -86,7 +88,7 @@ public sealed class LayerMapComponent : MapComponent
         Layout=next; elevations=next?.Elevations.ToList()??new();
         dataVersion=next==null?0:LayerLayout.CurrentVersion;
         width=next?.Width??0;height=next?.Height??0;layers=next?.LayerCount??0;stride=next?.Stride??0;
-        Connectors.Invalidate();
+        Connectors.Invalidate();Environment.Invalidate();
     }
 
     public bool TryDecode(IntVec3 cell, out LayerCell logical)
@@ -141,7 +143,7 @@ public sealed class LayerMapComponent : MapComponent
         Scribe_Collections.Look(ref elevations, "layerElevations", LookMode.Value);
         Scribe_Collections.Look(ref StructuralCells, "structuralCells", LookMode.Value);
         Scribe_Collections.Look(ref PendingCollapse, "pendingCollapse", LookMode.Value);
-        Combat.ExposeData();Returns.ExposeData();Mountains.ExposeData();Underground.ExposeData();Ships.ExposeData();Underlays.ExposeData();Recovery.ExposeData();
+        Environment.ExposeData();Combat.ExposeData();Returns.ExposeData();Mountains.ExposeData();Underground.ExposeData();Ships.ExposeData();Underlays.ExposeData();Recovery.ExposeData();
         if (Scribe.mode == LoadSaveMode.PostLoadInit)
         {
             StructuralCells ??= new();
@@ -185,13 +187,13 @@ public sealed class LayerMapComponent : MapComponent
         base.MapComponentTick();
         if(StairBootstrapPending)StairLayerBootstrap.Process(this);
         if(Managed&&Find.TickManager.TicksGame%30==0)Connectors.TickExtensions();
-        if (Managed) { Ships.Tick(); Collapses.Tick();Returns.Tick();Recovery.Tick(); Combat.Tick(); Air.Tick(); Warnings.Tick(); }
+        if (Managed) { Ships.Tick(); Collapses.Tick();Returns.Tick();Recovery.Tick(); Combat.Tick(); Air.Tick(); Environment.Tick(); Warnings.Tick(); }
     }
 
     public override void MapComponentDraw()
     {
         base.MapComponentDraw();
-        if(Managed&&map==Find.CurrentMap){RimLayers.Ships.ShipMigration.Draw(this);RemoteMechanitorRadius.Draw(this);LandingMarkers.Draw(this);RimLayers.Mountains.Dialog_MountainMigration.Draw(this);}
+        if(Managed&&map==Find.CurrentMap){RimLayers.Environment.LocalWeatherOverlay.DrawResiduals(this);RimLayers.Ships.ShipMigration.Draw(this);RemoteMechanitorRadius.Draw(this);LandingMarkers.Draw(this);RimLayers.Mountains.Dialog_MountainMigration.Draw(this);}
     }
 
     public override void MapComponentOnGUI()

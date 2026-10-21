@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?><LanguageData>
+<RL_VehicleLift.label>载具升降机站</RL_VehicleLift.label>
+<RL_VehicleLift.description>9×9 格净载车区。各层同位置站点组成连续竖井，一次运送一辆完全驶入并停稳的载具，保留整车、乘员和货物。停电暂停，来电续行。请先自行清理上层井口的楼板及下方屋顶，并保留四角外侧支撑平台；车站不会自动拆除建筑。运输失败时优先返回合法出发点，无法卸载时保留原车，可从同井道车站恢复。</RL_VehicleLift.description>
+<RL_VehicleRamp.label>载具坡道模块</RL_VehicleRamp.label>
+<RL_VehicleRamp.description>每模块宽 1 格、水平长 6 格，连接相邻上层。相同起点和朝向的模块可并排加宽，不能纵向拼成长坡或弯折坡面。请先开放相邻上层，清理坡面上方障碍并修好出口平台。整车净空及转向空间必须足够，载具不能在坡面掉头。</RL_VehicleRamp.description>
+</LanguageData>

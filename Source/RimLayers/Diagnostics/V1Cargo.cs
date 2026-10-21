@@ -19,7 +19,9 @@ internal static partial class V1Integration
     {
         foreach(var stair in map.listerThings.AllThings.OfType<RimLayers.Structure.Building_Stairs>().ToArray())stair.Destroy(DestroyMode.Vanish);
         foreach(var p in map.mapPawns.FreeColonistsSpawned){p.jobs.StopAll();p.drafter.Drafted=true;}
-        pawn=map.mapPawns.FreeColonistsSpawned.First(p=>!p.WorkTypeIsDisabled(WorkTypeDefOf.Hauling));
+        // This scenario later forces a cooking bill as well as hauling. The actor must
+        // support both jobs; a random colonist with Cooking disabled is not a valid fixture.
+        pawn=map.mapPawns.FreeColonistsSpawned.First(p=>!p.WorkTypeIsDisabled(WorkTypeDefOf.Hauling)&&!p.WorkTypeIsDisabled(DefDatabase<WorkTypeDef>.GetNamed("Cooking")));
         pawn.drafter.Drafted=false;pawn.needs.food.CurLevelPercentage=1;pawn.needs.rest.CurLevelPercentage=1;
         foreach(var work in DefDatabase<WorkTypeDef>.AllDefs)pawn.workSettings.SetPriority(work,0);
         pawn.Position=At(0,54,54);pawn.Notify_Teleported();

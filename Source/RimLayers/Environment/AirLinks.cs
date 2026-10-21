@@ -42,7 +42,7 @@ public sealed class AirLinks
                 if(layer>0) links[layer-1]=IsOpen(owner.ToStorage(new LayerCell(ordered[layer-1],column.X,column.Z)),cell);
             }
             if(!any) { active.Remove(column);continue; }
-            before.CopyTo(after);GasExchange.Apply(after,links);
+            before.CopyTo(after);GasExchange.Apply(after,links,owner.Environment.Enabled?LayerEnvironment.Settings.AirExchange:1);
             for(int layer=0;layer<count;layer++)
                 if(before[layer]!=after[layer])
                 {

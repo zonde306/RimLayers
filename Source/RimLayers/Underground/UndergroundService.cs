@@ -2,6 +2,7 @@ using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
 using RimLayers.Generation;
+using RimLayers.Structure;
 using RimLayers.Layout;
 using RimWorld;
 using Verse;
@@ -14,13 +15,16 @@ public sealed class UndergroundState : IExposable
 {
     public HashSet<IntVec3> Floors = new();
     public HashSet<int> Generated = new();
+    public List<MineralGenerationRecord> Records = new();
+    internal HashSet<IntVec3> CoolingPending = new(); // Committed to the native queue only after expansion succeeds.
     public void ExposeData()
     {
         Scribe_Collections.Look(ref Floors,"floors",LookMode.Value);
         Scribe_Collections.Look(ref Generated,"generated",LookMode.Value);
-        if(Scribe.mode==LoadSaveMode.PostLoadInit){Floors??=new();Generated??=new();}
+        Scribe_Collections.Look(ref Records,"generationRecords",LookMode.Deep);
+        if(Scribe.mode==LoadSaveMode.PostLoadInit){Floors??=new();Generated??=new();Records??=new();}
     }
-    internal UndergroundState Copy()=>new(){Floors=new(Floors),Generated=new(Generated)};
+    internal UndergroundState Copy()=>new(){Floors=new(Floors),Generated=new(Generated),Records=new(Records),CoolingPending=new(CoolingPending)};
 }
 
 /// <summary>Native geology algorithms, bounded to an append-only underground band.</summary>
@@ -30,6 +34,7 @@ public sealed class UndergroundService
     private UndergroundState state=new();
     public UndergroundService(LayerMapComponent owner)=>this.owner=owner;
     public bool IsNaturalFloor(IntVec3 cell)=>state.Floors.Contains(cell);
+    public IReadOnlyList<MineralGenerationRecord> GenerationRecords=>state.Records;
     public bool Generated(int layer)=>state.Generated.Contains(layer);
     internal UndergroundState Snapshot()=>state.Copy();
     internal void Restore(UndergroundState previous)=>state=previous;
@@ -55,7 +60,7 @@ public sealed class UndergroundService
     private static bool StoneFloor(TerrainDef terrain)=>(stoneFloors??=DefDatabase<ThingDef>.AllDefsListForReading.Where(d=>d.building?.isNaturalRock==true).SelectMany(d=>new TerrainDef?[]{d.building.naturalTerrain,d.building.leaveTerrain,d.building.naturalTerrain?.smoothedTerrain,d.building.leaveTerrain?.smoothedTerrain}).OfType<TerrainDef>().ToHashSet()).Contains(terrain);
     internal static bool DryLand(TerrainDef terrain)=>!terrain.IsWater&&!terrain.IsRiver&&
         terrain!=TerrainDefOf.Ice&&terrain!=RimLayersDefOf.RL_OpenAir&&terrain!=RimLayersDefOf.RL_Isolation&&
-        terrain.defName is not ("LavaDeep" or "Space" or "AncientMegastructure")&&
+        terrain.defName is not ("LavaDeep" or "LavaShallow" or "RL_LavaDeep" or "RL_LavaShallow" or "Space" or "AncientMegastructure")&&
         !terrain.defName.StartsWith("Bridge",StringComparison.Ordinal)&&
         (terrain.natural||StoneFloor(terrain)||terrain.affordances.Contains(DefDatabase<TerrainAffordanceDef>.GetNamed("Diggable")));
 
@@ -66,8 +71,14 @@ public sealed class UndergroundService
             if(owner.Elevation(id)<0&&!state.Generated.Contains(id))Generate(id,spawned,afterRegions);
         return afterRegions;
     }
+    internal void CommitGeneration()
+    {
+        foreach(var cell in state.CoolingPending)owner.map.tempTerrain.QueueRemoveTerrain(cell,Find.TickManager.TicksGame+60000);
+        state.CoolingPending.Clear();
+    }
     internal void InitializeClimate(int first)
     {
+        if(owner.Environment.Enabled){owner.Environment.InitializeClimate(first);return;}
         foreach(var room in owner.map.regionGrid.AllRooms)
             if(room.Cells.Any(c=>owner.TryDecode(c,out var q)&&q.LayerId>=first&&owner.Elevation(q.LayerId)<0))room.Temperature=15;
     }
@@ -103,13 +114,20 @@ public sealed class UndergroundService
                     group,map,true,noise,parms,Rock,visited);
 
             var ore=new Dictionary<IntVec3,ThingDef>();
+            UndergroundGeology? geology=null;
             var profile=(GenStep_RocksFromGrid)DefDatabase<GenStepDef>.GetNamed("Underground_RocksFromGrid").genStep;
             float density=(float?)AccessTools.Field(typeof(GenStep_RocksFromGrid),"overrideBlotchesPer10kCells").GetValue(profile)??GenStep_RocksFromGrid.GetResourceBlotchesPer10KCellsForMap(map);
             if(!map.IsStartingMap)density*=Find.Storyteller.difficulty.nomadicMineableResourcesFactor;
             density*=RimLayersMod.Settings.Minerals;
             var picker=new OrePicker{maxValue=(float)AccessTools.Field(typeof(GenStep_RocksFromGrid),"maxMineableValue").GetValue(profile)!};
             int count=density<=0?0:Mathf.RoundToInt((float)rect.Area/Math.Max(1,Mathf.RoundToInt(10000f/density)));
-            var centers=group.Where(c=>caves[c]<=0).ToList();centers.Shuffle();var chosen=new List<IntVec3>();
+            if(owner.Environment.Enabled)
+            {
+                ThingDef Host(IntVec3 at){owner.TryDecode(at,out var q);return GenStep_RocksFromGrid.RockDefAt(new(q.X,0,q.Z));}
+                geology=UndergroundGeology.Build(owner,id,-owner.Elevation(id),group,caves,Host,density,picker.maxValue);
+                ore=geology.Ore;state.Records.Add(geology.Record);
+            }
+            var centers=owner.Environment.Enabled?new List<IntVec3>():group.Where(c=>caves[c]<=0).ToList();centers.Shuffle();var chosen=new List<IntVec3>();
             foreach(var center in centers)
             {
                 if(chosen.Count>=count)break;
@@ -125,12 +143,21 @@ public sealed class UndergroundService
                 owner.TryDecode(cell,out var local);
                 var rock=GenStep_RocksFromGrid.RockDefAt(new(local.X,0,local.Z));
                 state.Floors.Add(cell);
-                map.terrainGrid.SetTerrain(cell,rock.building.naturalTerrain);under![map.cellIndices.CellToIndex(cell)]=null!;
+                TerrainDef terrain=geology?.Lava.Contains(cell)==true?DefDatabase<TerrainDef>.GetNamed(geology.Shallows.Contains(cell)?"RL_LavaShallow":"RL_LavaDeep"):
+                    geology?.Shore.Contains(cell)==true?DefDatabase<TerrainDef>.GetNamed("RL_CooledLava"):rock.building.naturalTerrain;
+                if(terrain.defName=="RL_LavaShallow")
+                {
+                    map.terrainGrid.SetTerrain(cell,DefDatabase<TerrainDef>.GetNamed("RL_CooledLava"));
+                    map.terrainGrid.SetTempTerrain(cell,terrain);state.CoolingPending.Add(cell);
+                }
+                else map.terrainGrid.SetTerrain(cell,terrain);
+                under![map.cellIndices.CellToIndex(cell)]=null!;
                 map.roofGrid.SetRoof(cell,RoofDefOf.RoofRockThick);
-                if(caves[cell]<=0)GenSpawn.Spawn(ore.GetValueOrDefault(cell)??rock,cell,map);
+                if(geology?.Pillars.Contains(cell)==true||caves[cell]<=0&&geology?.Lava.Contains(cell)!=true&&geology?.Shore.Contains(cell)!=true)
+                    GenSpawn.Spawn(ore.GetValueOrDefault(cell)??rock,cell,map);
                 map.fogGrid.Refog(CellRect.SingleCell(cell));
             }
-            var caveCells=group.Where(c=>caves[c]>0).ToList();
+            var caveCells=group.Where(c=>(caves[c]>0||geology?.Shore.Contains(c)==true)&&geology?.Lava.Contains(c)!=true&&geology?.Pillars.Contains(c)!=true).ToList();
             int hiveSeed=Rand.Int;
             afterRegions.Add(()=>{Rand.PushState(hiveSeed);try{SpawnCaveHives(id,group,caveCells);}finally{Rand.PopState();}});
             state.Generated.Add(id);
@@ -150,13 +177,17 @@ public sealed class UndergroundService
             Find.Scenario.AllParts.Any(p=>p.def.genStep?.defName=="CaveHives"))return;
         var step=new GenStep_CaveHives();
         var rect=owner.LayerRect(id);
-        var candidates=caveCells.Where(c=>rect.ContractedBy(10).Contains(c)).ToList();
+        var candidates=caveCells.Where(c=>rect.ContractedBy(10).Contains(c)&&(!owner.Environment.Enabled||
+            DryLand(c.GetTerrain(owner.map))&&!GenRadial.RadialCellsAround(c,2,true).Any(at=>at.InBounds(owner.map)&&at.GetTerrain(owner.map).defName is "RL_LavaDeep" or "RL_LavaShallow" or "LavaDeep" or "LavaShallow")&&c.GetTemperature(owner.map)>=RimLayers.Environment.LayerEnvironment.Settings.InsectCold&&
+            c.GetTemperature(owner.map)<RimLayers.Environment.LayerEnvironment.Settings.InsectHot&&
+            !GenRadial.RadialCellsAround(c,8,true).Any(at=>at.InBounds(owner.map)&&at.GetThingList(owner.map).Any(t=>t is Building_Stairs)))).ToList();
         var excluded=cells.Where(c=>c.GetThingList(owner.map).Any(t=>t.Faction!=null)).ToList();
         GenMorphology.Dilate(excluded,50,owner.map);
         candidates.RemoveAll(excluded.Contains);
         AccessTools.Field(typeof(GenStep_CaveHives),"possibleSpawnCells").SetValue(step,candidates);
         var spawn=AccessTools.Method(typeof(GenStep_CaveHives),"TrySpawnHive");
-        int count=GenMath.RoundRandom(caveCells.Count/1000f);
+        int count=GenMath.RoundRandom((owner.Environment.Enabled?candidates.Count:caveCells.Count)/1000f*
+            (owner.Environment.Enabled?RimLayers.Environment.LayerEnvironment.Settings.InitialHiveDensity:1));
         for(int i=0;i<count;i++)spawn.Invoke(step,new object[]{owner.map});
     }
 }

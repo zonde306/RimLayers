@@ -3,9 +3,15 @@ namespace RimLayers.Environment;
 /// <summary>Snapshot exchange on a vertical chain; each packed byte remains native-owned.</summary>
 public static class GasExchange
 {
-    public static void Apply(Span<uint> cells,ReadOnlySpan<bool> open)
+    public static void Apply(Span<uint> cells,ReadOnlySpan<bool> open,float strength=1)
     {
         if(open.Length!=Math.Max(0,cells.Length-1)) throw new ArgumentException("One permission per adjacent pair is required.");
+        if(!float.IsFinite(strength)||strength<0||strength>4)throw new ArgumentOutOfRangeException(nameof(strength));
+        for(int pass=0;pass<(int)strength;pass++)Step(cells,open,1);
+        if(strength%1>0)Step(cells,open,strength%1);
+    }
+    private static void Step(Span<uint> cells,ReadOnlySpan<bool> open,float fraction)
+    {
         Span<int> delta=stackalloc int[cells.Length];
         // BlindSmoke has no native diffusion. Preserve that channel, rather than silently
         // giving one diffusion policy to all gas types.
@@ -17,7 +23,7 @@ public static class GasExchange
                 if(!open[edge]) continue;
                 int a=(int)((cells[edge]>>shift)&255),b=(int)((cells[edge+1]>>shift)&255),difference=a-b;
                 if(Math.Abs(difference)<=1) continue; // One native concentration unit is the discrete equilibrium.
-                int transfer=Math.Sign(difference)*((Math.Abs(difference)+3)/4);
+                int transfer=Math.Sign(difference)*(int)Math.Floor(((Math.Abs(difference)+3)/4)*fraction);
                 delta[edge]-=transfer;delta[edge+1]+=transfer;
             }
             for(int i=0;i<cells.Length;i++)

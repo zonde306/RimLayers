@@ -56,7 +56,8 @@ public static class LayerView
         return true;
     }
 
-    internal static Rect ControlsRect(LayerMapComponent component) => new(UI.screenWidth - 238f, 160f, 226f, component.Elevation(component.ViewedLayer)>0?106f:70f);
+    internal static Rect ControlsRect(LayerMapComponent component) => new(UI.screenWidth - 238f, 160f, 226f,
+        (component.Elevation(component.ViewedLayer)>0?106f:70f)+(component.map.GetComponent<RimLayers.Vehicles.VehicleTraffic>().RecoveryCount>0?34f:0f)+(RimLayers.Vehicles.VehicleWorldTravel.Current.HasWaiting(component.map)?34f:0f));
     internal static bool MouseOverFloorControls(LayerMapComponent component) => RimLayersMod.Settings.FloorPanel && ControlsRect(component).Contains(Event.current.mousePosition);
 
     internal static void DrawControls(LayerMapComponent component)
@@ -75,6 +76,10 @@ public static class LayerView
         TooltipHandler.TipRegion(new Rect(panel.x,panel.y,panel.width,70), "RL_SwitchHelp".Translate());
         if(component.Elevation(component.ViewedLayer)>0&&Widgets.ButtonText(new Rect(panel.x+8,panel.y+72,panel.width-16,26),"RL_MountainMigration".Translate()))
             Find.WindowStack.Add(new RimLayers.Mountains.Dialog_MountainMigration(component));
+        var traffic=component.map.GetComponent<RimLayers.Vehicles.VehicleTraffic>();
+        bool landingWaiting=RimLayers.Vehicles.VehicleWorldTravel.Current.HasWaiting(component.map);
+        if(traffic.RecoveryCount>0)traffic.DrawRecoveryControl(new Rect(panel.x+8,panel.yMax-32-(landingWaiting?34:0),panel.width-16,26));
+        if(landingWaiting)RimLayers.Vehicles.VehicleWorldTravel.Current.DrawRecovery(new Rect(panel.x+8,panel.yMax-32,panel.width-16,26),component.map);
         var mouse=UI.MouseCell();
         if(component.IsViewedCell(mouse)&&!mouse.Fogged(component.map)&&component.Mountains.IsNaturalFloor(mouse))
             Widgets.Label(new Rect(panel.x+8,panel.yMax+5,panel.width-16,52),"RL_NaturalFloorImmutable".Translate());

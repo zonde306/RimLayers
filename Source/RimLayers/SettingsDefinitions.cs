@@ -20,6 +20,8 @@ internal static class SettingsDefinitions
             .Where(d=>d.modContentPack==RimLayersMod.SettingsContent).ToArray();
         foreach(var def in definitions)
         {
+            if(def is ThingDef connector&&ConnectorDefs.IsAdjacent(connector)&&connector.GetModExtension<RimLayers.Navigation.ConnectorTransmission>() is {} transmission)
+                transmission.liquid=true;
             // Clone inherited lists before editing: foreign definitions retain their own values.
             if(def.costList!=null)def.costList=def.costList.Select(c=>new ThingDefCountClass(c.thingDef,SettingsMath.MaterialCount(c.count,settings.MaterialCost))).ToList();
             def.costStuffCount=SettingsMath.MaterialCount(def.costStuffCount,settings.MaterialCost);

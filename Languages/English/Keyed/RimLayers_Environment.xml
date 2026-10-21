@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SettingsEnvironment>Environment &amp; ecology</RL_SettingsEnvironment>
+  <RL_EnvironmentGlobalHelp>Parameters are global. Colony activation is saved separately.</RL_EnvironmentGlobalHelp>
+  <RL_EnvironmentEnabledForSave>Enable layered environment for this save</RL_EnvironmentEnabledForSave>
+  <RL_EnvironmentLoadSave>Load a colony to enable the new rules for an older save.</RL_EnvironmentLoadSave>
+  <RL_EnvironmentTimingHelp>Running systems update without resetting rooms. Generation settings affect future layers only.</RL_EnvironmentTimingHelp>
+  <RL_EnvironmentTemperature>Temperature &amp; ventilation</RL_EnvironmentTemperature>
+  <RL_EnvironmentDisasters>Weather &amp; disasters</RL_EnvironmentDisasters>
+  <RL_EnvironmentMinerals>Minerals</RL_EnvironmentMinerals>
+  <RL_EnvironmentLava>Magma</RL_EnvironmentLava>
+  <RL_EnvironmentInsects>Insect ecology</RL_EnvironmentInsects>
+  <RL_EnvironmentAdvanced>Advanced</RL_EnvironmentAdvanced>
+  <RL_EnvironmentDefault>default</RL_EnvironmentDefault>
+  <RL_EnvironmentNewLayers>new layers</RL_EnvironmentNewLayers>
+  <RL_EnvironmentNextUpdate>next update</RL_EnvironmentNextUpdate>
+  <RL_EnvironmentResetGroup>Restore this group's defaults</RL_EnvironmentResetGroup>
+  <RL_EnvironmentResetConfirm>Restore this group's global parameters? Colony activation and existing layers are unchanged.</RL_EnvironmentResetConfirm>
+  <RL_EnvironmentRockOffset>Rock temperature offset</RL_EnvironmentRockOffset>
+  <RL_EnvironmentGeothermalGradient>Geothermal gradient</RL_EnvironmentGeothermalGradient>
+  <RL_EnvironmentRockResponseDays>Rock response time (multiplied by depth²)</RL_EnvironmentRockResponseDays>
+  <RL_EnvironmentSlabHeat>Slab conduction</RL_EnvironmentSlabHeat>
+  <RL_EnvironmentOpeningHeat>Opening heat exchange</RL_EnvironmentOpeningHeat>
+  <RL_EnvironmentAltitudeLapse>Upper-floor lapse rate</RL_EnvironmentAltitudeLapse>
+  <RL_EnvironmentWindStrength>Upper-floor wind enhancement</RL_EnvironmentWindStrength>
+  <RL_EnvironmentAirExchange>Air exchange</RL_EnvironmentAirExchange>
+  <RL_EnvironmentPollutionHalfLife>Indoor particle half-life</RL_EnvironmentPollutionHalfLife>
+  <RL_EnvironmentSolarShield>Shield isolated power grids under natural thick rock from solar flares</RL_EnvironmentSolarShield>
+  <RL_EnvironmentFloodDown>Allow flooding down open liquid channels</RL_EnvironmentFloodDown>
+  <RL_EnvironmentLavaDown>Allow lava flows down open liquid channels</RL_EnvironmentLavaDown>
+  <RL_EnvironmentWeatherPenalty>Weather movement &amp; accuracy penalties</RL_EnvironmentWeatherPenalty>
+  <RL_EnvironmentTornadoDamage>Tornado damage</RL_EnvironmentTornadoDamage>
+  <RL_EnvironmentMineralQuantity>Mineral cluster quantity</RL_EnvironmentMineralQuantity>
+  <RL_EnvironmentMineralGrowth>Cluster budget growth per depth</RL_EnvironmentMineralGrowth>
+  <RL_EnvironmentMineralCap>Depth budget ceiling</RL_EnvironmentMineralCap>
+  <RL_EnvironmentMineralDepth>Depth-dependent ore weights</RL_EnvironmentMineralDepth>
+  <RL_EnvironmentLumpSize>Cluster size (not yield per cell)</RL_EnvironmentLumpSize>
+  <RL_EnvironmentGeothermalEnrichment>Geothermal redistribution</RL_EnvironmentGeothermalEnrichment>
+  <RL_EnvironmentLavaEnabled>Generate natural magma in future deep layers</RL_EnvironmentLavaEnabled>
+  <RL_EnvironmentLavaStart>Normal region: first magma depth</RL_EnvironmentLavaStart>
+  <RL_EnvironmentVolcanicLavaStart>Volcanic region: first magma depth</RL_EnvironmentVolcanicLavaStart>
+  <RL_EnvironmentLavaCoverage>Initial coverage</RL_EnvironmentLavaCoverage>
+  <RL_EnvironmentLavaCap>Coverage ceiling</RL_EnvironmentLavaCap>
+  <RL_EnvironmentLavaGrowth>Coverage growth per depth</RL_EnvironmentLavaGrowth>
+  <RL_EnvironmentLavaMinSize>Minimum magma core</RL_EnvironmentLavaMinSize>
+  <RL_EnvironmentLavaMaxSize>Maximum magma core</RL_EnvironmentLavaMaxSize>
+  <RL_EnvironmentLavaHeat>Magma heating (contact burns unchanged)</RL_EnvironmentLavaHeat>
+  <RL_EnvironmentInitialHiveEnabled>Generate finite exploration hives (existing cave-hive setting)</RL_EnvironmentInitialHiveEnabled>
+  <RL_EnvironmentInitialHiveDensity>Finite exploration-hive density</RL_EnvironmentInitialHiveDensity>
+  <RL_EnvironmentInfestationWeight>Eligible underground infestation weight</RL_EnvironmentInfestationWeight>
+  <RL_EnvironmentLightSuppression>Light suppression of infestation scores</RL_EnvironmentLightSuppression>
+  <RL_EnvironmentInsectCold>Ordinary infestation: lower temperature</RL_EnvironmentInsectCold>
+  <RL_EnvironmentInsectHot>Ordinary infestation: upper temperature</RL_EnvironmentInsectHot>
+  <RL_EnvironmentInsectSpawnSpeed>Continuous-hive insect spawning speed</RL_EnvironmentInsectSpawnSpeed>
+  <RL_EnvironmentHiveReproductionSpeed>Continuous-hive reproduction speed</RL_EnvironmentHiveReproductionSpeed>
+<RL_EnvironmentClusterBudgetOnly>cluster budget only; yield per cell is unchanged</RL_EnvironmentClusterBudgetOnly>
+</LanguageData>

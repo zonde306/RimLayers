@@ -1,0 +1,83 @@
+{
+  "mode": "load",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "old-save-requires-manual-enablement",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tornado-native-position-and-fade-progress-survive-reload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-ore-identity-and-damage-survive",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "finite-hive-is-not-converted-on-reload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "continuous-hive-keeps-remaining-timer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "global-parameters-are-not-frozen-into-save",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-room-temperature-survives-restart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "generation-records-do-not-repeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "manual-opt-in-does-not-reset-existing-room-or-ore",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "old-save-opt-in-survives-settings-reset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "reentering-generated-layer-does-not-refresh-resources",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "failed-expansion-rolls-back-geology-and-climate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "ludeon.rimworld",
+    "ludeon.rimworld.royalty",
+    "ludeon.rimworld.ideology",
+    "ludeon.rimworld.biotech",
+    "ludeon.rimworld.anomaly",
+    "ludeon.rimworld.odyssey",
+    "brrainz.harmony",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

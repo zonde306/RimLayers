@@ -113,6 +113,72 @@
       "reference_images": [
         "Docs/Images/Release/01-stairs-up.png"
       ]
+    },
+    {
+      "file": "Docs/Images/Release/09-cargo-hoists.png",
+      "title": "物品吊篮",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "date": "2026-10-21",
+      "prompt": "Use case: infographic-diagram.\nAsset type: polished Chinese feature-introduction card for the README of the RimLayers RimWorld 1.7 mod. Create a NEW landscape image, 1536 x 1024.\nInput image 1 is a STYLE REFERENCE: the existing RimLayers vertical-lift card. Match its dark graphite / blue-black background, warm ivory typography, amber wayfinding, restrained cyan electrical accents, outlined hand-painted isometric cutaway illustration, generous margins and editorial hierarchy. Do not copy its lift, costs, text, research requirements or passenger elevator.\nInput image 2 is a FUNCTION / VISUAL IDENTITY REFERENCE: actual game screenshot with small wooden winch hoists and metal motor hoists. Use only the wood-versus-metal identity and distinction between open basket and closed port. Do not reproduce the game HUD, buildings, camera view or text.\nPrimary request: introduce an ITEM-ONLY cargo hoist: pawns manually haul goods into ONE physical basket, another-floor pawn calls it, waits for travel and loading time, then takes real goods and continues work. It never carries people and never automatically collects goods from distant warehouses.\nComposition: upper left small brand line, then large Chinese title and short English subtitle. Main left 58%: a clear two-floor isometric cutaway of a compact sealed wooden cargo shaft with a manual winch and hand crank. Exactly ONE small cargo basket inside this shaft, currently docked on the lower floor, visibly containing steel bars and a little wood. The upper access port is CLOSED and has NO duplicate basket, NO goods. A stylized adult colonist stands on the lower FLOOR OUTSIDE the shaft carrying a small bundle toward the access; a second adult stands on the upper FLOOR OUTSIDE the shaft waiting beside the closed access. Both figures remain safely outside the basket. One slender amber up/down travel arrow confined to the shaft. Emphasize furniture-sized 1x1 ports, not a large passenger elevator. Floors are visibly supported. Clean readable illustration, not a screenshot.\nRight 42%: three clear typographic facts separated by fine rules with small simple icons. Under them two compact illustrated variant tokens: wooden hand-crank icon for manual, steel frame with a small cyan motor for electric. These tokens are isolated comparison icons, not extra baskets in the main shaft.\nBottom band: two connection badges and a simple numbered three-step workflow, with no extra paragraphs.\nText must be EXACT and crisp, using readable Chinese sans-serif for facts, matching the reference's elegant title treatment. Do not add any other claims, numbers or text.\nSmall brand line: \"RimLayers / 建造手册\"\nLarge title: \"物品吊篮\"\nSubtitle: \"CARGO HOISTS\"\nRight facts, three separate lines: \"先搬入，再跨层取用\" / \"一条井道，一只篮子\" / \"每篮 3 堆 · 装卸各 30 tick\"\nVariant labels: \"手动摇动\" / \"电动升降\"\nConnection badges: \"相邻两层\" / \"连续竖井\"\nWorkflow: \"① 搬运入篮\" / \"② 呼叫并等待\" / \"③ 取出继续工作\"\nSmall footer: \"概念示意 · 非实机画面\"\nAvoid passenger elevators, people inside basket, teleportation effects, exposed open air ventilation between floors, automatic conveyor collection, duplicate cargo or baskets at both ports, dense technical tables, extra logos, watermark.",
+      "reference_images": [
+        "Docs/Images/Release/05-vertical-lift.png",
+        "Tests/Artifacts/v1-cargo-20261021-194013/generate-cargo.png"
+      ],
+      "reference_roles": [
+        "Style reference: existing RimLayers release card",
+        "Function and visual identity reference: actual cargo-hoist gameplay screenshot"
+      ],
+      "mode": "default built-in",
+      "tool": "built-in image_gen.imagegen"
+    },
+    {
+      "file": "Docs/Images/Release/10-layered-environment.png",
+      "title": "分层环境",
+      "date": "2026-10-22",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram.\nAsset type: finished landscape illustrated feature-introduction card for the Chinese README of RimLayers, 1536 x 1024.\nPrimary request: Explain how elevated outdoor platforms and underground rooms have different environments. A premium, extremely readable game-mod field-guide card, matching an existing series: midnight slate-charcoal background, warm ivory Chinese type, muted amber engineering rules and arrows, restrained teal equipment, hand-inked painterly isometric cutaway strategy-game diorama. Not a screenshot or photorealistic image.\nComposition: generous margins. Small brand line at top left, large Chinese title with smaller English subtitle. A coherent architectural cutaway on the left 57%; right 43% four short separated explanation rows, with small simple thematic glyphs. Bottom full-width settings strip. Crisp readable Chinese typography; no crowded paragraphs.\nScene: One continuous small colony with ground floor, a supported elevated outdoor platform and one rock-carved basement. The high platform has steel columns, gusting wind and slanting rain; a small rain-shaded room below is protected by the real slab. Below ground show a thick continuous natural rock envelope with a warmly lit workshop, battery and separate self-contained electric cable loop, NOT electrically connected to above-ground wiring. At the side, one modest real stair/ventilation passage with an open door and a few restrained teal/ochre airflow arrows indicates gradual transport into an underground side chamber; do not depict pressurized oxygen machinery or fluid simulation. Natural rock, not manufactured concrete, is the shielding. Tiny stylized faceless colonists for scale. Keep the diagrams clear and illustrative, not an overloaded colony.\nText verbatim, no extra text:\ntop brand: \"RimLayers / 环境指南\"\nmain title: \"分层环境\"\nsubtitle: \"LAYERED ENVIRONMENTS\"\nright row 1: \"露天高层：风更强，灾害更直接\"\nright row 2: \"地下岩层：缓冲温差，不再恒定 15°C\"\nright row 3: \"开放通道：热量与污染逐渐传入\"\nright row 4: \"天然厚岩下的独立电网可抗耀斑\"\nbottom strip: \"新档默认启用 · 旧档手动启用 · 参数全局可调\"\nsmall legible footer: \"概念示意 · 非实机画面\"\nConstraints: correct simplified Chinese and exact numbers; no official RimWorld logo, no game UI, no watermark, no floating unsupported floor, no total immunity bubble, no mine shafts with oxygen tanks, no water-pressure simulation. The battery grid remains visibly independent under natural rock. This is a NEW card, not an edit of an existing asset.",
+      "reference_images": [],
+      "mode": "default built-in",
+      "tool": "image_gen.imagegen"
+    },
+    {
+      "file": "Docs/Images/Release/11-deep-geology-ecology.png",
+      "title": "深层矿物与生态",
+      "date": "2026-10-22",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram.\nAsset type: finished landscape illustrated feature-introduction card for the Chinese README of RimLayers, 1536 x 1024.\nPrimary request: Present depth-banded minerals, local magma pockets and finite exploration insect hives in the same mature field-guide visual series. Midnight slate-charcoal background, warm ivory Chinese titles, subtle amber rules, restrained teal highlights, hand-inked painterly isometric rock cutaway. Crisp, clean, attractive, exceptionally readable typography and hierarchy. Not a screenshot.\nComposition: brand and large title at upper left with small English subtitle. Left 55% shows three geological inspection windows labelled B1, B5, B9; right 45% has well-spaced short factual callouts. The three windows are samples at selected depths, separated by small ellipsis marks; DO NOT draw B1, B5 and B9 as three adjacent physical floors or directly connect them by a single staircase.\nScene: B1 window has mostly gray steel-like ore and a few compact industrial inclusions in host rock; B5 has branching silver/gold and sparse jade seams; B9 has varied independent gold/uranium/plasteel seams with a small localized orange magma pocket, solid dark cooling shore and a natural load-bearing rock pillar. A small insect hive and a few stylized insects inhabit a separate safe rock cavern away from the magma. Ore seams are irregular, branching, partly exposed in intact stone, not floating jewels or crates. Neighboring depth samples feel geologically related without repeating the same ore cells. No huge ocean of magma and no infinite hive swarm.\nText verbatim, no extra text:\ntop brand: \"RimLayers / 地下指南\"\nmain title: \"深层矿物与生态\"\nsubtitle: \"DEEP GEOLOGY & ECOLOGY\"\nwindow labels: \"B1\", \"B5\", \"B9\"\nright heading 1: \"矿簇预算\"\nright line 1: \"B1 1× · B5 1.2× · B9 1.4×\"\nright line 2: \"金、铀、塑钢权重提高\"\nright line 3: \"机械遗存随深度减少\"\nright heading 2: \"局部熔岩持续放热\"\nright line 4: \"普通地区 B6 起 · 火山地区 B3 起\"\nright heading 3: \"虫巢各有生命周期\"\nright line 5: \"探索巢：有限虫群\"\nright line 6: \"后续虫灾：保留持续扩张\"\nbottom strip: \"默认地下上限 B2 · 生成设置仅影响新层\"\nsmall legible footer: \"概念示意 · 非实机画面\"\nConstraints: exact readable simplified Chinese and numbers; don't label weight as guaranteed yield; no guaranteed rare ores per floor; budget multiplier is NOT a per-cell mining-yield bonus. No official logos, game UI or watermark. Keep ample whitespace between right-side groups. A NEW card, not a replacement of any existing image.",
+      "reference_images": [],
+      "mode": "default built-in",
+      "tool": "image_gen.imagegen"
+    },
+    {
+      "file": "Docs/Images/Release/12-vehicle-compatibility.png",
+      "title": "载具兼容：把车库搬上楼",
+      "date": "2026-10-22",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram.\nAsset type: NEW landscape illustrated feature card for the Chinese README of the RimWorld 1.7 mod RimLayers. Intended size 1536 x 1024.\nPrimary request: Clearly introduce the optional Steel Horizon 4.9.2 vehicle compatibility: real ground ramps, a vehicle lift, and continuous cross-floor aircraft flight. This is an explanatory concept illustration, NOT a game screenshot.\nVisual language: premium architectural field-guide series, deep midnight slate-charcoal background, warm ivory Chinese typography, restrained amber wayfinding, muted teal electrical details, inked painterly isometric colony dioramas. Generous margins, beautifully readable typesetting, clean silhouette hierarchy, understated fine divider lines. No photorealism, no actual game HUD.\nLayout: a confident header occupying the top 20%; three equally weighted illustrated columns below it, separated only by subtle vertical rules. Each column has a clear short heading, one purposeful large diagram, then exactly the specified short facts. A full-width calm footer band anchors the composition. Do not crowd the body with small print.\nTop header: small brand line, large Chinese title, restrained small English subtitle, compact compatibility badge at upper right. Use exact text specified below.\n\nLEFT DIAGRAM: an ordinary rugged four-wheel colony cargo van on a visibly straight inclined steel ramp connecting ground to ONE adjacent upper supported floor. The van is pitched along the slope. Ramp is horizontal length six grid units, rise three height units, constructed from several parallel one-cell-wide lane modules to fit the entire vehicle. Show panel seams running along the grade and small discreet module-grid cues, but don't print any additional dimensions or labels. Ramp is ONE straight grade, no stairs, no bent or spiral ramp, no end-to-end ramp modules creating extra length. Visible steel columns support the upper landing; clear overhead space. Tiny amber two-way direction marks remain on the same ramp. No driving through a solid floor.\n\nCENTER DIAGRAM: a wide industrial two-floor lift cutaway, with vertically aligned 9-by-9-grid vehicle station footprints, four strong steel corner columns and a clear continuous shaft. Exactly ONE cabin deck and ONE cargo vehicle sitting entirely within that cabin. Other floor access is visibly empty, no duplicated cabin or vehicle. Enough free space around the truck makes this unmistakably a VEHICLE lift, not a passenger elevator. Cyan motor cabinet and a single amber vertical double arrow. Landings are supported and aligned; keep the shaft unobstructed.\n\nRIGHT DIAGRAM: one small utility helicopter climbing in open air beside the OUTSIDE edge of a supported upper landing platform, not through the slab. One graceful amber flight path rises from lower open air to above the upper platform, then approaches a clearly free landing pad. This demonstrates continuous altitude and selecting an upper-floor landing. A modest small fixed-wing aircraft silhouette in the distant top background is moving forward, never hovering vertically. No spacecraft, no futuristic teleport effect, no tunnel through a roof. Aircraft dynamics are not illustrated as a passenger elevator.\n\nAll text must be readable, exact simplified Chinese, no additional sentences, claims, costs, research or logos:\nSmall brand: \"RimLayers / 载具兼容\"\nLarge title: \"把车库搬上楼\"\nEnglish subtitle: \"VEHICLES ACROSS FLOORS\"\nCompatibility badge: \"钢铁地平线 4.9.2\"\nLeft heading: \"整车坡道\"\nLeft facts: \"1×6 模块并排加宽\" / \"双向通行，按序排队\"\nCenter heading: \"载具升降机\"\nCenter facts: \"9×9 净载车区\" / \"停电暂停，来电续行\"\nRight heading: \"跨层飞行\"\nRight facts: \"自动避障，手动碰撞\" / \"返航可选目标楼层\"\nFooter band: \"原车保留 · 乘员与货物不复制 · 在途存档可恢复\"\nSmall footer: \"概念示意 · 非实机画面\"\n\nConstraints: illustrate ONE adjacent floor change per ground diagram. Do not copy the native passenger lift's narrow door identity or include 300 W or 1800 W text. No unsupported floating floors. No boats or water vehicle claims. Do not suggest upstream Vehicle Framework 1.7 is already supported. Do not imply manual driving is collision-proof. No watermarks, no RimWorld official logo. A polished illustration with readable Chinese, not a table of technical data.",
+      "reference_images": [],
+      "style_basis": [
+        "Docs/Images/Release/10-layered-environment.png",
+        "Docs/Images/Release/05-vertical-lift.png"
+      ],
+      "reference_note": "Existing cards were visually inspected for series consistency; generation used a textual style description, without image inputs.",
+      "mode": "default built-in",
+      "tool": "image_gen.imagegen"
     }
-  ]
+  ],
+  "updated": "2026-10-22",
+  "last_updated": "2026-10-22"
 }

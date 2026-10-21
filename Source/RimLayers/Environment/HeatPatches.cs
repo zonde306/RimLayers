@@ -40,7 +40,8 @@ internal static class LogicalRoomEdgePatch
 [HarmonyPatch(typeof(Room),nameof(Room.Notify_RoomShapeChanged))]
 internal static class RoomSkyShapePatch
 {
-    static void Prefix(Room __instance)=>LayerMapComponent.For(__instance.Map)?.Sky.RoomChanged(__instance);
+    static void Prefix(Room __instance)
+    {var owner=LayerMapComponent.For(__instance.Map);owner?.Sky.RoomChanged(__instance);owner?.Environment.Invalidate();owner?.Heat.Invalidate();}
 }
 
 [HarmonyPatch(typeof(RoomTempTracker),"RegenerateEqualizeCells")]
@@ -72,8 +73,10 @@ internal static class HeatCeiling
     {
         var owner=LayerMapComponent.For(room.Map);
         if(owner==null) return true;
-        result=HeatExchange.OutdoorChange(room.Temperature,room.Map.mapTemperature.OutdoorTemp,
-            owner.Heat.OutdoorCoverage(room,thin),thin);return false;
+        float outside=owner.Environment.Enabled?owner.Environment.LocalOutside(room):room.Map.mapTemperature.OutdoorTemp;
+        result=HeatExchange.OutdoorChange(room.Temperature,outside,owner.Heat.OutdoorCoverage(room,thin),thin);
+        if(owner.Environment.Enabled&&room.Cells.FirstOrDefault() is var at)result*=owner.Environment.WindFactor(at);
+        return false;
     }
 }
 

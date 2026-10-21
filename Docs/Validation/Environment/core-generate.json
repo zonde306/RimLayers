@@ -1,0 +1,678 @@
+{
+  "mode": "generate",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "test-profile-loads-requested-official-dlc",
+      "pass": true,
+      "detail": "expected=0, actual=0"
+    },
+    {
+      "name": "environment-localization-loaded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-VolcanicLavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-VolcanicLavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaMinSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaMinSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaMaxSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaMaxSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "paired-coverage-and-area-bounds",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "missing-old-save-component-is-disabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "new-game-environment-enabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "settings-reset-does-not-change-save-activation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "environment-has-five-real-layers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "geology-records-once-per-new-basement",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "new-rock-climate-is-local-annual-mean",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-change-does-not-reset-room",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "natural-rock-can-warm-a-cold-room",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "natural-rock-can-cool-a-hot-room",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "core-magma-heats-actual-cavern",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "zero-heating-does-not-change-contact-burns",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "magma-is-a-contact-plane-not-a-recovery-void",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "finite-hive-keeps-native-flags-and-initial-insects",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ordinary-infestation-hive-remains-continuous",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sealed-basement-blocks-incoming-fallout",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "exposed-shaft-source-receives-fallout",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "closed-door-seals-air-channel",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "open-shaft-gradually-transmits-fallout",
+      "pass": true,
+      "detail": "0.002834324"
+    },
+    {
+      "name": "same-channel-retains-liquid-permission",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "door-physically-closes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sealed-room-keeps-decaying-residual-pollution",
+      "pass": true,
+      "detail": "mass 0.209338566288352 -\u003E 0.195862082764506; local 0.002834324 -\u003E 0.00265186"
+    },
+    {
+      "name": "independent-thick-rock-grid-is-shielded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "flare-is-still-global-but-grid-query-is-local",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "shield-setting-zero-restores-native-flare",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "exposed-node-connects-to-same-native-network",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "one-unshielded-node-interferes-with-whole-grid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-flare-actually-disables-connected-lamp",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "completed-native-net-rebuild-restores-shielding",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-isolated-grid-powers-lamp-during-flare",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "other-blackout-does-not-get-solar-exemption",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "one-physical-tornado-for-all-upper-floors",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "wind-column-hits-exterior-upper-and-ground-not-basement",
+      "pass": true,
+      "detail": "171,171,195"
+    },
+    {
+      "name": "lightning-selects-highest-exposed-support",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tornado-cannot-traverse-storage-isolation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-fallout-item-effect-scales-by-room-concentration",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "ended-fallout-retains-local-residual-effects",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-cell-cadence-applies-residual-to-items",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "resuming-timer-does-not-recalculate-progress",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "nonzero-spawn-speed-applies-at-next-native-interval",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "paused-insect-timer-preserves-remaining-progress",
+      "pass": true,
+      "detail": "5000"
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "ludeon.rimworld",
+    "brrainz.harmony",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

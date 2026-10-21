@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_VehicleUnavailable>Vehicle compatibility is not available.</RL_VehicleUnavailable>
+  <RL_VehicleNoSurface>The entire vehicle needs a supported, drivable surface.</RL_VehicleNoSurface>
+  <RL_VehicleOccupied>The vehicle's footprint is occupied.</RL_VehicleOccupied>
+  <RL_VehicleClearance>There is insufficient overhead clearance.</RL_VehicleClearance>
+  <RL_VehicleRouteLost>No usable vehicle route remains. The vehicle has stopped.</RL_VehicleRouteLost>
+  <RL_VehicleRecover>Recover lift vehicle</RL_VehicleRecover>
+  <RL_VehicleRecoverHelp>Unload a held vehicle at this station in the same shaft, if its entire footprint is clear.</RL_VehicleRecoverHelp>
+  <RL_VehicleLiftPowered>Vehicle lift powered</RL_VehicleLiftPowered>
+  <RL_VehicleLiftPaused>Vehicle lift paused: no power</RL_VehicleLiftPaused>
+  <RL_VehicleRampWidth>Aligned modules beside this ramp form its usable width.</RL_VehicleRampWidth>
+  <RL_VehicleDeckSupport>Each corner of the nine-cell cabin needs an existing supported platform alongside it.</RL_VehicleDeckSupport>
+  <RL_VehicleShaftClear>Clear the shaft opening first: remove existing slabs and the roof below. The station does not demolish them.</RL_VehicleShaftClear>
+  <RL_VehicleRampUpper>Open the adjacent upper floor before building a ramp.</RL_VehicleRampUpper>
+  <RL_VehicleRampOpening>Clear the space above all six ramp cells; roofs, slabs and rock cannot intersect the slope.</RL_VehicleRampOpening>
+  <RL_VehicleRampLanding>The upper end needs a supported landing.</RL_VehicleRampLanding>
+  <RL_VehicleRampJoin>Only side-by-side modules with the same start and direction can join.</RL_VehicleRampJoin>
+  <RL_VehicleChooseFloor>Go to floor</RL_VehicleChooseFloor>
+  <RL_VehicleChooseFloorHelp>Choose a stop in this lift shaft. The vehicle must be fully inside the cabin and ready to drive.</RL_VehicleChooseFloorHelp>
+  <RL_VehicleNotReady>The vehicle is not ready to drive. Check ignition, crew, fuel and damage.</RL_VehicleNotReady>
+  <RL_VehicleCancel>Cancel vehicle transit</RL_VehicleCancel>
+  <RL_VehicleCancelHelp>Cancel the trip. A vehicle on a ramp backs down to its entry; a lift returns it to a legal source station. If unloading is blocked, the original vehicle stays in custody.</RL_VehicleCancelHelp>
+  <RL_VehicleRecoverBlocked>No held vehicle can unload here. Clear the whole footprint and restore a supported station in the same shaft.</RL_VehicleRecoverBlocked>
+  <RL_VehicleJourney>{0}: {1} → {2}</RL_VehicleJourney>
+  <RL_VehicleShaftOccupied>Paused: a person or vehicle occupies the shaft.</RL_VehicleShaftOccupied>
+  <RL_VehiclePhaseApproaching>approaching</RL_VehiclePhaseApproaching>
+  <RL_VehiclePhaseWaiting>boarding</RL_VehiclePhaseWaiting>
+  <RL_VehiclePhaseCrossing>on ramp</RL_VehiclePhaseCrossing>
+  <RL_VehiclePhaseHeld>in transit</RL_VehiclePhaseHeld>
+  <RL_VehiclePhaseRecovering>awaiting safe recovery</RL_VehiclePhaseRecovering>
+  <RL_VehiclePhaseFinalLeg>clearing exit</RL_VehiclePhaseFinalLeg>
+  <RL_VehiclePhaseQueued>queued</RL_VehiclePhaseQueued>
+  <RL_VehicleRecoveryCount>Recover vehicles ({0})</RL_VehicleRecoveryCount>
+  <RL_VehicleRecoverOriginal>{0}: return to source</RL_VehicleRecoverOriginal>
+  <RL_VehicleLocateRecovery>{0}: show recovery location</RL_VehicleLocateRecovery>
+  <RL_VehicleRestoreSource>The original vehicle is held safely. Clear its full footprint and restore the supported source platform or lift station. It will unload when that location is safe.</RL_VehicleRestoreSource>
+  <RL_VehicleLandingWaiting>Aircraft awaiting landing ({0})</RL_VehicleLandingWaiting>
+  <RL_VehicleLandingUnavailable>The destination floor or map is unavailable.</RL_VehicleLandingUnavailable>
+  <RL_VehicleAirCorridorBlocked>The aircraft’s air corridor is obstructed.</RL_VehicleAirCorridorBlocked>
+  <RL_VehicleLandingRestriction>The aircraft’s landing restrictions are not met.</RL_VehicleLandingRestriction>
+  <RL_VehicleLandingHeld>{0}: landing suspended. {1} Choose another landing site.</RL_VehicleLandingHeld>
+  <RL_VehicleChooseLanding>Choose landing site</RL_VehicleChooseLanding>
+</LanguageData>

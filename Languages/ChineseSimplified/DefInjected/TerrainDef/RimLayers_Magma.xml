@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+<RL_LavaDeep.label>深熔岩</RL_LavaDeep.label><RL_LavaDeep.description>持续存在的地下熔岩核心。热量先进入实际洞室，再沿围护结构和开放通道传播。</RL_LavaDeep.description>
+<RL_LavaShallow.label>浅熔岩</RL_LavaShallow.label><RL_LavaShallow.description>地下熔岩湖的灼热边缘，接触会造成烧伤，之后可冷却为岩岸。</RL_LavaShallow.description>
+<RL_CooledLava.label>冷却熔岩岩岸</RL_CooledLava.label><RL_CooledLava.description>深部熔岩周围已经凝固的岩岸。</RL_CooledLava.description>
+</LanguageData>

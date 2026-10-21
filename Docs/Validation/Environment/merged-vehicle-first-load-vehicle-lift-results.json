@@ -1,0 +1,111 @@
+{
+  "mode": "load",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "restart-rebuilds-opposing-queue",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "restart-restores-held-fuel-and-component-damage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "restart-restores-held-object-job-and-progress",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "restart-restores-original-passenger-identities",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "restart-keeps-outage-paused",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "person-at-cabin-corner-pauses-full-shaft",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "automatic-lift-does-not-switch-view",
+      "pass": true,
+      "detail": "expected=0,actual=0"
+    },
+    {
+      "name": "restart-resumes-cabin-and-completes-original-destination",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "lift-arrival-retains-cargo-and-passengers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "boarding-preserves-fuel-and-component-damage",
+      "pass": true,
+      "detail": "TC_BigBread10476"
+    },
+    {
+      "name": "opposing-queue-releases-and-completes-after-first-cabin",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parked-vehicle-shows-floor-command",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "manual-driver-can-select-elevator-floor",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "floor-command-starts-original-native-goto",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "elevator-floor-command-releases-native-manual-drive",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "boarding-preserves-fuel-and-component-damage",
+      "pass": true,
+      "detail": "TC_BigBread10437"
+    },
+    {
+      "name": "blocked-source-retains-original-vehicle-in-recovery",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "blocked-recovery-command-refuses-unsafe-unload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "brrainz.harmony",
+    "ludeon.rimworld",
+    "baal.vehicleframework",
+    "rimthunder.core",
+    "mo.technicalvehicles",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

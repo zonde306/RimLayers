@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SettingsEnvironment>环境与生态</RL_SettingsEnvironment>
+  <RL_EnvironmentGlobalHelp>参数全局共用；下方启用状态随当前存档保存。</RL_EnvironmentGlobalHelp>
+  <RL_EnvironmentEnabledForSave>为当前存档启用分层环境</RL_EnvironmentEnabledForSave>
+  <RL_EnvironmentLoadSave>载入殖民地后，可手动为旧档启用新规则。</RL_EnvironmentLoadSave>
+  <RL_EnvironmentTimingHelp>运行参数在下次更新生效，不重置房间；生成参数只影响新层。</RL_EnvironmentTimingHelp>
+  <RL_EnvironmentTemperature>温度与通风</RL_EnvironmentTemperature>
+  <RL_EnvironmentDisasters>天气与灾害</RL_EnvironmentDisasters>
+  <RL_EnvironmentMinerals>矿物</RL_EnvironmentMinerals>
+  <RL_EnvironmentLava>熔岩</RL_EnvironmentLava>
+  <RL_EnvironmentInsects>虫灾</RL_EnvironmentInsects>
+  <RL_EnvironmentAdvanced>高级参数</RL_EnvironmentAdvanced>
+  <RL_EnvironmentDefault>默认</RL_EnvironmentDefault>
+  <RL_EnvironmentNewLayers>新层生效</RL_EnvironmentNewLayers>
+  <RL_EnvironmentNextUpdate>下次更新</RL_EnvironmentNextUpdate>
+  <RL_EnvironmentResetGroup>恢复本组默认值</RL_EnvironmentResetGroup>
+  <RL_EnvironmentResetConfirm>恢复本组全局参数？存档启用状态和已生成楼层保持不变。</RL_EnvironmentResetConfirm>
+  <RL_EnvironmentRockOffset>岩温偏移</RL_EnvironmentRockOffset>
+  <RL_EnvironmentGeothermalGradient>每地下层地热增量</RL_EnvironmentGeothermalGradient>
+  <RL_EnvironmentRockResponseDays>岩温响应基数（再乘深度²）</RL_EnvironmentRockResponseDays>
+  <RL_EnvironmentSlabHeat>楼板导热</RL_EnvironmentSlabHeat>
+  <RL_EnvironmentOpeningHeat>开口换热</RL_EnvironmentOpeningHeat>
+  <RL_EnvironmentAltitudeLapse>地上海拔降温</RL_EnvironmentAltitudeLapse>
+  <RL_EnvironmentWindStrength>高层风力增强</RL_EnvironmentWindStrength>
+  <RL_EnvironmentAirExchange>空气交换</RL_EnvironmentAirExchange>
+  <RL_EnvironmentPollutionHalfLife>室内悬浮污染半衰期</RL_EnvironmentPollutionHalfLife>
+  <RL_EnvironmentSolarShield>天然厚岩下的独立电网抵抗太阳耀斑</RL_EnvironmentSolarShield>
+  <RL_EnvironmentFloodDown>洪水可沿开放液体通道向下传播</RL_EnvironmentFloodDown>
+  <RL_EnvironmentLavaDown>熔岩流可沿开放液体通道向下传播</RL_EnvironmentLavaDown>
+  <RL_EnvironmentWeatherPenalty>天气移速与射击惩罚</RL_EnvironmentWeatherPenalty>
+  <RL_EnvironmentTornadoDamage>龙卷风伤害</RL_EnvironmentTornadoDamage>
+  <RL_EnvironmentMineralQuantity>矿簇数量倍率</RL_EnvironmentMineralQuantity>
+  <RL_EnvironmentMineralGrowth>每层矿簇预算增幅</RL_EnvironmentMineralGrowth>
+  <RL_EnvironmentMineralCap>深度预算上限</RL_EnvironmentMineralCap>
+  <RL_EnvironmentMineralDepth>深度矿种差异强度</RL_EnvironmentMineralDepth>
+  <RL_EnvironmentLumpSize>矿簇尺寸（不改变单格产量）</RL_EnvironmentLumpSize>
+  <RL_EnvironmentGeothermalEnrichment>地热富集强度</RL_EnvironmentGeothermalEnrichment>
+  <RL_EnvironmentLavaEnabled>在之后的深层生成天然熔岩</RL_EnvironmentLavaEnabled>
+  <RL_EnvironmentLavaStart>普通地区熔岩起始深度</RL_EnvironmentLavaStart>
+  <RL_EnvironmentVolcanicLavaStart>火山地区熔岩起始深度</RL_EnvironmentVolcanicLavaStart>
+  <RL_EnvironmentLavaCoverage>起始覆盖率</RL_EnvironmentLavaCoverage>
+  <RL_EnvironmentLavaCap>覆盖率上限</RL_EnvironmentLavaCap>
+  <RL_EnvironmentLavaGrowth>每层覆盖率增长倍率</RL_EnvironmentLavaGrowth>
+  <RL_EnvironmentLavaMinSize>最小熔岩核心面积</RL_EnvironmentLavaMinSize>
+  <RL_EnvironmentLavaMaxSize>最大熔岩核心面积</RL_EnvironmentLavaMaxSize>
+  <RL_EnvironmentLavaHeat>熔岩加热（不改变接触烧伤）</RL_EnvironmentLavaHeat>
+  <RL_EnvironmentInitialHiveEnabled>生成有限探索虫巢（沿用现有初始虫巢开关）</RL_EnvironmentInitialHiveEnabled>
+  <RL_EnvironmentInitialHiveDensity>初始探索虫巢密度</RL_EnvironmentInitialHiveDensity>
+  <RL_EnvironmentInfestationWeight>合格地下普通虫灾选址权重</RL_EnvironmentInfestationWeight>
+  <RL_EnvironmentLightSuppression>照明对虫灾选址的抑制</RL_EnvironmentLightSuppression>
+  <RL_EnvironmentInsectCold>普通虫灾低温边界</RL_EnvironmentInsectCold>
+  <RL_EnvironmentInsectHot>普通虫灾高温边界</RL_EnvironmentInsectHot>
+  <RL_EnvironmentInsectSpawnSpeed>持续巢产虫速度</RL_EnvironmentInsectSpawnSpeed>
+  <RL_EnvironmentHiveReproductionSpeed>持续巢扩巢速度</RL_EnvironmentHiveReproductionSpeed>
+<RL_EnvironmentClusterBudgetOnly>只增加矿簇预算；不改变单格产量</RL_EnvironmentClusterBudgetOnly>
+</LanguageData>

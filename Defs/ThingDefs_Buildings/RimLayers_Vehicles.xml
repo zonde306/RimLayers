@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef Name="RL_VehicleConnectorBase" ParentName="BuildingBase" Abstract="True">
+    <thingClass>RimLayers.Vehicles.Building_VehicleConnector</thingClass>
+    <passability>PassThroughOnly</passability><pathCost>0</pathCost><fillPercent>0</fillPercent>
+    <holdsRoof>false</holdsRoof><terrainAffordanceNeeded IsNull="True"/>
+    <building><isInert>true</isInert><ai_chillDestination>false</ai_chillDestination></building>
+    <comps><li Class="CompProperties_Forbiddable"/></comps>
+    <placeWorkers><li>RimLayers.Vehicles.PlaceWorker_VehicleConnector</li></placeWorkers>
+    <statBases><MaxHitPoints>600</MaxHitPoints><WorkToBuild>9000</WorkToBuild><Mass>600</Mass><Flammability>0</Flammability></statBases>
+  </ThingDef>
+  <ThingDef ParentName="RL_VehicleConnectorBase" MayRequireAnyOf="Baal.VehicleFramework,SmashPhil.VehicleFramework">
+    <defName>RL_VehicleLift</defName><label>vehicle lift station</label>
+    <description>A powered 9 脳 9 vehicle cabin. Aligned stations form a continuous shaft. Transports one fully boarded vehicle at a time; power loss pauses the cabin. A recovery command retrieves held vehicles if a station fails.</description>
+    <designationCategory>Structure</designationCategory><size>(9,9)</size><rotatable>false</rotatable>
+    <graphicData><texPath>Things/Building/RimLayers/VehicleLift</texPath><graphicClass>Graphic_Single</graphicClass><drawSize>(9,9)</drawSize></graphicData>
+    <costList><Steel>900</Steel><Plasteel>120</Plasteel><ComponentIndustrial>12</ComponentIndustrial></costList>
+    <researchPrerequisites><li>Autodoors</li><li>MicroelectronicsBasics</li></researchPrerequisites>
+    <comps><li Class="CompProperties_Flickable"/><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>1800</basePowerConsumption></li></comps>
+    <modExtensions><li Class="RimLayers.Vehicles.VehicleConnectorProperties"><lift>true</lift></li></modExtensions>
+  </ThingDef>
+  <ThingDef ParentName="RL_VehicleConnectorBase" MayRequireAnyOf="Baal.VehicleFramework,SmashPhil.VehicleFramework">
+    <defName>RL_VehicleRamp</defName><label>vehicle ramp module</label>
+    <passability>Impassable</passability><fillPercent>1</fillPercent>
+    <description>A one-cell-wide, six-cell-long ramp to the floor above. Build identical modules side by side to fit the entire vehicle. Clear the overhead opening and build a supported landing first. Vehicles cannot turn on the slope.</description>
+    <designationCategory>Structure</designationCategory><size>(1,6)</size><rotatable>true</rotatable>
+    <graphicData><texPath>Things/Building/RimLayers/VehicleRamp</texPath><graphicClass>Graphic_Single</graphicClass><drawSize>(1,6)</drawSize><drawRotated>true</drawRotated></graphicData>
+    <costList><Steel>100</Steel><ComponentIndustrial>1</ComponentIndustrial></costList>
+    <statBases><MaxHitPoints>450</MaxHitPoints><WorkToBuild>3200</WorkToBuild><Mass>120</Mass></statBases>
+    <researchPrerequisites><li>Machining</li></researchPrerequisites>
+    <modExtensions><li Class="RimLayers.Vehicles.VehicleConnectorProperties"/></modExtensions>
+  </ThingDef>
+</Defs>

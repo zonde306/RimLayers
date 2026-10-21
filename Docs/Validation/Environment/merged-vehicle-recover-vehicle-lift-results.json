@@ -1,0 +1,51 @@
+{
+  "mode": "load",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "recovery-restart-keeps-original-custody",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "all-stations-removed-retains-map-owned-recovery-action",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "recovery-command-accepts-cleared-supported-station",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "destroyed-destination-returns-original-to-source",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "cancelled-trip-ends-original-job",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "damage-recovery-does-not-duplicate-cargo",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "brrainz.harmony",
+    "ludeon.rimworld",
+    "baal.vehicleframework",
+    "rimthunder.core",
+    "mo.technicalvehicles",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

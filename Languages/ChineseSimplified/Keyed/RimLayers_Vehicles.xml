@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_VehicleUnavailable>载具兼容尚不可用。</RL_VehicleUnavailable>
+  <RL_VehicleNoSurface>整车需要有支撑且可行驶的地面。</RL_VehicleNoSurface>
+  <RL_VehicleOccupied>车辆占地区域有障碍。</RL_VehicleOccupied>
+  <RL_VehicleClearance>车辆上方净空不足。</RL_VehicleClearance>
+  <RL_VehicleRouteLost>已没有可用的载具路线，车辆已停车。</RL_VehicleRouteLost>
+  <RL_VehicleRecover>恢复升降机载具</RL_VehicleRecover>
+  <RL_VehicleRecoverHelp>在同一竖井的本站卸出暂存车辆；需要整车占地区域无障碍。</RL_VehicleRecoverHelp>
+  <RL_VehicleLiftPowered>载具升降机已供电</RL_VehicleLiftPowered>
+  <RL_VehicleLiftPaused>载具升降机暂停：未供电</RL_VehicleLiftPaused>
+  <RL_VehicleRampWidth>同向、对齐的并排模块共同形成坡道净宽。</RL_VehicleRampWidth>
+  <RL_VehicleDeckSupport>9×9 载车区四角外侧均须有现存支撑平台。</RL_VehicleDeckSupport>
+  <RL_VehicleShaftClear>请先清理井口：拆除现存楼板及下方屋顶。车站不会自动拆除。</RL_VehicleShaftClear>
+  <RL_VehicleRampUpper>建造坡道前，请先按扩层规则开放相邻上层。</RL_VehicleRampUpper>
+  <RL_VehicleRampOpening>请清空坡道六格上方：屋顶、楼板和岩石不能穿过坡面。</RL_VehicleRampOpening>
+  <RL_VehicleRampLanding>坡道上端需要已完成并有支撑的出口平台。</RL_VehicleRampLanding>
+  <RL_VehicleRampJoin>只能并排连接同起点、同朝向模块；不能接成长坡或弯折坡面。</RL_VehicleRampJoin>
+  <RL_VehicleChooseFloor>前往楼层</RL_VehicleChooseFloor>
+  <RL_VehicleChooseFloorHelp>选择同一井道的停靠楼层。车辆必须完全进入载车区并具备行驶条件。</RL_VehicleChooseFloorHelp>
+  <RL_VehicleNotReady>车辆无法行驶，请检查征召、乘员、燃料和损伤。</RL_VehicleNotReady>
+  <RL_VehicleCancel>取消载具运输</RL_VehicleCancel>
+  <RL_VehicleCancelHelp>取消行程。坡道车辆退回入口；升降机返回合法出发站。无法卸载时继续保管原车，可清理出口后恢复。</RL_VehicleCancelHelp>
+  <RL_VehicleRecoverBlocked>此处暂无可卸载的暂存车辆。请清理整车占地，并恢复同一井道内有支撑的站点。</RL_VehicleRecoverBlocked>
+  <RL_VehicleJourney>{0}：{1} → {2}</RL_VehicleJourney>
+  <RL_VehicleShaftOccupied>已暂停：井道内有人员或车辆。</RL_VehicleShaftOccupied>
+  <RL_VehiclePhaseApproaching>驶入中</RL_VehiclePhaseApproaching>
+  <RL_VehiclePhaseWaiting>等待进入</RL_VehiclePhaseWaiting>
+  <RL_VehiclePhaseCrossing>坡道通行中</RL_VehiclePhaseCrossing>
+  <RL_VehiclePhaseHeld>运输中</RL_VehiclePhaseHeld>
+  <RL_VehiclePhaseRecovering>等待安全恢复</RL_VehiclePhaseRecovering>
+  <RL_VehiclePhaseFinalLeg>驶离出口</RL_VehiclePhaseFinalLeg>
+  <RL_VehiclePhaseQueued>排队中</RL_VehiclePhaseQueued>
+  <RL_VehicleRecoveryCount>待恢复载具：{0}</RL_VehicleRecoveryCount>
+  <RL_VehicleRecoverOriginal>{0}：返回出发位置</RL_VehicleRecoverOriginal>
+  <RL_VehicleLocateRecovery>{0}：查看恢复位置</RL_VehicleLocateRecovery>
+  <RL_VehicleRestoreSource>原车辆仍在安全保管中。请清空整车占地，并修复出发位置的平台或升降机站；该位置安全后，车辆会恢复到那里。</RL_VehicleRestoreSource>
+  <RL_VehicleLandingWaiting>等待降落的载具（{0}）</RL_VehicleLandingWaiting>
+  <RL_VehicleLandingUnavailable>目标楼层或地图已失效。</RL_VehicleLandingUnavailable>
+  <RL_VehicleAirCorridorBlocked>整机进出空域被阻挡。</RL_VehicleAirCorridorBlocked>
+  <RL_VehicleLandingRestriction>不符合该机型的降落限制。</RL_VehicleLandingRestriction>
+  <RL_VehicleLandingHeld>{0}：已暂停降落。{1} 请重新选择落点。</RL_VehicleLandingHeld>
+  <RL_VehicleChooseLanding>重新选择落点</RL_VehicleChooseLanding>
+</LanguageData>

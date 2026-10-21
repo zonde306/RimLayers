@@ -107,7 +107,8 @@ public sealed class ConnectorGraph
             if(!stairs.Contains(stair) || !owner.Structure.HasSurface(lower) ||
                 !owner.Structure.HasSurface(upper) || permission==null) continue;
             if(medium==LayerChangeKind.Air && permission.air || medium==LayerChangeKind.Heat && permission.heat ||
-                medium==LayerChangeKind.Sound && permission.sound || medium==LayerChangeKind.Fire && permission.fire) return true;
+                medium==LayerChangeKind.Sound && permission.sound || medium==LayerChangeKind.Fire && permission.fire ||
+                medium==LayerChangeKind.Liquid && permission.liquid) return true;
         }
         return false;
     }
@@ -129,4 +130,5 @@ public sealed class ConnectorTransmission : DefModExtension
     public bool heat;
     public bool sound;
     public bool fire;
+    public bool liquid;
 }

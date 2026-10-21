@@ -1,8 +1,9 @@
 param(
+    [switch]$Vehicles,
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
-    [ValidateSet("ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
+    [ValidateSet("environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
     [switch]$CheckPure,
     [switch]$TemperatureCore,
     [ValidateSet("travel","handling","queue")][string]$CargoCheckpoint="travel",
@@ -49,7 +50,13 @@ if ($AllDlc) { $active += $expansions }
 elseif ($Scenario -in @('jump','combat-shields','combat-shield-save','combat-shield-pass')) { $active += 'ludeon.rimworld.royalty' }
 elseif ($Scenario -in @('mechanitor','temperature') -and -not ($Scenario -eq 'temperature' -and $TemperatureCore)) { $active += 'ludeon.rimworld.biotech' }
 elseif ($Scenario -in @('ship-landing-items','ship-coexistence','gravship','ship-structure','work-container')) { $active += 'ludeon.rimworld.odyssey' }
-$active += @('brrainz.harmony','rimlayers.core')
+$active += 'brrainz.harmony'
+if($Vehicles){
+    # Steel Horizon's global VehicleDef patches require concrete vehicle content.
+    # Exercise the user's verified, XML-only Technical Vehicles pack rather than an empty framework install.
+    $active += @('baal.vehicleframework','rimthunder.core','mo.technicalvehicles')
+}
+$active += 'rimlayers.core'
 if($Vge -gt 0){$active=@($active|Where-Object {$_ -ne 'rimlayers.core'});$active+=@('oskarpotocki.vanillafactionsexpanded.core','vanillaexpanded.gravship');if($Vge -eq 2){$active+='vanillaexpanded.gravship2'};$active+='rimlayers.core'}
 if($Dashboard){$active+=@('rimiris.rimiris.beta','rimiris.dashboard')}
 if($GuiPerf){$active+='wowgag.guiperformancepatch'}
@@ -87,15 +94,26 @@ if($Scenario -eq 'combat-raid-audit') {
     $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
     Copy-Item -LiteralPath $RaidAuditSave -Destination (Join-Path $saves 'RimLayers_V1RaidEnd.rws')
 }
-$modes = if($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
+$modes = if($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('environment','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
 foreach ($mode in $modes) {
+    if($mode -eq 'legacy-load'){
+        # Mutate only this run's own checkpoint, never a player save.
+        $save=Join-Path $runRoot 'Saves/RimLayers_Environment.rws'
+        [xml]$legacy=[IO.File]::ReadAllText($save)
+        foreach($node in @($legacy.SelectNodes("//li[@Class='RimLayers.Environment.LayerEnvironmentGame']|//li[@Class='RimLayers.Core.LayerMapComponent']/*[starts-with(name(),'environment')]|//li[@Class='RimLayers.Core.LayerMapComponent']/underground/generationRecords"))){
+            $node.ParentNode.RemoveChild($node)|Out-Null
+        }
+        $legacy.Save((Join-Path $runRoot 'Saves/RimLayers_EnvironmentLegacy.rws'))
+    }
     $arguments = @(
         ('-savedatafolder=' + $runRoot),
         $(if ($AllDlc) { '-rimlayersalldlc' } else { '-rimlayerscoredlc' }),
-        '-quicktest', '-rimlayersv1test', ('-rimlayersmode=' + $(if($mode -in @('converted-load','landed-load','flight-load','completed-load')){'load'}else{$mode})), ('-rimlayerscase=' + $Scenario),
+        '-quicktest', '-rimlayersv1test', ('-rimlayersmode=' + $(if($mode -in @('legacy-load','converted-load','landed-load','flight-load','completed-load')){'load'}else{$mode})), ('-rimlayerscase=' + $Scenario),
         ('-screen-width='+$ScreenWidth), ('-screen-height='+$ScreenHeight), '-screen-fullscreen=0', ('-rimlayersuiscale='+$UiScale.ToString([Globalization.CultureInfo]::InvariantCulture)),
         ('-rimlayersraidseed='+$RaidSeed),('-rimlayersmapsize='+$MapSize),('-rimlayerspawns='+$PawnCount),('-rimlayerslayers='+$Layers)
     )
+    if($mode -eq 'legacy-load'){$arguments+='-rimlayersenvironmentlegacy'}
+    if($Vehicles){$arguments+='-rimlayersvehiclesprototype'}
     if($mode -eq 'completed-load'){$arguments+='-rimlayersshaftcompletedreload'}
     if($mode -eq 'flight-load'){$arguments+='-rimlayersmortarflightreload'}
     if($mode -eq 'landed-load'){$arguments+='-rimlayersshiplandedreload'}

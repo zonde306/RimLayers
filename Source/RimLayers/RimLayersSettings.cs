@@ -15,6 +15,7 @@ public sealed class RimLayersSettings : ModSettings
     public float MaterialCost=1, WorkCost=1, LiftPower=1, HeightRange=1, Minerals=1;
     public bool Caves=true, CaveHives=true, AutoRecovery=true;
     public RecoveryPreference RecoveryMode;
+    public RimLayers.Environment.EnvironmentSettings Environment=new();
     public List<string> RecoveryExcludedDefs=new();
 
     public override void ExposeData()
@@ -48,6 +49,8 @@ public sealed class RimLayersSettings : ModSettings
         Scribe_Values.Look(ref CaveHives,"caveHives",true);
         Scribe_Values.Look(ref AutoRecovery,"autoRecovery",true);
         Scribe_Values.Look(ref RecoveryMode,"recoveryMode",RecoveryPreference.FallThenReset);
+        Scribe_Deep.Look(ref Environment,"environment");
+        Environment??=new();
         Scribe_Collections.Look(ref RecoveryExcludedDefs,"recoveryExcludedDefs",LookMode.Value);
         if(Scribe.mode==LoadSaveMode.PostLoadInit) Normalize();
     }
@@ -60,6 +63,7 @@ public sealed class RimLayersSettings : ModSettings
         HeightRange=Clamp(HeightRange,0,2);Minerals=Clamp(Minerals,0,3);
         if(!Enum.IsDefined(RecoveryMode))RecoveryMode=RecoveryPreference.FallThenReset;
         RecoveryExcludedDefs??=new();
+        Environment??=new();Environment.Normalize();
     }
     public void Reset()
     {

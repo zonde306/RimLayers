@@ -26,7 +26,8 @@ public sealed class StructuralSupport
     }
     public bool HasSurface(IntVec3 cell) =>
         owner.TryDecode(cell, out var logical) &&
-        (logical.LayerId == 0 || owner.Mountains.IsNaturalFloor(cell) || owner.StructuralCells.Contains(cell) && HasRequiredRoof(cell));
+        (logical.LayerId == 0 || owner.Mountains.IsNaturalFloor(cell) || owner.StructuralCells.Contains(cell) && HasRequiredRoof(cell) ||
+         RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell));
 
 
     internal static bool SupportedRoof(RoofDef? roof)=>roof==RoofDefOf.RoofConstructed||roof==RoofDefOf.RoofRockThin;
@@ -55,6 +56,12 @@ public sealed class StructuralSupport
 
     public AcceptanceReport Validate(BuildableDef buildable, IntVec3 center, Rot4 rotation, bool planning = false)
     {
+        if(RimLayers.Vehicles.VehicleFacilitySpace.IsConnector(buildable))
+        {
+            var report=RimLayers.Vehicles.VehicleFacilitySpace.Validate(owner,(ThingDef)buildable,center,rotation);
+            if(!report.Accepted)return report;
+            if(((ThingDef)buildable).GetModExtension<RimLayers.Vehicles.VehicleConnectorProperties>()?.lift==true)return true;
+        }
         if(ConnectorDefs.IsAdjacent(buildable)&&owner.TryDecode(center,out var origin))
         {
             var quota=LayerExpansionQuota.For(owner.map,owner.Elevation(origin.LayerId)+ConnectorDefs.Direction(buildable));

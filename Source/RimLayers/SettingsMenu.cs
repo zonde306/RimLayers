@@ -9,20 +9,21 @@ internal sealed class SettingsMenu
 {
     private int page;
     private Vector2 scroll;
-    private readonly float[] heights=new float[5];
+    private readonly float[] heights=new float[6];
+    private readonly EnvironmentSettingsMenu environmentMenu=new();
     private string exclusions="";
     private bool editingExclusions;
-    private static readonly string[] Pages={"Display","Floors","Gameplay","Underground","Recovery"};
+    private static readonly string[] Pages={"Display","Floors","Gameplay","Underground","Recovery","Environment"};
     internal void Draw(Rect rect)
     {
         var settings=RimLayersMod.Settings;
         var times=(settings.StairTime,settings.PoweredLiftTime,settings.EmergencyLiftTime);
-        float tabWidth=(rect.width-16)/5;
+        float tabWidth=(rect.width-8)/3;
         for(int i=0;i<Pages.Length;i++)
-            if(Widgets.ButtonText(new Rect(rect.x+i*(tabWidth+4),rect.y,tabWidth,32),TextFor(Pages[i]),active:i!=page))
+            if(Widgets.ButtonText(new Rect(rect.x+(i%3)*(tabWidth+4),rect.y+(i/3)*36,tabWidth,32),TextFor(Pages[i]),active:i!=page))
             {page=i;scroll=Vector2.zero;editingExclusions=false;}
-        Widgets.DrawBoxSolid(new Rect(rect.x+page*(tabWidth+4),rect.y+29,tabWidth,3),new Color(.85f,.72f,.43f));
-        var outer=new Rect(rect.x,rect.y+42,rect.width,Math.Max(60,rect.height-88));
+        Widgets.DrawBoxSolid(new Rect(rect.x+(page%3)*(tabWidth+4),rect.y+(page/3)*36+29,tabWidth,3),new Color(.85f,.72f,.43f));
+        var outer=new Rect(rect.x,rect.y+78,rect.width,Math.Max(60,rect.height-124));
         var inner=new Rect(0,0,outer.width-20,Math.Max(outer.height,heights[page]));
         Widgets.BeginScrollView(outer,ref scroll,inner);
         var body=new SettingsBody(inner.width);
@@ -72,6 +73,9 @@ internal sealed class SettingsMenu
                     body.Check("Caves",ref settings.Caves);
                     body.Check("CaveHives",ref settings.CaveHives);
                     body.Note("UndergroundHelp");
+                    break;
+                case 5:
+                    environmentMenu.Draw(body);
                     break;
                 case 4:
                     body.Check("AutoRecovery",ref settings.AutoRecovery);

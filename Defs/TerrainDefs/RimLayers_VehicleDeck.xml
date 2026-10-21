@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs><TerrainDef MayRequireAnyOf="Baal.VehicleFramework,SmashPhil.VehicleFramework">
+<defName>RL_VehicleDeck</defName><label>vehicle lift deck</label>
+<description>The station's retractable load-bearing platform. Removing the station exposes the original shaft opening.</description>
+<dontRender>true</dontRender><passability>Standable</passability><pathCost>0</pathCost><fertility>0</fertility>
+<edgeType>Hard</edgeType><renderPrecedence>301</renderPrecedence><layerable>false</layerable><changeable>false</changeable>
+<holdSnowOrSand>false</holdSnowOrSand><preventCraters>true</preventCraters><canEverTerraform>false</canEverTerraform><supportsRock>false</supportsRock>
+<affordances><li>Light</li><li>Medium</li><li>Heavy</li></affordances>
+<statBases><WorkToBuild>0</WorkToBuild><Flammability>0</Flammability></statBases>
+</TerrainDef></Defs>

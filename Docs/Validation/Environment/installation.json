@@ -1,0 +1,21 @@
+{
+  "gameVersion": "1.7.4984 rev1242",
+  "dll": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Assemblies\\RimLayers.dll",
+  "pdb": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Assemblies\\RimLayers.pdb",
+  "releaseCandidate": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Tests\\Artifacts\\environment-release-20261022",
+  "recoveryDll": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Tests\\Artifacts\\environment-release-20261022\\recovery\\RimLayers.previous.dll",
+  "vehicleRegression": "G:\\SteamLibrary\\steamapps\\common\\RimWorld\\Mods\\RimLayers\\Tests\\Artifacts\\vehicle-ground-20261022-015011",
+  "vehicleChecks": {
+    "generate-vehicle-lift-results.json": 22,
+    "first-load-vehicle-lift-results.json": 19,
+    "recover-vehicle-lift-results.json": 7
+  },
+  "vehicleNormalStartup": true,
+  "environmentAllDlc": "v1-environment-20261022-014741",
+  "environmentCore": "v1-environment-20261022-014228",
+  "geologyCore": "v1-environment-geology-20261022-014025",
+  "geologyAllDlc": "v1-environment-geology-20261022-013325",
+  "performance": "v1-environment-perf-20261022-013445",
+  "dllBytes": 1964032,
+  "installedAtUtc": "2026-10-21T17:52:21.106107+00:00"
+}

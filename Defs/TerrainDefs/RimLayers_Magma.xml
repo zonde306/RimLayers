@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <TerrainDef Name="RL_LavaBase" ParentName="NaturalTerrainBase" Abstract="True">
+    <texturePath>Terrain/RimLayers/Magma</texturePath><edgeType>FadeRough</edgeType>
+    <categoryType>Misc</categoryType><renderPrecedence>391</renderPrecedence>
+    <fertility>0</fertility><avoidWander>true</avoidWander><dangerous>true</dangerous>
+    <holdSnowOrSand>false</holdSnowOrSand><glowRadius>3</glowRadius><glowColor>(214,94,4,0)</glowColor>
+    <meltSnowRadius>4</meltSnowRadius><heatPerTick>0.25</heatPerTick><igniteRadius>1.9</igniteRadius>
+    <burnDamage>3</burnDamage><burnIntervalTicks>120</burnIntervalTicks><ignitePawnsIntervalTicks>240</ignitePawnsIntervalTicks>
+    <extraDeteriorationFactor>600</extraDeteriorationFactor><supportsRock>false</supportsRock>
+    <affordances Inherit="False"/><filthAcceptanceMask Inherit="False"><li>None</li></filthAcceptanceMask>
+    <customShader MayRequire="Ludeon.RimWorld.Odyssey">ShallowLava</customShader>
+    <customShaderParameters MayRequire="Ludeon.RimWorld.Odyssey"><_NoiseTex>/Other/Perlin</_NoiseTex><_LavaBrightness>0.2</_LavaBrightness><_BrightSpotSpeed>0.02</_BrightSpotSpeed><_BrightSpotScale>1.5</_BrightSpotScale></customShaderParameters>
+  </TerrainDef>
+  <TerrainDef ParentName="RL_LavaBase">
+    <defName>RL_LavaDeep</defName><label>deep magma</label>
+    <passability>Impassable</passability><pathCost>300</pathCost>
+    <description>A persistent underground magma pocket. Its heat spreads through the actual cavern and connected openings.</description>
+  </TerrainDef>
+  <TerrainDef ParentName="RL_LavaBase">
+    <defName>RL_LavaShallow</defName><label>shallow magma</label><pathCost>300</pathCost>
+    <extraDraftedPerceivedPathCost>400</extraDraftedPerceivedPathCost><extraNonDraftedPerceivedPathCost>400</extraNonDraftedPerceivedPathCost>
+    <temporary>true</temporary><tempTerrain><terrainOnRemoved>RL_CooledLava</terrainOnRemoved><destroysFloors>true</destroysFloors></tempTerrain>
+    <description>A dangerously hot margin of an underground magma pocket. Contact causes burns.</description>
+  </TerrainDef>
+  <TerrainDef ParentName="NaturalTerrainBase">
+    <defName>RL_CooledLava</defName><label>cooled magma rock</label>
+    <description>A solid cooling bank around a deep magma pocket.</description>
+    <texturePath>Terrain/RimLayers/CooledMagma</texturePath><edgeType>FadeRough</edgeType>
+    <renderPrecedence>341</renderPrecedence><pathCost>3</pathCost><fertility>0</fertility>
+    <affordances Inherit="False"><li>Walkable</li><li>Light</li><li>Medium</li><li>Heavy</li><li>Diggable</li></affordances>
+  </TerrainDef>
+</Defs>

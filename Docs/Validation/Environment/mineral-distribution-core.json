@@ -1,0 +1,4564 @@
+{
+  "mapSeed": 16622162,
+  "size": 120,
+  "production": [
+    {
+      "Version": 1,
+      "Seed": -282981240,
+      "Layer": 3,
+      "Depth": 1,
+      "Budget": 14,
+      "Clusters": 14,
+      "OreCells": 249,
+      "LavaCells": 0,
+      "Cells": {
+        "MineableSilver": 10,
+        "MineableSteel": 208,
+        "MineableComponentsIndustrial": 13,
+        "MineableJade": 11,
+        "MineableUranium": 7
+      },
+      "ClusterCounts": {
+        "MineableSilver": 2,
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 3,
+        "MineableJade": 2,
+        "MineableUranium": 1
+      },
+      "ExpectedYield": {
+        "MineableSilver": 400,
+        "MineableSteel": 8320,
+        "MineableComponentsIndustrial": 26,
+        "MineableJade": 440,
+        "MineableUranium": 280
+      },
+      "Value": {
+        "MineableSilver": 400,
+        "MineableSteel": 15808,
+        "MineableComponentsIndustrial": 832,
+        "MineableJade": 2200,
+        "MineableUranium": 1680
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981241,
+      "Layer": 4,
+      "Depth": 2,
+      "Budget": 15,
+      "Clusters": 15,
+      "OreCells": 223,
+      "LavaCells": 0,
+      "Cells": {
+        "MineableComponentsIndustrial": 38,
+        "MineablePlasteel": 14,
+        "MineableSteel": 169,
+        "MineableJade": 2
+      },
+      "ClusterCounts": {
+        "MineableComponentsIndustrial": 7,
+        "MineablePlasteel": 2,
+        "MineableSteel": 5,
+        "MineableJade": 1
+      },
+      "ExpectedYield": {
+        "MineableComponentsIndustrial": 76,
+        "MineablePlasteel": 560,
+        "MineableSteel": 6760,
+        "MineableJade": 80
+      },
+      "Value": {
+        "MineableComponentsIndustrial": 2432,
+        "MineablePlasteel": 5040,
+        "MineableSteel": 12844,
+        "MineableJade": 400
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981242,
+      "Layer": 5,
+      "Depth": 3,
+      "Budget": 16,
+      "Clusters": 16,
+      "OreCells": 230,
+      "LavaCells": 0,
+      "Cells": {
+        "MineableComponentsIndustrial": 42,
+        "MineableUranium": 12,
+        "MineableSteel": 165,
+        "MineableSilver": 11
+      },
+      "ClusterCounts": {
+        "MineableComponentsIndustrial": 9,
+        "MineableUranium": 1,
+        "MineableSteel": 5,
+        "MineableSilver": 1
+      },
+      "ExpectedYield": {
+        "MineableComponentsIndustrial": 84,
+        "MineableUranium": 480,
+        "MineableSteel": 6600,
+        "MineableSilver": 440
+      },
+      "Value": {
+        "MineableComponentsIndustrial": 2688,
+        "MineableUranium": 2880,
+        "MineableSteel": 12540,
+        "MineableSilver": 440
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981243,
+      "Layer": 6,
+      "Depth": 4,
+      "Budget": 17,
+      "Clusters": 17,
+      "OreCells": 290,
+      "LavaCells": 0,
+      "Cells": {
+        "MineableSteel": 220,
+        "MineableComponentsIndustrial": 34,
+        "MineableSilver": 15,
+        "MineableUranium": 21
+      },
+      "ClusterCounts": {
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 7,
+        "MineableSilver": 2,
+        "MineableUranium": 2
+      },
+      "ExpectedYield": {
+        "MineableSteel": 8800,
+        "MineableComponentsIndustrial": 68,
+        "MineableSilver": 600,
+        "MineableUranium": 840
+      },
+      "Value": {
+        "MineableSteel": 16720,
+        "MineableComponentsIndustrial": 2176,
+        "MineableSilver": 600,
+        "MineableUranium": 5040
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981244,
+      "Layer": 7,
+      "Depth": 5,
+      "Budget": 17,
+      "Clusters": 17,
+      "OreCells": 366,
+      "LavaCells": 0,
+      "Cells": {
+        "MineableGold": 5,
+        "MineableJade": 8,
+        "MineableSteel": 323,
+        "MineableComponentsIndustrial": 24,
+        "MineablePlasteel": 6
+      },
+      "ClusterCounts": {
+        "MineableGold": 1,
+        "MineableJade": 1,
+        "MineableSteel": 9,
+        "MineableComponentsIndustrial": 5,
+        "MineablePlasteel": 1
+      },
+      "ExpectedYield": {
+        "MineableGold": 200,
+        "MineableJade": 320,
+        "MineableSteel": 12920,
+        "MineableComponentsIndustrial": 48,
+        "MineablePlasteel": 240
+      },
+      "Value": {
+        "MineableGold": 2000,
+        "MineableJade": 1600,
+        "MineableSteel": 24548,
+        "MineableComponentsIndustrial": 1536,
+        "MineablePlasteel": 2160
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981245,
+      "Layer": 8,
+      "Depth": 6,
+      "Budget": 18,
+      "Clusters": 18,
+      "OreCells": 264,
+      "LavaCells": 71,
+      "Cells": {
+        "MineablePlasteel": 21,
+        "MineableUranium": 12,
+        "MineableComponentsIndustrial": 29,
+        "MineableSteel": 196,
+        "MineableSilver": 6
+      },
+      "ClusterCounts": {
+        "MineablePlasteel": 3,
+        "MineableUranium": 1,
+        "MineableComponentsIndustrial": 7,
+        "MineableSteel": 6,
+        "MineableSilver": 1
+      },
+      "ExpectedYield": {
+        "MineablePlasteel": 840,
+        "MineableUranium": 480,
+        "MineableComponentsIndustrial": 58,
+        "MineableSteel": 7840,
+        "MineableSilver": 240
+      },
+      "Value": {
+        "MineablePlasteel": 7560,
+        "MineableUranium": 2880,
+        "MineableComponentsIndustrial": 1856,
+        "MineableSteel": 14896,
+        "MineableSilver": 240
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981246,
+      "Layer": 9,
+      "Depth": 7,
+      "Budget": 19,
+      "Clusters": 19,
+      "OreCells": 349,
+      "LavaCells": 144,
+      "Cells": {
+        "MineableSteel": 295,
+        "MineableComponentsIndustrial": 14,
+        "MineableJade": 7,
+        "MineableGold": 3,
+        "MineablePlasteel": 2,
+        "MineableUranium": 23,
+        "MineableSilver": 5
+      },
+      "ClusterCounts": {
+        "MineableSteel": 9,
+        "MineableComponentsIndustrial": 3,
+        "MineableJade": 1,
+        "MineableGold": 1,
+        "MineablePlasteel": 1,
+        "MineableUranium": 3,
+        "MineableSilver": 1
+      },
+      "ExpectedYield": {
+        "MineableSteel": 11800,
+        "MineableComponentsIndustrial": 28,
+        "MineableJade": 280,
+        "MineableGold": 120,
+        "MineablePlasteel": 80,
+        "MineableUranium": 920,
+        "MineableSilver": 200
+      },
+      "Value": {
+        "MineableSteel": 22420,
+        "MineableComponentsIndustrial": 896,
+        "MineableJade": 1400,
+        "MineableGold": 1200,
+        "MineablePlasteel": 720,
+        "MineableUranium": 5520,
+        "MineableSilver": 200
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981247,
+      "Layer": 10,
+      "Depth": 8,
+      "Budget": 19,
+      "Clusters": 19,
+      "OreCells": 389,
+      "LavaCells": 287,
+      "Cells": {
+        "MineableJade": 4,
+        "MineableUranium": 17,
+        "MineableSteel": 329,
+        "MineableSilver": 11,
+        "MineableGold": 7,
+        "MineableComponentsIndustrial": 14,
+        "MineablePlasteel": 7
+      },
+      "ClusterCounts": {
+        "MineableJade": 1,
+        "MineableUranium": 2,
+        "MineableSteel": 10,
+        "MineableSilver": 1,
+        "MineableGold": 1,
+        "MineableComponentsIndustrial": 3,
+        "MineablePlasteel": 1
+      },
+      "ExpectedYield": {
+        "MineableJade": 160,
+        "MineableUranium": 680,
+        "MineableSteel": 13160,
+        "MineableSilver": 440,
+        "MineableGold": 280,
+        "MineableComponentsIndustrial": 28,
+        "MineablePlasteel": 280
+      },
+      "Value": {
+        "MineableJade": 800,
+        "MineableUranium": 4080,
+        "MineableSteel": 25004,
+        "MineableSilver": 440,
+        "MineableGold": 2800,
+        "MineableComponentsIndustrial": 896,
+        "MineablePlasteel": 2520
+      }
+    },
+    {
+      "Version": 1,
+      "Seed": -282981248,
+      "Layer": 11,
+      "Depth": 9,
+      "Budget": 20,
+      "Clusters": 20,
+      "OreCells": 357,
+      "LavaCells": 575,
+      "Cells": {
+        "MineableSilver": 4,
+        "MineableUranium": 31,
+        "MineableComponentsIndustrial": 33,
+        "MineableSteel": 284,
+        "MineableJade": 5
+      },
+      "ClusterCounts": {
+        "MineableSilver": 1,
+        "MineableUranium": 3,
+        "MineableComponentsIndustrial": 7,
+        "MineableSteel": 8,
+        "MineableJade": 1
+      },
+      "ExpectedYield": {
+        "MineableSilver": 160,
+        "MineableUranium": 1240,
+        "MineableComponentsIndustrial": 66,
+        "MineableSteel": 11360,
+        "MineableJade": 200
+      },
+      "Value": {
+        "MineableSilver": 160,
+        "MineableUranium": 7440,
+        "MineableComponentsIndustrial": 2112,
+        "MineableSteel": 21584,
+        "MineableJade": 1000
+      }
+    }
+  ],
+  "legalPool": [
+    {
+      "defName": "MineableComponentsIndustrial",
+      "mineableScatterCommonality": 1,
+      "mineableYield": 2
+    },
+    {
+      "defName": "MineableGold",
+      "mineableScatterCommonality": 0.07,
+      "mineableYield": 40
+    },
+    {
+      "defName": "MineableJade",
+      "mineableScatterCommonality": 0.065,
+      "mineableYield": 40
+    },
+    {
+      "defName": "MineablePlasteel",
+      "mineableScatterCommonality": 0.05,
+      "mineableYield": 40
+    },
+    {
+      "defName": "MineableSilver",
+      "mineableScatterCommonality": 0.1,
+      "mineableYield": 40
+    },
+    {
+      "defName": "MineableSteel",
+      "mineableScatterCommonality": 1,
+      "mineableYield": 40
+    },
+    {
+      "defName": "MineableUranium",
+      "mineableScatterCommonality": 0.12,
+      "mineableYield": 40
+    }
+  ],
+  "method": "20 fixed RNG seeds 731000..731019 at each B1/B5/B9, identical synthetic cave/host mask, native irregular lumps, normal lava thresholds. Production entity counts are verified before planner-only batches.",
+  "batches": [
+    {
+      "depth": 1,
+      "rngSeed": 731000,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 311,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 21,
+          "MineableSilver": 15,
+          "MineableSteel": 275
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 4,
+          "MineableSilver": 2,
+          "MineableSteel": 8
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 42,
+          "MineableSilver": 600,
+          "MineableSteel": 11000
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1344,
+          "MineableSilver": 600,
+          "MineableSteel": 20900
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 21,
+        "MineableSilver": 15,
+        "MineableSteel": 275
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 4,
+        "MineableSilver": 2,
+        "MineableSteel": 8
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 42,
+        "MineableSilver": 600,
+        "MineableSteel": 11000
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1344,
+        "MineableSilver": 600,
+        "MineableSteel": 20900
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731001,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 249,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 210,
+          "MineableComponentsIndustrial": 23,
+          "MineableUranium": 10,
+          "MineableSilver": 6
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineableComponentsIndustrial": 6,
+          "MineableUranium": 1,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8400,
+          "MineableComponentsIndustrial": 46,
+          "MineableUranium": 400,
+          "MineableSilver": 240
+        },
+        "Value": {
+          "MineableSteel": 15960,
+          "MineableComponentsIndustrial": 1472,
+          "MineableUranium": 2400,
+          "MineableSilver": 240
+        }
+      },
+      "ore": {
+        "MineableSteel": 210,
+        "MineableComponentsIndustrial": 23,
+        "MineableUranium": 10,
+        "MineableSilver": 6
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 6,
+        "MineableUranium": 1,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 8400,
+        "MineableComponentsIndustrial": 46,
+        "MineableUranium": 400,
+        "MineableSilver": 240
+      },
+      "values": {
+        "MineableSteel": 15960,
+        "MineableComponentsIndustrial": 1472,
+        "MineableUranium": 2400,
+        "MineableSilver": 240
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731002,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 195,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 149,
+          "MineableComponentsIndustrial": 46
+        },
+        "ClusterCounts": {
+          "MineableSteel": 4,
+          "MineableComponentsIndustrial": 10
+        },
+        "ExpectedYield": {
+          "MineableSteel": 5960,
+          "MineableComponentsIndustrial": 92
+        },
+        "Value": {
+          "MineableSteel": 11324,
+          "MineableComponentsIndustrial": 2944
+        }
+      },
+      "ore": {
+        "MineableSteel": 149,
+        "MineableComponentsIndustrial": 46
+      },
+      "clusters": {
+        "MineableSteel": 4,
+        "MineableComponentsIndustrial": 10
+      },
+      "yields": {
+        "MineableSteel": 5960,
+        "MineableComponentsIndustrial": 92
+      },
+      "values": {
+        "MineableSteel": 11324,
+        "MineableComponentsIndustrial": 2944
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731003,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 303,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 270,
+          "MineableComponentsIndustrial": 16,
+          "MineableJade": 5,
+          "MineableSilver": 5,
+          "MineableUranium": 7
+        },
+        "ClusterCounts": {
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 3,
+          "MineableJade": 1,
+          "MineableSilver": 1,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 10800,
+          "MineableComponentsIndustrial": 32,
+          "MineableJade": 200,
+          "MineableSilver": 200,
+          "MineableUranium": 280
+        },
+        "Value": {
+          "MineableSteel": 20520,
+          "MineableComponentsIndustrial": 1024,
+          "MineableJade": 1000,
+          "MineableSilver": 200,
+          "MineableUranium": 1680
+        }
+      },
+      "ore": {
+        "MineableSteel": 270,
+        "MineableComponentsIndustrial": 16,
+        "MineableJade": 5,
+        "MineableSilver": 5,
+        "MineableUranium": 7
+      },
+      "clusters": {
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 3,
+        "MineableJade": 1,
+        "MineableSilver": 1,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableSteel": 10800,
+        "MineableComponentsIndustrial": 32,
+        "MineableJade": 200,
+        "MineableSilver": 200,
+        "MineableUranium": 280
+      },
+      "values": {
+        "MineableSteel": 20520,
+        "MineableComponentsIndustrial": 1024,
+        "MineableJade": 1000,
+        "MineableSilver": 200,
+        "MineableUranium": 1680
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731004,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 224,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 174,
+          "MineableComponentsIndustrial": 26,
+          "MineableUranium": 9,
+          "MineableJade": 6,
+          "MineableSilver": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 6,
+          "MineableUranium": 1,
+          "MineableJade": 1,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 6960,
+          "MineableComponentsIndustrial": 52,
+          "MineableUranium": 360,
+          "MineableJade": 240,
+          "MineableSilver": 360
+        },
+        "Value": {
+          "MineableSteel": 13224,
+          "MineableComponentsIndustrial": 1664,
+          "MineableUranium": 2160,
+          "MineableJade": 1200,
+          "MineableSilver": 360
+        }
+      },
+      "ore": {
+        "MineableSteel": 174,
+        "MineableComponentsIndustrial": 26,
+        "MineableUranium": 9,
+        "MineableJade": 6,
+        "MineableSilver": 9
+      },
+      "clusters": {
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 6,
+        "MineableUranium": 1,
+        "MineableJade": 1,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 6960,
+        "MineableComponentsIndustrial": 52,
+        "MineableUranium": 360,
+        "MineableJade": 240,
+        "MineableSilver": 360
+      },
+      "values": {
+        "MineableSteel": 13224,
+        "MineableComponentsIndustrial": 1664,
+        "MineableUranium": 2160,
+        "MineableJade": 1200,
+        "MineableSilver": 360
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731005,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 321,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 293,
+          "MineableComponentsIndustrial": 25,
+          "MineableJade": 3
+        },
+        "ClusterCounts": {
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 5,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 11720,
+          "MineableComponentsIndustrial": 50,
+          "MineableJade": 120
+        },
+        "Value": {
+          "MineableSteel": 22268,
+          "MineableComponentsIndustrial": 1600,
+          "MineableJade": 600
+        }
+      },
+      "ore": {
+        "MineableSteel": 293,
+        "MineableComponentsIndustrial": 25,
+        "MineableJade": 3
+      },
+      "clusters": {
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 5,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableSteel": 11720,
+        "MineableComponentsIndustrial": 50,
+        "MineableJade": 120
+      },
+      "values": {
+        "MineableSteel": 22268,
+        "MineableComponentsIndustrial": 1600,
+        "MineableJade": 600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731006,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 255,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 212,
+          "MineableComponentsIndustrial": 25,
+          "MineableJade": 6,
+          "MineableGold": 12
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineableComponentsIndustrial": 5,
+          "MineableJade": 1,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8480,
+          "MineableComponentsIndustrial": 50,
+          "MineableJade": 240,
+          "MineableGold": 480
+        },
+        "Value": {
+          "MineableSteel": 16112,
+          "MineableComponentsIndustrial": 1600,
+          "MineableJade": 1200,
+          "MineableGold": 4800
+        }
+      },
+      "ore": {
+        "MineableSteel": 212,
+        "MineableComponentsIndustrial": 25,
+        "MineableJade": 6,
+        "MineableGold": 12
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 5,
+        "MineableJade": 1,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableSteel": 8480,
+        "MineableComponentsIndustrial": 50,
+        "MineableJade": 240,
+        "MineableGold": 480
+      },
+      "values": {
+        "MineableSteel": 16112,
+        "MineableComponentsIndustrial": 1600,
+        "MineableJade": 1200,
+        "MineableGold": 4800
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731007,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 213,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSilver": 4,
+          "MineableSteel": 166,
+          "MineableComponentsIndustrial": 26,
+          "MineableUranium": 17
+        },
+        "ClusterCounts": {
+          "MineableSilver": 1,
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 6,
+          "MineableUranium": 2
+        },
+        "ExpectedYield": {
+          "MineableSilver": 160,
+          "MineableSteel": 6640,
+          "MineableComponentsIndustrial": 52,
+          "MineableUranium": 680
+        },
+        "Value": {
+          "MineableSilver": 160,
+          "MineableSteel": 12616,
+          "MineableComponentsIndustrial": 1664,
+          "MineableUranium": 4080
+        }
+      },
+      "ore": {
+        "MineableSilver": 4,
+        "MineableSteel": 166,
+        "MineableComponentsIndustrial": 26,
+        "MineableUranium": 17
+      },
+      "clusters": {
+        "MineableSilver": 1,
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 6,
+        "MineableUranium": 2
+      },
+      "yields": {
+        "MineableSilver": 160,
+        "MineableSteel": 6640,
+        "MineableComponentsIndustrial": 52,
+        "MineableUranium": 680
+      },
+      "values": {
+        "MineableSilver": 160,
+        "MineableSteel": 12616,
+        "MineableComponentsIndustrial": 1664,
+        "MineableUranium": 4080
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731008,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 223,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 27,
+          "MineableSteel": 173,
+          "MineableSilver": 17,
+          "MineableUranium": 6
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 6,
+          "MineableSteel": 5,
+          "MineableSilver": 2,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 54,
+          "MineableSteel": 6920,
+          "MineableSilver": 680,
+          "MineableUranium": 240
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1728,
+          "MineableSteel": 13148,
+          "MineableSilver": 680,
+          "MineableUranium": 1440
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 27,
+        "MineableSteel": 173,
+        "MineableSilver": 17,
+        "MineableUranium": 6
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 6,
+        "MineableSteel": 5,
+        "MineableSilver": 2,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 54,
+        "MineableSteel": 6920,
+        "MineableSilver": 680,
+        "MineableUranium": 240
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1728,
+        "MineableSteel": 13148,
+        "MineableSilver": 680,
+        "MineableUranium": 1440
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731009,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 228,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 178,
+          "MineableComponentsIndustrial": 41,
+          "MineableUranium": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 8,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 7120,
+          "MineableComponentsIndustrial": 82,
+          "MineableUranium": 360
+        },
+        "Value": {
+          "MineableSteel": 13528,
+          "MineableComponentsIndustrial": 2624,
+          "MineableUranium": 2160
+        }
+      },
+      "ore": {
+        "MineableSteel": 178,
+        "MineableComponentsIndustrial": 41,
+        "MineableUranium": 9
+      },
+      "clusters": {
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 8,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableSteel": 7120,
+        "MineableComponentsIndustrial": 82,
+        "MineableUranium": 360
+      },
+      "values": {
+        "MineableSteel": 13528,
+        "MineableComponentsIndustrial": 2624,
+        "MineableUranium": 2160
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731010,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 331,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 17,
+          "MineableSteel": 291,
+          "MineableSilver": 12,
+          "MineableUranium": 11
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 4,
+          "MineableSteel": 8,
+          "MineableSilver": 1,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 34,
+          "MineableSteel": 11640,
+          "MineableSilver": 480,
+          "MineableUranium": 440
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1088,
+          "MineableSteel": 22116,
+          "MineableSilver": 480,
+          "MineableUranium": 2640
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 17,
+        "MineableSteel": 291,
+        "MineableSilver": 12,
+        "MineableUranium": 11
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 4,
+        "MineableSteel": 8,
+        "MineableSilver": 1,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 34,
+        "MineableSteel": 11640,
+        "MineableSilver": 480,
+        "MineableUranium": 440
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1088,
+        "MineableSteel": 22116,
+        "MineableSilver": 480,
+        "MineableUranium": 2640
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731011,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 344,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 19,
+          "MineableSteel": 321,
+          "MineableSilver": 4
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 4,
+          "MineableSteel": 9,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 38,
+          "MineableSteel": 12840,
+          "MineableSilver": 160
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1216,
+          "MineableSteel": 24396,
+          "MineableSilver": 160
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 19,
+        "MineableSteel": 321,
+        "MineableSilver": 4
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 4,
+        "MineableSteel": 9,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 38,
+        "MineableSteel": 12840,
+        "MineableSilver": 160
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1216,
+        "MineableSteel": 24396,
+        "MineableSilver": 160
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731012,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 311,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 18,
+          "MineableSteel": 287,
+          "MineablePlasteel": 3,
+          "MineableJade": 3
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 4,
+          "MineableSteel": 8,
+          "MineablePlasteel": 1,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 36,
+          "MineableSteel": 11480,
+          "MineablePlasteel": 120,
+          "MineableJade": 120
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1152,
+          "MineableSteel": 21812,
+          "MineablePlasteel": 1080,
+          "MineableJade": 600
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 18,
+        "MineableSteel": 287,
+        "MineablePlasteel": 3,
+        "MineableJade": 3
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 4,
+        "MineableSteel": 8,
+        "MineablePlasteel": 1,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 36,
+        "MineableSteel": 11480,
+        "MineablePlasteel": 120,
+        "MineableJade": 120
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1152,
+        "MineableSteel": 21812,
+        "MineablePlasteel": 1080,
+        "MineableJade": 600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731013,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 233,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 31,
+          "MineableUranium": 20,
+          "MineableSteel": 182
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 7,
+          "MineableUranium": 2,
+          "MineableSteel": 5
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 62,
+          "MineableUranium": 800,
+          "MineableSteel": 7280
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1984,
+          "MineableUranium": 4800,
+          "MineableSteel": 13832
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 31,
+        "MineableUranium": 20,
+        "MineableSteel": 182
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 7,
+        "MineableUranium": 2,
+        "MineableSteel": 5
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 62,
+        "MineableUranium": 800,
+        "MineableSteel": 7280
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1984,
+        "MineableUranium": 4800,
+        "MineableSteel": 13832
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731014,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 215,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 171,
+          "MineableComponentsIndustrial": 44
+        },
+        "ClusterCounts": {
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 9
+        },
+        "ExpectedYield": {
+          "MineableSteel": 6840,
+          "MineableComponentsIndustrial": 88
+        },
+        "Value": {
+          "MineableSteel": 12996,
+          "MineableComponentsIndustrial": 2816
+        }
+      },
+      "ore": {
+        "MineableSteel": 171,
+        "MineableComponentsIndustrial": 44
+      },
+      "clusters": {
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 9
+      },
+      "yields": {
+        "MineableSteel": 6840,
+        "MineableComponentsIndustrial": 88
+      },
+      "values": {
+        "MineableSteel": 12996,
+        "MineableComponentsIndustrial": 2816
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731015,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 188,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 139,
+          "MineableSilver": 6,
+          "MineableComponentsIndustrial": 30,
+          "MineableJade": 13
+        },
+        "ClusterCounts": {
+          "MineableSteel": 4,
+          "MineableSilver": 1,
+          "MineableComponentsIndustrial": 7,
+          "MineableJade": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 5560,
+          "MineableSilver": 240,
+          "MineableComponentsIndustrial": 60,
+          "MineableJade": 520
+        },
+        "Value": {
+          "MineableSteel": 10564,
+          "MineableSilver": 240,
+          "MineableComponentsIndustrial": 1920,
+          "MineableJade": 2600
+        }
+      },
+      "ore": {
+        "MineableSteel": 139,
+        "MineableSilver": 6,
+        "MineableComponentsIndustrial": 30,
+        "MineableJade": 13
+      },
+      "clusters": {
+        "MineableSteel": 4,
+        "MineableSilver": 1,
+        "MineableComponentsIndustrial": 7,
+        "MineableJade": 2
+      },
+      "yields": {
+        "MineableSteel": 5560,
+        "MineableSilver": 240,
+        "MineableComponentsIndustrial": 60,
+        "MineableJade": 520
+      },
+      "values": {
+        "MineableSteel": 10564,
+        "MineableSilver": 240,
+        "MineableComponentsIndustrial": 1920,
+        "MineableJade": 2600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731016,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 182,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 39,
+          "MineablePlasteel": 6,
+          "MineableSteel": 131,
+          "MineableJade": 6
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 8,
+          "MineablePlasteel": 1,
+          "MineableSteel": 4,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 78,
+          "MineablePlasteel": 240,
+          "MineableSteel": 5240,
+          "MineableJade": 240
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 2496,
+          "MineablePlasteel": 2160,
+          "MineableSteel": 9956,
+          "MineableJade": 1200
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 39,
+        "MineablePlasteel": 6,
+        "MineableSteel": 131,
+        "MineableJade": 6
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 8,
+        "MineablePlasteel": 1,
+        "MineableSteel": 4,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 78,
+        "MineablePlasteel": 240,
+        "MineableSteel": 5240,
+        "MineableJade": 240
+      },
+      "values": {
+        "MineableComponentsIndustrial": 2496,
+        "MineablePlasteel": 2160,
+        "MineableSteel": 9956,
+        "MineableJade": 1200
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731017,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 239,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableUranium": 16,
+          "MineableComponentsIndustrial": 28,
+          "MineableSteel": 195
+        },
+        "ClusterCounts": {
+          "MineableUranium": 2,
+          "MineableComponentsIndustrial": 6,
+          "MineableSteel": 6
+        },
+        "ExpectedYield": {
+          "MineableUranium": 640,
+          "MineableComponentsIndustrial": 56,
+          "MineableSteel": 7800
+        },
+        "Value": {
+          "MineableUranium": 3840,
+          "MineableComponentsIndustrial": 1792,
+          "MineableSteel": 14820
+        }
+      },
+      "ore": {
+        "MineableUranium": 16,
+        "MineableComponentsIndustrial": 28,
+        "MineableSteel": 195
+      },
+      "clusters": {
+        "MineableUranium": 2,
+        "MineableComponentsIndustrial": 6,
+        "MineableSteel": 6
+      },
+      "yields": {
+        "MineableUranium": 640,
+        "MineableComponentsIndustrial": 56,
+        "MineableSteel": 7800
+      },
+      "values": {
+        "MineableUranium": 3840,
+        "MineableComponentsIndustrial": 1792,
+        "MineableSteel": 14820
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731018,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 210,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 167,
+          "MineableComponentsIndustrial": 33,
+          "MineableGold": 4,
+          "MineableJade": 6
+        },
+        "ClusterCounts": {
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 7,
+          "MineableGold": 1,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 6680,
+          "MineableComponentsIndustrial": 66,
+          "MineableGold": 160,
+          "MineableJade": 240
+        },
+        "Value": {
+          "MineableSteel": 12692,
+          "MineableComponentsIndustrial": 2112,
+          "MineableGold": 1600,
+          "MineableJade": 1200
+        }
+      },
+      "ore": {
+        "MineableSteel": 167,
+        "MineableComponentsIndustrial": 33,
+        "MineableGold": 4,
+        "MineableJade": 6
+      },
+      "clusters": {
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 7,
+        "MineableGold": 1,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableSteel": 6680,
+        "MineableComponentsIndustrial": 66,
+        "MineableGold": 160,
+        "MineableJade": 240
+      },
+      "values": {
+        "MineableSteel": 12692,
+        "MineableComponentsIndustrial": 2112,
+        "MineableGold": 1600,
+        "MineableJade": 1200
+      },
+      "lava": 0
+    },
+    {
+      "depth": 1,
+      "rngSeed": 731019,
+      "record": {
+        "Version": 1,
+        "Seed": -282981240,
+        "Layer": 5,
+        "Depth": 1,
+        "Budget": 14,
+        "Clusters": 14,
+        "OreCells": 315,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 287,
+          "MineableComponentsIndustrial": 28
+        },
+        "ClusterCounts": {
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 6
+        },
+        "ExpectedYield": {
+          "MineableSteel": 11480,
+          "MineableComponentsIndustrial": 56
+        },
+        "Value": {
+          "MineableSteel": 21812,
+          "MineableComponentsIndustrial": 1792
+        }
+      },
+      "ore": {
+        "MineableSteel": 287,
+        "MineableComponentsIndustrial": 28
+      },
+      "clusters": {
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 6
+      },
+      "yields": {
+        "MineableSteel": 11480,
+        "MineableComponentsIndustrial": 56
+      },
+      "values": {
+        "MineableSteel": 21812,
+        "MineableComponentsIndustrial": 1792
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731000,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 250,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableJade": 6,
+          "MineableSteel": 196,
+          "MineableUranium": 6,
+          "MineablePlasteel": 5,
+          "MineableComponentsIndustrial": 25,
+          "MineableSilver": 9,
+          "MineableGold": 3
+        },
+        "ClusterCounts": {
+          "MineableJade": 2,
+          "MineableSteel": 6,
+          "MineableUranium": 1,
+          "MineablePlasteel": 1,
+          "MineableComponentsIndustrial": 5,
+          "MineableSilver": 1,
+          "MineableGold": 1
+        },
+        "ExpectedYield": {
+          "MineableJade": 240,
+          "MineableSteel": 7840,
+          "MineableUranium": 240,
+          "MineablePlasteel": 200,
+          "MineableComponentsIndustrial": 50,
+          "MineableSilver": 360,
+          "MineableGold": 120
+        },
+        "Value": {
+          "MineableJade": 1200,
+          "MineableSteel": 14896,
+          "MineableUranium": 1440,
+          "MineablePlasteel": 1800,
+          "MineableComponentsIndustrial": 1600,
+          "MineableSilver": 360,
+          "MineableGold": 1200
+        }
+      },
+      "ore": {
+        "MineableJade": 6,
+        "MineableSteel": 196,
+        "MineableUranium": 6,
+        "MineablePlasteel": 5,
+        "MineableComponentsIndustrial": 25,
+        "MineableSilver": 9,
+        "MineableGold": 3
+      },
+      "clusters": {
+        "MineableJade": 2,
+        "MineableSteel": 6,
+        "MineableUranium": 1,
+        "MineablePlasteel": 1,
+        "MineableComponentsIndustrial": 5,
+        "MineableSilver": 1,
+        "MineableGold": 1
+      },
+      "yields": {
+        "MineableJade": 240,
+        "MineableSteel": 7840,
+        "MineableUranium": 240,
+        "MineablePlasteel": 200,
+        "MineableComponentsIndustrial": 50,
+        "MineableSilver": 360,
+        "MineableGold": 120
+      },
+      "values": {
+        "MineableJade": 1200,
+        "MineableSteel": 14896,
+        "MineableUranium": 1440,
+        "MineablePlasteel": 1800,
+        "MineableComponentsIndustrial": 1600,
+        "MineableSilver": 360,
+        "MineableGold": 1200
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731001,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 341,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableUranium": 34,
+          "MineableSteel": 277,
+          "MineableComponentsIndustrial": 21,
+          "MineableSilver": 9
+        },
+        "ClusterCounts": {
+          "MineableUranium": 4,
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 4,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableUranium": 1360,
+          "MineableSteel": 11080,
+          "MineableComponentsIndustrial": 42,
+          "MineableSilver": 360
+        },
+        "Value": {
+          "MineableUranium": 8160,
+          "MineableSteel": 21052,
+          "MineableComponentsIndustrial": 1344,
+          "MineableSilver": 360
+        }
+      },
+      "ore": {
+        "MineableUranium": 34,
+        "MineableSteel": 277,
+        "MineableComponentsIndustrial": 21,
+        "MineableSilver": 9
+      },
+      "clusters": {
+        "MineableUranium": 4,
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 4,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableUranium": 1360,
+        "MineableSteel": 11080,
+        "MineableComponentsIndustrial": 42,
+        "MineableSilver": 360
+      },
+      "values": {
+        "MineableUranium": 8160,
+        "MineableSteel": 21052,
+        "MineableComponentsIndustrial": 1344,
+        "MineableSilver": 360
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731002,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 384,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 350,
+          "MineableUranium": 17,
+          "MineableJade": 4,
+          "MineableComponentsIndustrial": 7,
+          "MineableGold": 6
+        },
+        "ClusterCounts": {
+          "MineableSteel": 10,
+          "MineableUranium": 2,
+          "MineableJade": 2,
+          "MineableComponentsIndustrial": 2,
+          "MineableGold": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 14000,
+          "MineableUranium": 680,
+          "MineableJade": 160,
+          "MineableComponentsIndustrial": 14,
+          "MineableGold": 240
+        },
+        "Value": {
+          "MineableSteel": 26600,
+          "MineableUranium": 4080,
+          "MineableJade": 800,
+          "MineableComponentsIndustrial": 448,
+          "MineableGold": 2400
+        }
+      },
+      "ore": {
+        "MineableSteel": 350,
+        "MineableUranium": 17,
+        "MineableJade": 4,
+        "MineableComponentsIndustrial": 7,
+        "MineableGold": 6
+      },
+      "clusters": {
+        "MineableSteel": 10,
+        "MineableUranium": 2,
+        "MineableJade": 2,
+        "MineableComponentsIndustrial": 2,
+        "MineableGold": 1
+      },
+      "yields": {
+        "MineableSteel": 14000,
+        "MineableUranium": 680,
+        "MineableJade": 160,
+        "MineableComponentsIndustrial": 14,
+        "MineableGold": 240
+      },
+      "values": {
+        "MineableSteel": 26600,
+        "MineableUranium": 4080,
+        "MineableJade": 800,
+        "MineableComponentsIndustrial": 448,
+        "MineableGold": 2400
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731003,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 386,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 342,
+          "MineableComponentsIndustrial": 8,
+          "MineableUranium": 26,
+          "MineableJade": 2,
+          "MineablePlasteel": 8
+        },
+        "ClusterCounts": {
+          "MineableSteel": 10,
+          "MineableComponentsIndustrial": 2,
+          "MineableUranium": 3,
+          "MineableJade": 1,
+          "MineablePlasteel": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 13680,
+          "MineableComponentsIndustrial": 16,
+          "MineableUranium": 1040,
+          "MineableJade": 80,
+          "MineablePlasteel": 320
+        },
+        "Value": {
+          "MineableSteel": 25992,
+          "MineableComponentsIndustrial": 512,
+          "MineableUranium": 6240,
+          "MineableJade": 400,
+          "MineablePlasteel": 2880
+        }
+      },
+      "ore": {
+        "MineableSteel": 342,
+        "MineableComponentsIndustrial": 8,
+        "MineableUranium": 26,
+        "MineableJade": 2,
+        "MineablePlasteel": 8
+      },
+      "clusters": {
+        "MineableSteel": 10,
+        "MineableComponentsIndustrial": 2,
+        "MineableUranium": 3,
+        "MineableJade": 1,
+        "MineablePlasteel": 1
+      },
+      "yields": {
+        "MineableSteel": 13680,
+        "MineableComponentsIndustrial": 16,
+        "MineableUranium": 1040,
+        "MineableJade": 80,
+        "MineablePlasteel": 320
+      },
+      "values": {
+        "MineableSteel": 25992,
+        "MineableComponentsIndustrial": 512,
+        "MineableUranium": 6240,
+        "MineableJade": 400,
+        "MineablePlasteel": 2880
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731004,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 341,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableUranium": 31,
+          "MineableSteel": 287,
+          "MineableComponentsIndustrial": 23
+        },
+        "ClusterCounts": {
+          "MineableUranium": 4,
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 5
+        },
+        "ExpectedYield": {
+          "MineableUranium": 1240,
+          "MineableSteel": 11480,
+          "MineableComponentsIndustrial": 46
+        },
+        "Value": {
+          "MineableUranium": 7440,
+          "MineableSteel": 21812,
+          "MineableComponentsIndustrial": 1472
+        }
+      },
+      "ore": {
+        "MineableUranium": 31,
+        "MineableSteel": 287,
+        "MineableComponentsIndustrial": 23
+      },
+      "clusters": {
+        "MineableUranium": 4,
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 5
+      },
+      "yields": {
+        "MineableUranium": 1240,
+        "MineableSteel": 11480,
+        "MineableComponentsIndustrial": 46
+      },
+      "values": {
+        "MineableUranium": 7440,
+        "MineableSteel": 21812,
+        "MineableComponentsIndustrial": 1472
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731005,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 325,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableUranium": 6,
+          "MineableSteel": 282,
+          "MineableGold": 6,
+          "MineableComponentsIndustrial": 14,
+          "MineablePlasteel": 17
+        },
+        "ClusterCounts": {
+          "MineableUranium": 1,
+          "MineableSteel": 8,
+          "MineableGold": 1,
+          "MineableComponentsIndustrial": 4,
+          "MineablePlasteel": 3
+        },
+        "ExpectedYield": {
+          "MineableUranium": 240,
+          "MineableSteel": 11280,
+          "MineableGold": 240,
+          "MineableComponentsIndustrial": 28,
+          "MineablePlasteel": 680
+        },
+        "Value": {
+          "MineableUranium": 1440,
+          "MineableSteel": 21432,
+          "MineableGold": 2400,
+          "MineableComponentsIndustrial": 896,
+          "MineablePlasteel": 6120
+        }
+      },
+      "ore": {
+        "MineableUranium": 6,
+        "MineableSteel": 282,
+        "MineableGold": 6,
+        "MineableComponentsIndustrial": 14,
+        "MineablePlasteel": 17
+      },
+      "clusters": {
+        "MineableUranium": 1,
+        "MineableSteel": 8,
+        "MineableGold": 1,
+        "MineableComponentsIndustrial": 4,
+        "MineablePlasteel": 3
+      },
+      "yields": {
+        "MineableUranium": 240,
+        "MineableSteel": 11280,
+        "MineableGold": 240,
+        "MineableComponentsIndustrial": 28,
+        "MineablePlasteel": 680
+      },
+      "values": {
+        "MineableUranium": 1440,
+        "MineableSteel": 21432,
+        "MineableGold": 2400,
+        "MineableComponentsIndustrial": 896,
+        "MineablePlasteel": 6120
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731006,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 295,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 245,
+          "MineableComponentsIndustrial": 23,
+          "MineableUranium": 22,
+          "MineableSilver": 5
+        },
+        "ClusterCounts": {
+          "MineableSteel": 7,
+          "MineableComponentsIndustrial": 6,
+          "MineableUranium": 3,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 9800,
+          "MineableComponentsIndustrial": 46,
+          "MineableUranium": 880,
+          "MineableSilver": 200
+        },
+        "Value": {
+          "MineableSteel": 18620,
+          "MineableComponentsIndustrial": 1472,
+          "MineableUranium": 5280,
+          "MineableSilver": 200
+        }
+      },
+      "ore": {
+        "MineableSteel": 245,
+        "MineableComponentsIndustrial": 23,
+        "MineableUranium": 22,
+        "MineableSilver": 5
+      },
+      "clusters": {
+        "MineableSteel": 7,
+        "MineableComponentsIndustrial": 6,
+        "MineableUranium": 3,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 9800,
+        "MineableComponentsIndustrial": 46,
+        "MineableUranium": 880,
+        "MineableSilver": 200
+      },
+      "values": {
+        "MineableSteel": 18620,
+        "MineableComponentsIndustrial": 1472,
+        "MineableUranium": 5280,
+        "MineableSilver": 200
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731007,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 325,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 276,
+          "MineableComponentsIndustrial": 13,
+          "MineableSilver": 14,
+          "MineableUranium": 13,
+          "MineableGold": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 8,
+          "MineableComponentsIndustrial": 3,
+          "MineableSilver": 2,
+          "MineableUranium": 2,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 11040,
+          "MineableComponentsIndustrial": 26,
+          "MineableSilver": 560,
+          "MineableUranium": 520,
+          "MineableGold": 360
+        },
+        "Value": {
+          "MineableSteel": 20976,
+          "MineableComponentsIndustrial": 832,
+          "MineableSilver": 560,
+          "MineableUranium": 3120,
+          "MineableGold": 3600
+        }
+      },
+      "ore": {
+        "MineableSteel": 276,
+        "MineableComponentsIndustrial": 13,
+        "MineableSilver": 14,
+        "MineableUranium": 13,
+        "MineableGold": 9
+      },
+      "clusters": {
+        "MineableSteel": 8,
+        "MineableComponentsIndustrial": 3,
+        "MineableSilver": 2,
+        "MineableUranium": 2,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableSteel": 11040,
+        "MineableComponentsIndustrial": 26,
+        "MineableSilver": 560,
+        "MineableUranium": 520,
+        "MineableGold": 360
+      },
+      "values": {
+        "MineableSteel": 20976,
+        "MineableComponentsIndustrial": 832,
+        "MineableSilver": 560,
+        "MineableUranium": 3120,
+        "MineableGold": 3600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731008,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 282,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 29,
+          "MineableSteel": 217,
+          "MineableGold": 7,
+          "MineablePlasteel": 5,
+          "MineableUranium": 24
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 7,
+          "MineableSteel": 6,
+          "MineableGold": 1,
+          "MineablePlasteel": 1,
+          "MineableUranium": 2
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 58,
+          "MineableSteel": 8680,
+          "MineableGold": 280,
+          "MineablePlasteel": 200,
+          "MineableUranium": 960
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1856,
+          "MineableSteel": 16492,
+          "MineableGold": 2800,
+          "MineablePlasteel": 1800,
+          "MineableUranium": 5760
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 29,
+        "MineableSteel": 217,
+        "MineableGold": 7,
+        "MineablePlasteel": 5,
+        "MineableUranium": 24
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 7,
+        "MineableSteel": 6,
+        "MineableGold": 1,
+        "MineablePlasteel": 1,
+        "MineableUranium": 2
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 58,
+        "MineableSteel": 8680,
+        "MineableGold": 280,
+        "MineablePlasteel": 200,
+        "MineableUranium": 960
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1856,
+        "MineableSteel": 16492,
+        "MineableGold": 2800,
+        "MineablePlasteel": 1800,
+        "MineableUranium": 5760
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731009,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 240,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 172,
+          "MineableUranium": 25,
+          "MineableComponentsIndustrial": 27,
+          "MineableGold": 2,
+          "MineableJade": 5,
+          "MineableSilver": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 5,
+          "MineableUranium": 3,
+          "MineableComponentsIndustrial": 5,
+          "MineableGold": 1,
+          "MineableJade": 2,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 6880,
+          "MineableUranium": 1000,
+          "MineableComponentsIndustrial": 54,
+          "MineableGold": 80,
+          "MineableJade": 200,
+          "MineableSilver": 360
+        },
+        "Value": {
+          "MineableSteel": 13072,
+          "MineableUranium": 6000,
+          "MineableComponentsIndustrial": 1728,
+          "MineableGold": 800,
+          "MineableJade": 1000,
+          "MineableSilver": 360
+        }
+      },
+      "ore": {
+        "MineableSteel": 172,
+        "MineableUranium": 25,
+        "MineableComponentsIndustrial": 27,
+        "MineableGold": 2,
+        "MineableJade": 5,
+        "MineableSilver": 9
+      },
+      "clusters": {
+        "MineableSteel": 5,
+        "MineableUranium": 3,
+        "MineableComponentsIndustrial": 5,
+        "MineableGold": 1,
+        "MineableJade": 2,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 6880,
+        "MineableUranium": 1000,
+        "MineableComponentsIndustrial": 54,
+        "MineableGold": 80,
+        "MineableJade": 200,
+        "MineableSilver": 360
+      },
+      "values": {
+        "MineableSteel": 13072,
+        "MineableUranium": 6000,
+        "MineableComponentsIndustrial": 1728,
+        "MineableGold": 800,
+        "MineableJade": 1000,
+        "MineableSilver": 360
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731010,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 239,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 28,
+          "MineableSteel": 172,
+          "MineableSilver": 31,
+          "MineableJade": 8
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 7,
+          "MineableSteel": 5,
+          "MineableSilver": 4,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 56,
+          "MineableSteel": 6880,
+          "MineableSilver": 1240,
+          "MineableJade": 320
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1792,
+          "MineableSteel": 13072,
+          "MineableSilver": 1240,
+          "MineableJade": 1600
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 28,
+        "MineableSteel": 172,
+        "MineableSilver": 31,
+        "MineableJade": 8
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 7,
+        "MineableSteel": 5,
+        "MineableSilver": 4,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 56,
+        "MineableSteel": 6880,
+        "MineableSilver": 1240,
+        "MineableJade": 320
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1792,
+        "MineableSteel": 13072,
+        "MineableSilver": 1240,
+        "MineableJade": 1600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731011,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 229,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableJade": 11,
+          "MineableSteel": 172,
+          "MineableComponentsIndustrial": 32,
+          "MineableGold": 8,
+          "MineableUranium": 6
+        },
+        "ClusterCounts": {
+          "MineableJade": 2,
+          "MineableSteel": 5,
+          "MineableComponentsIndustrial": 7,
+          "MineableGold": 2,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableJade": 440,
+          "MineableSteel": 6880,
+          "MineableComponentsIndustrial": 64,
+          "MineableGold": 320,
+          "MineableUranium": 240
+        },
+        "Value": {
+          "MineableJade": 2200,
+          "MineableSteel": 13072,
+          "MineableComponentsIndustrial": 2048,
+          "MineableGold": 3200,
+          "MineableUranium": 1440
+        }
+      },
+      "ore": {
+        "MineableJade": 11,
+        "MineableSteel": 172,
+        "MineableComponentsIndustrial": 32,
+        "MineableGold": 8,
+        "MineableUranium": 6
+      },
+      "clusters": {
+        "MineableJade": 2,
+        "MineableSteel": 5,
+        "MineableComponentsIndustrial": 7,
+        "MineableGold": 2,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableJade": 440,
+        "MineableSteel": 6880,
+        "MineableComponentsIndustrial": 64,
+        "MineableGold": 320,
+        "MineableUranium": 240
+      },
+      "values": {
+        "MineableJade": 2200,
+        "MineableSteel": 13072,
+        "MineableComponentsIndustrial": 2048,
+        "MineableGold": 3200,
+        "MineableUranium": 1440
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731012,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 296,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableComponentsIndustrial": 27,
+          "MineableSteel": 244,
+          "MineableJade": 10,
+          "MineableGold": 15
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 6,
+          "MineableSteel": 7,
+          "MineableJade": 2,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 54,
+          "MineableSteel": 9760,
+          "MineableJade": 400,
+          "MineableGold": 600
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 1728,
+          "MineableSteel": 18544,
+          "MineableJade": 2000,
+          "MineableGold": 6000
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 27,
+        "MineableSteel": 244,
+        "MineableJade": 10,
+        "MineableGold": 15
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 6,
+        "MineableSteel": 7,
+        "MineableJade": 2,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 54,
+        "MineableSteel": 9760,
+        "MineableJade": 400,
+        "MineableGold": 600
+      },
+      "values": {
+        "MineableComponentsIndustrial": 1728,
+        "MineableSteel": 18544,
+        "MineableJade": 2000,
+        "MineableGold": 6000
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731013,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 276,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableGold": 14,
+          "MineableComponentsIndustrial": 35,
+          "MineableSteel": 208,
+          "MineableJade": 7,
+          "MineableUranium": 12
+        },
+        "ClusterCounts": {
+          "MineableGold": 2,
+          "MineableComponentsIndustrial": 7,
+          "MineableSteel": 6,
+          "MineableJade": 1,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableGold": 560,
+          "MineableComponentsIndustrial": 70,
+          "MineableSteel": 8320,
+          "MineableJade": 280,
+          "MineableUranium": 480
+        },
+        "Value": {
+          "MineableGold": 5600,
+          "MineableComponentsIndustrial": 2240,
+          "MineableSteel": 15808,
+          "MineableJade": 1400,
+          "MineableUranium": 2880
+        }
+      },
+      "ore": {
+        "MineableGold": 14,
+        "MineableComponentsIndustrial": 35,
+        "MineableSteel": 208,
+        "MineableJade": 7,
+        "MineableUranium": 12
+      },
+      "clusters": {
+        "MineableGold": 2,
+        "MineableComponentsIndustrial": 7,
+        "MineableSteel": 6,
+        "MineableJade": 1,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableGold": 560,
+        "MineableComponentsIndustrial": 70,
+        "MineableSteel": 8320,
+        "MineableJade": 280,
+        "MineableUranium": 480
+      },
+      "values": {
+        "MineableGold": 5600,
+        "MineableComponentsIndustrial": 2240,
+        "MineableSteel": 15808,
+        "MineableJade": 1400,
+        "MineableUranium": 2880
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731014,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 265,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 204,
+          "MineableComponentsIndustrial": 45,
+          "MineableGold": 7,
+          "MineableUranium": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineableComponentsIndustrial": 9,
+          "MineableGold": 1,
+          "MineableUranium": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8160,
+          "MineableComponentsIndustrial": 90,
+          "MineableGold": 280,
+          "MineableUranium": 360
+        },
+        "Value": {
+          "MineableSteel": 15504,
+          "MineableComponentsIndustrial": 2880,
+          "MineableGold": 2800,
+          "MineableUranium": 2160
+        }
+      },
+      "ore": {
+        "MineableSteel": 204,
+        "MineableComponentsIndustrial": 45,
+        "MineableGold": 7,
+        "MineableUranium": 9
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 9,
+        "MineableGold": 1,
+        "MineableUranium": 1
+      },
+      "yields": {
+        "MineableSteel": 8160,
+        "MineableComponentsIndustrial": 90,
+        "MineableGold": 280,
+        "MineableUranium": 360
+      },
+      "values": {
+        "MineableSteel": 15504,
+        "MineableComponentsIndustrial": 2880,
+        "MineableGold": 2800,
+        "MineableUranium": 2160
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731015,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 201,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 140,
+          "MineableSilver": 10,
+          "MineableJade": 5,
+          "MineableComponentsIndustrial": 31,
+          "MineablePlasteel": 15
+        },
+        "ClusterCounts": {
+          "MineableSteel": 4,
+          "MineableSilver": 2,
+          "MineableJade": 1,
+          "MineableComponentsIndustrial": 8,
+          "MineablePlasteel": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 5600,
+          "MineableSilver": 400,
+          "MineableJade": 200,
+          "MineableComponentsIndustrial": 62,
+          "MineablePlasteel": 600
+        },
+        "Value": {
+          "MineableSteel": 10640,
+          "MineableSilver": 400,
+          "MineableJade": 1000,
+          "MineableComponentsIndustrial": 1984,
+          "MineablePlasteel": 5400
+        }
+      },
+      "ore": {
+        "MineableSteel": 140,
+        "MineableSilver": 10,
+        "MineableJade": 5,
+        "MineableComponentsIndustrial": 31,
+        "MineablePlasteel": 15
+      },
+      "clusters": {
+        "MineableSteel": 4,
+        "MineableSilver": 2,
+        "MineableJade": 1,
+        "MineableComponentsIndustrial": 8,
+        "MineablePlasteel": 2
+      },
+      "yields": {
+        "MineableSteel": 5600,
+        "MineableSilver": 400,
+        "MineableJade": 200,
+        "MineableComponentsIndustrial": 62,
+        "MineablePlasteel": 600
+      },
+      "values": {
+        "MineableSteel": 10640,
+        "MineableSilver": 400,
+        "MineableJade": 1000,
+        "MineableComponentsIndustrial": 1984,
+        "MineablePlasteel": 5400
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731016,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 283,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableGold": 13,
+          "MineableSteel": 231,
+          "MineableComponentsIndustrial": 23,
+          "MineableUranium": 8,
+          "MineableJade": 8
+        },
+        "ClusterCounts": {
+          "MineableGold": 3,
+          "MineableSteel": 7,
+          "MineableComponentsIndustrial": 5,
+          "MineableUranium": 1,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableGold": 520,
+          "MineableSteel": 9240,
+          "MineableComponentsIndustrial": 46,
+          "MineableUranium": 320,
+          "MineableJade": 320
+        },
+        "Value": {
+          "MineableGold": 5200,
+          "MineableSteel": 17556,
+          "MineableComponentsIndustrial": 1472,
+          "MineableUranium": 1920,
+          "MineableJade": 1600
+        }
+      },
+      "ore": {
+        "MineableGold": 13,
+        "MineableSteel": 231,
+        "MineableComponentsIndustrial": 23,
+        "MineableUranium": 8,
+        "MineableJade": 8
+      },
+      "clusters": {
+        "MineableGold": 3,
+        "MineableSteel": 7,
+        "MineableComponentsIndustrial": 5,
+        "MineableUranium": 1,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableGold": 520,
+        "MineableSteel": 9240,
+        "MineableComponentsIndustrial": 46,
+        "MineableUranium": 320,
+        "MineableJade": 320
+      },
+      "values": {
+        "MineableGold": 5200,
+        "MineableSteel": 17556,
+        "MineableComponentsIndustrial": 1472,
+        "MineableUranium": 1920,
+        "MineableJade": 1600
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731017,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 274,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableUranium": 16,
+          "MineableComponentsIndustrial": 30,
+          "MineableSteel": 215,
+          "MineableSilver": 8,
+          "MineableGold": 5
+        },
+        "ClusterCounts": {
+          "MineableUranium": 2,
+          "MineableComponentsIndustrial": 6,
+          "MineableSteel": 6,
+          "MineableSilver": 1,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableUranium": 640,
+          "MineableComponentsIndustrial": 60,
+          "MineableSteel": 8600,
+          "MineableSilver": 320,
+          "MineableGold": 200
+        },
+        "Value": {
+          "MineableUranium": 3840,
+          "MineableComponentsIndustrial": 1920,
+          "MineableSteel": 16340,
+          "MineableSilver": 320,
+          "MineableGold": 2000
+        }
+      },
+      "ore": {
+        "MineableUranium": 16,
+        "MineableComponentsIndustrial": 30,
+        "MineableSteel": 215,
+        "MineableSilver": 8,
+        "MineableGold": 5
+      },
+      "clusters": {
+        "MineableUranium": 2,
+        "MineableComponentsIndustrial": 6,
+        "MineableSteel": 6,
+        "MineableSilver": 1,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableUranium": 640,
+        "MineableComponentsIndustrial": 60,
+        "MineableSteel": 8600,
+        "MineableSilver": 320,
+        "MineableGold": 200
+      },
+      "values": {
+        "MineableUranium": 3840,
+        "MineableComponentsIndustrial": 1920,
+        "MineableSteel": 16340,
+        "MineableSilver": 320,
+        "MineableGold": 2000
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731018,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 381,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 349,
+          "MineableComponentsIndustrial": 19,
+          "MineablePlasteel": 4,
+          "MineableSilver": 9
+        },
+        "ClusterCounts": {
+          "MineableSteel": 10,
+          "MineableComponentsIndustrial": 5,
+          "MineablePlasteel": 1,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 13960,
+          "MineableComponentsIndustrial": 38,
+          "MineablePlasteel": 160,
+          "MineableSilver": 360
+        },
+        "Value": {
+          "MineableSteel": 26524,
+          "MineableComponentsIndustrial": 1216,
+          "MineablePlasteel": 1440,
+          "MineableSilver": 360
+        }
+      },
+      "ore": {
+        "MineableSteel": 349,
+        "MineableComponentsIndustrial": 19,
+        "MineablePlasteel": 4,
+        "MineableSilver": 9
+      },
+      "clusters": {
+        "MineableSteel": 10,
+        "MineableComponentsIndustrial": 5,
+        "MineablePlasteel": 1,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 13960,
+        "MineableComponentsIndustrial": 38,
+        "MineablePlasteel": 160,
+        "MineableSilver": 360
+      },
+      "values": {
+        "MineableSteel": 26524,
+        "MineableComponentsIndustrial": 1216,
+        "MineablePlasteel": 1440,
+        "MineableSilver": 360
+      },
+      "lava": 0
+    },
+    {
+      "depth": 5,
+      "rngSeed": 731019,
+      "record": {
+        "Version": 1,
+        "Seed": -282981244,
+        "Layer": 5,
+        "Depth": 5,
+        "Budget": 17,
+        "Clusters": 17,
+        "OreCells": 309,
+        "LavaCells": 0,
+        "Cells": {
+          "MineableSteel": 254,
+          "MineableComponentsIndustrial": 24,
+          "MineableSilver": 6,
+          "MineableUranium": 25
+        },
+        "ClusterCounts": {
+          "MineableSteel": 7,
+          "MineableComponentsIndustrial": 6,
+          "MineableSilver": 1,
+          "MineableUranium": 3
+        },
+        "ExpectedYield": {
+          "MineableSteel": 10160,
+          "MineableComponentsIndustrial": 48,
+          "MineableSilver": 240,
+          "MineableUranium": 1000
+        },
+        "Value": {
+          "MineableSteel": 19304,
+          "MineableComponentsIndustrial": 1536,
+          "MineableSilver": 240,
+          "MineableUranium": 6000
+        }
+      },
+      "ore": {
+        "MineableSteel": 254,
+        "MineableComponentsIndustrial": 24,
+        "MineableSilver": 6,
+        "MineableUranium": 25
+      },
+      "clusters": {
+        "MineableSteel": 7,
+        "MineableComponentsIndustrial": 6,
+        "MineableSilver": 1,
+        "MineableUranium": 3
+      },
+      "yields": {
+        "MineableSteel": 10160,
+        "MineableComponentsIndustrial": 48,
+        "MineableSilver": 240,
+        "MineableUranium": 1000
+      },
+      "values": {
+        "MineableSteel": 19304,
+        "MineableComponentsIndustrial": 1536,
+        "MineableSilver": 240,
+        "MineableUranium": 6000
+      },
+      "lava": 0
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731000,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 280,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableSteel": 207,
+          "MineableGold": 2,
+          "MineableJade": 6,
+          "MineableComponentsIndustrial": 32,
+          "MineableUranium": 26,
+          "MineablePlasteel": 7
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineableGold": 1,
+          "MineableJade": 1,
+          "MineableComponentsIndustrial": 8,
+          "MineableUranium": 3,
+          "MineablePlasteel": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8280,
+          "MineableGold": 80,
+          "MineableJade": 240,
+          "MineableComponentsIndustrial": 64,
+          "MineableUranium": 1040,
+          "MineablePlasteel": 280
+        },
+        "Value": {
+          "MineableSteel": 15732,
+          "MineableGold": 800,
+          "MineableJade": 1200,
+          "MineableComponentsIndustrial": 2048,
+          "MineableUranium": 6240,
+          "MineablePlasteel": 2520
+        }
+      },
+      "ore": {
+        "MineableSteel": 207,
+        "MineableGold": 2,
+        "MineableJade": 6,
+        "MineableComponentsIndustrial": 32,
+        "MineableUranium": 26,
+        "MineablePlasteel": 7
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineableGold": 1,
+        "MineableJade": 1,
+        "MineableComponentsIndustrial": 8,
+        "MineableUranium": 3,
+        "MineablePlasteel": 1
+      },
+      "yields": {
+        "MineableSteel": 8280,
+        "MineableGold": 80,
+        "MineableJade": 240,
+        "MineableComponentsIndustrial": 64,
+        "MineableUranium": 1040,
+        "MineablePlasteel": 280
+      },
+      "values": {
+        "MineableSteel": 15732,
+        "MineableGold": 800,
+        "MineableJade": 1200,
+        "MineableComponentsIndustrial": 2048,
+        "MineableUranium": 6240,
+        "MineablePlasteel": 2520
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731001,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 379,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableComponentsIndustrial": 8,
+          "MineableUranium": 48,
+          "MineablePlasteel": 2,
+          "MineableSteel": 311,
+          "MineableGold": 2,
+          "MineableJade": 8
+        },
+        "ClusterCounts": {
+          "MineableComponentsIndustrial": 2,
+          "MineableUranium": 5,
+          "MineablePlasteel": 1,
+          "MineableSteel": 9,
+          "MineableGold": 1,
+          "MineableJade": 2
+        },
+        "ExpectedYield": {
+          "MineableComponentsIndustrial": 16,
+          "MineableUranium": 1920,
+          "MineablePlasteel": 80,
+          "MineableSteel": 12440,
+          "MineableGold": 80,
+          "MineableJade": 320
+        },
+        "Value": {
+          "MineableComponentsIndustrial": 512,
+          "MineableUranium": 11520,
+          "MineablePlasteel": 720,
+          "MineableSteel": 23636,
+          "MineableGold": 800,
+          "MineableJade": 1600
+        }
+      },
+      "ore": {
+        "MineableComponentsIndustrial": 8,
+        "MineableUranium": 48,
+        "MineablePlasteel": 2,
+        "MineableSteel": 311,
+        "MineableGold": 2,
+        "MineableJade": 8
+      },
+      "clusters": {
+        "MineableComponentsIndustrial": 2,
+        "MineableUranium": 5,
+        "MineablePlasteel": 1,
+        "MineableSteel": 9,
+        "MineableGold": 1,
+        "MineableJade": 2
+      },
+      "yields": {
+        "MineableComponentsIndustrial": 16,
+        "MineableUranium": 1920,
+        "MineablePlasteel": 80,
+        "MineableSteel": 12440,
+        "MineableGold": 80,
+        "MineableJade": 320
+      },
+      "values": {
+        "MineableComponentsIndustrial": 512,
+        "MineableUranium": 11520,
+        "MineablePlasteel": 720,
+        "MineableSteel": 23636,
+        "MineableGold": 800,
+        "MineableJade": 1600
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731002,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 348,
+        "LavaCells": 565,
+        "Cells": {
+          "MineableSteel": 268,
+          "MineableUranium": 17,
+          "MineablePlasteel": 20,
+          "MineableSilver": 29,
+          "MineableComponentsIndustrial": 7,
+          "MineableGold": 7
+        },
+        "ClusterCounts": {
+          "MineableSteel": 8,
+          "MineableUranium": 2,
+          "MineablePlasteel": 3,
+          "MineableSilver": 3,
+          "MineableComponentsIndustrial": 2,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 10720,
+          "MineableUranium": 680,
+          "MineablePlasteel": 800,
+          "MineableSilver": 1160,
+          "MineableComponentsIndustrial": 14,
+          "MineableGold": 280
+        },
+        "Value": {
+          "MineableSteel": 20368,
+          "MineableUranium": 4080,
+          "MineablePlasteel": 7200,
+          "MineableSilver": 1160,
+          "MineableComponentsIndustrial": 448,
+          "MineableGold": 2800
+        }
+      },
+      "ore": {
+        "MineableSteel": 268,
+        "MineableUranium": 17,
+        "MineablePlasteel": 20,
+        "MineableSilver": 29,
+        "MineableComponentsIndustrial": 7,
+        "MineableGold": 7
+      },
+      "clusters": {
+        "MineableSteel": 8,
+        "MineableUranium": 2,
+        "MineablePlasteel": 3,
+        "MineableSilver": 3,
+        "MineableComponentsIndustrial": 2,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableSteel": 10720,
+        "MineableUranium": 680,
+        "MineablePlasteel": 800,
+        "MineableSilver": 1160,
+        "MineableComponentsIndustrial": 14,
+        "MineableGold": 280
+      },
+      "values": {
+        "MineableSteel": 20368,
+        "MineableUranium": 4080,
+        "MineablePlasteel": 7200,
+        "MineableSilver": 1160,
+        "MineableComponentsIndustrial": 448,
+        "MineableGold": 2800
+      },
+      "lava": 565
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731003,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 240,
+        "LavaCells": 554,
+        "Cells": {
+          "MineablePlasteel": 8,
+          "MineableSteel": 140,
+          "MineableUranium": 60,
+          "MineableComponentsIndustrial": 10,
+          "MineableGold": 14,
+          "MineableJade": 8
+        },
+        "ClusterCounts": {
+          "MineablePlasteel": 3,
+          "MineableSteel": 4,
+          "MineableUranium": 7,
+          "MineableComponentsIndustrial": 2,
+          "MineableGold": 3,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineablePlasteel": 320,
+          "MineableSteel": 5600,
+          "MineableUranium": 2400,
+          "MineableComponentsIndustrial": 20,
+          "MineableGold": 560,
+          "MineableJade": 320
+        },
+        "Value": {
+          "MineablePlasteel": 2880,
+          "MineableSteel": 10640,
+          "MineableUranium": 14400,
+          "MineableComponentsIndustrial": 640,
+          "MineableGold": 5600,
+          "MineableJade": 1600
+        }
+      },
+      "ore": {
+        "MineablePlasteel": 8,
+        "MineableSteel": 140,
+        "MineableUranium": 60,
+        "MineableComponentsIndustrial": 10,
+        "MineableGold": 14,
+        "MineableJade": 8
+      },
+      "clusters": {
+        "MineablePlasteel": 3,
+        "MineableSteel": 4,
+        "MineableUranium": 7,
+        "MineableComponentsIndustrial": 2,
+        "MineableGold": 3,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineablePlasteel": 320,
+        "MineableSteel": 5600,
+        "MineableUranium": 2400,
+        "MineableComponentsIndustrial": 20,
+        "MineableGold": 560,
+        "MineableJade": 320
+      },
+      "values": {
+        "MineablePlasteel": 2880,
+        "MineableSteel": 10640,
+        "MineableUranium": 14400,
+        "MineableComponentsIndustrial": 640,
+        "MineableGold": 5600,
+        "MineableJade": 1600
+      },
+      "lava": 554
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731004,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 323,
+        "LavaCells": 576,
+        "Cells": {
+          "MineableSteel": 241,
+          "MineableUranium": 19,
+          "MineableGold": 2,
+          "MineableSilver": 33,
+          "MineablePlasteel": 8,
+          "MineableComponentsIndustrial": 12,
+          "MineableJade": 8
+        },
+        "ClusterCounts": {
+          "MineableSteel": 7,
+          "MineableUranium": 3,
+          "MineableGold": 1,
+          "MineableSilver": 4,
+          "MineablePlasteel": 2,
+          "MineableComponentsIndustrial": 2,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 9640,
+          "MineableUranium": 760,
+          "MineableGold": 80,
+          "MineableSilver": 1320,
+          "MineablePlasteel": 320,
+          "MineableComponentsIndustrial": 24,
+          "MineableJade": 320
+        },
+        "Value": {
+          "MineableSteel": 18316,
+          "MineableUranium": 4560,
+          "MineableGold": 800,
+          "MineableSilver": 1320,
+          "MineablePlasteel": 2880,
+          "MineableComponentsIndustrial": 768,
+          "MineableJade": 1600
+        }
+      },
+      "ore": {
+        "MineableSteel": 241,
+        "MineableUranium": 19,
+        "MineableGold": 2,
+        "MineableSilver": 33,
+        "MineablePlasteel": 8,
+        "MineableComponentsIndustrial": 12,
+        "MineableJade": 8
+      },
+      "clusters": {
+        "MineableSteel": 7,
+        "MineableUranium": 3,
+        "MineableGold": 1,
+        "MineableSilver": 4,
+        "MineablePlasteel": 2,
+        "MineableComponentsIndustrial": 2,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableSteel": 9640,
+        "MineableUranium": 760,
+        "MineableGold": 80,
+        "MineableSilver": 1320,
+        "MineablePlasteel": 320,
+        "MineableComponentsIndustrial": 24,
+        "MineableJade": 320
+      },
+      "values": {
+        "MineableSteel": 18316,
+        "MineableUranium": 4560,
+        "MineableGold": 800,
+        "MineableSilver": 1320,
+        "MineablePlasteel": 2880,
+        "MineableComponentsIndustrial": 768,
+        "MineableJade": 1600
+      },
+      "lava": 576
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731005,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 324,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableUranium": 31,
+          "MineableComponentsIndustrial": 19,
+          "MineableSteel": 242,
+          "MineableGold": 18,
+          "MineablePlasteel": 8,
+          "MineableSilver": 6
+        },
+        "ClusterCounts": {
+          "MineableUranium": 3,
+          "MineableComponentsIndustrial": 5,
+          "MineableSteel": 7,
+          "MineableGold": 3,
+          "MineablePlasteel": 1,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableUranium": 1240,
+          "MineableComponentsIndustrial": 38,
+          "MineableSteel": 9680,
+          "MineableGold": 720,
+          "MineablePlasteel": 320,
+          "MineableSilver": 240
+        },
+        "Value": {
+          "MineableUranium": 7440,
+          "MineableComponentsIndustrial": 1216,
+          "MineableSteel": 18392,
+          "MineableGold": 7200,
+          "MineablePlasteel": 2880,
+          "MineableSilver": 240
+        }
+      },
+      "ore": {
+        "MineableUranium": 31,
+        "MineableComponentsIndustrial": 19,
+        "MineableSteel": 242,
+        "MineableGold": 18,
+        "MineablePlasteel": 8,
+        "MineableSilver": 6
+      },
+      "clusters": {
+        "MineableUranium": 3,
+        "MineableComponentsIndustrial": 5,
+        "MineableSteel": 7,
+        "MineableGold": 3,
+        "MineablePlasteel": 1,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableUranium": 1240,
+        "MineableComponentsIndustrial": 38,
+        "MineableSteel": 9680,
+        "MineableGold": 720,
+        "MineablePlasteel": 320,
+        "MineableSilver": 240
+      },
+      "values": {
+        "MineableUranium": 7440,
+        "MineableComponentsIndustrial": 1216,
+        "MineableSteel": 18392,
+        "MineableGold": 7200,
+        "MineablePlasteel": 2880,
+        "MineableSilver": 240
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731006,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 423,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableSteel": 353,
+          "MineableJade": 10,
+          "MineableComponentsIndustrial": 12,
+          "MineablePlasteel": 4,
+          "MineableUranium": 22,
+          "MineableGold": 5,
+          "MineableSilver": 17
+        },
+        "ClusterCounts": {
+          "MineableSteel": 10,
+          "MineableJade": 2,
+          "MineableComponentsIndustrial": 2,
+          "MineablePlasteel": 1,
+          "MineableUranium": 2,
+          "MineableGold": 1,
+          "MineableSilver": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 14120,
+          "MineableJade": 400,
+          "MineableComponentsIndustrial": 24,
+          "MineablePlasteel": 160,
+          "MineableUranium": 880,
+          "MineableGold": 200,
+          "MineableSilver": 680
+        },
+        "Value": {
+          "MineableSteel": 26828,
+          "MineableJade": 2000,
+          "MineableComponentsIndustrial": 768,
+          "MineablePlasteel": 1440,
+          "MineableUranium": 5280,
+          "MineableGold": 2000,
+          "MineableSilver": 680
+        }
+      },
+      "ore": {
+        "MineableSteel": 353,
+        "MineableJade": 10,
+        "MineableComponentsIndustrial": 12,
+        "MineablePlasteel": 4,
+        "MineableUranium": 22,
+        "MineableGold": 5,
+        "MineableSilver": 17
+      },
+      "clusters": {
+        "MineableSteel": 10,
+        "MineableJade": 2,
+        "MineableComponentsIndustrial": 2,
+        "MineablePlasteel": 1,
+        "MineableUranium": 2,
+        "MineableGold": 1,
+        "MineableSilver": 2
+      },
+      "yields": {
+        "MineableSteel": 14120,
+        "MineableJade": 400,
+        "MineableComponentsIndustrial": 24,
+        "MineablePlasteel": 160,
+        "MineableUranium": 880,
+        "MineableGold": 200,
+        "MineableSilver": 680
+      },
+      "values": {
+        "MineableSteel": 26828,
+        "MineableJade": 2000,
+        "MineableComponentsIndustrial": 768,
+        "MineablePlasteel": 1440,
+        "MineableUranium": 5280,
+        "MineableGold": 2000,
+        "MineableSilver": 680
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731007,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 231,
+        "LavaCells": 574,
+        "Cells": {
+          "MineableGold": 14,
+          "MineableJade": 11,
+          "MineableComponentsIndustrial": 17,
+          "MineableSteel": 128,
+          "MineableUranium": 53,
+          "MineablePlasteel": 8
+        },
+        "ClusterCounts": {
+          "MineableGold": 2,
+          "MineableJade": 2,
+          "MineableComponentsIndustrial": 4,
+          "MineableSteel": 4,
+          "MineableUranium": 7,
+          "MineablePlasteel": 1
+        },
+        "ExpectedYield": {
+          "MineableGold": 560,
+          "MineableJade": 440,
+          "MineableComponentsIndustrial": 34,
+          "MineableSteel": 5120,
+          "MineableUranium": 2120,
+          "MineablePlasteel": 320
+        },
+        "Value": {
+          "MineableGold": 5600,
+          "MineableJade": 2200,
+          "MineableComponentsIndustrial": 1088,
+          "MineableSteel": 9728,
+          "MineableUranium": 12720,
+          "MineablePlasteel": 2880
+        }
+      },
+      "ore": {
+        "MineableGold": 14,
+        "MineableJade": 11,
+        "MineableComponentsIndustrial": 17,
+        "MineableSteel": 128,
+        "MineableUranium": 53,
+        "MineablePlasteel": 8
+      },
+      "clusters": {
+        "MineableGold": 2,
+        "MineableJade": 2,
+        "MineableComponentsIndustrial": 4,
+        "MineableSteel": 4,
+        "MineableUranium": 7,
+        "MineablePlasteel": 1
+      },
+      "yields": {
+        "MineableGold": 560,
+        "MineableJade": 440,
+        "MineableComponentsIndustrial": 34,
+        "MineableSteel": 5120,
+        "MineableUranium": 2120,
+        "MineablePlasteel": 320
+      },
+      "values": {
+        "MineableGold": 5600,
+        "MineableJade": 2200,
+        "MineableComponentsIndustrial": 1088,
+        "MineableSteel": 9728,
+        "MineableUranium": 12720,
+        "MineablePlasteel": 2880
+      },
+      "lava": 574
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731008,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 275,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableUranium": 16,
+          "MineableSteel": 206,
+          "MineableComponentsIndustrial": 25,
+          "MineableSilver": 4,
+          "MineablePlasteel": 19,
+          "MineableGold": 2,
+          "MineableJade": 3
+        },
+        "ClusterCounts": {
+          "MineableUranium": 2,
+          "MineableSteel": 6,
+          "MineableComponentsIndustrial": 6,
+          "MineableSilver": 1,
+          "MineablePlasteel": 3,
+          "MineableGold": 1,
+          "MineableJade": 1
+        },
+        "ExpectedYield": {
+          "MineableUranium": 640,
+          "MineableSteel": 8240,
+          "MineableComponentsIndustrial": 50,
+          "MineableSilver": 160,
+          "MineablePlasteel": 760,
+          "MineableGold": 80,
+          "MineableJade": 120
+        },
+        "Value": {
+          "MineableUranium": 3840,
+          "MineableSteel": 15656,
+          "MineableComponentsIndustrial": 1600,
+          "MineableSilver": 160,
+          "MineablePlasteel": 6840,
+          "MineableGold": 800,
+          "MineableJade": 600
+        }
+      },
+      "ore": {
+        "MineableUranium": 16,
+        "MineableSteel": 206,
+        "MineableComponentsIndustrial": 25,
+        "MineableSilver": 4,
+        "MineablePlasteel": 19,
+        "MineableGold": 2,
+        "MineableJade": 3
+      },
+      "clusters": {
+        "MineableUranium": 2,
+        "MineableSteel": 6,
+        "MineableComponentsIndustrial": 6,
+        "MineableSilver": 1,
+        "MineablePlasteel": 3,
+        "MineableGold": 1,
+        "MineableJade": 1
+      },
+      "yields": {
+        "MineableUranium": 640,
+        "MineableSteel": 8240,
+        "MineableComponentsIndustrial": 50,
+        "MineableSilver": 160,
+        "MineablePlasteel": 760,
+        "MineableGold": 80,
+        "MineableJade": 120
+      },
+      "values": {
+        "MineableUranium": 3840,
+        "MineableSteel": 15656,
+        "MineableComponentsIndustrial": 1600,
+        "MineableSilver": 160,
+        "MineablePlasteel": 6840,
+        "MineableGold": 800,
+        "MineableJade": 600
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731009,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 242,
+        "LavaCells": 576,
+        "Cells": {
+          "MineableJade": 7,
+          "MineableComponentsIndustrial": 26,
+          "MineableSteel": 147,
+          "MineableUranium": 38,
+          "MineablePlasteel": 14,
+          "MineableGold": 10
+        },
+        "ClusterCounts": {
+          "MineableJade": 2,
+          "MineableComponentsIndustrial": 6,
+          "MineableSteel": 4,
+          "MineableUranium": 4,
+          "MineablePlasteel": 2,
+          "MineableGold": 2
+        },
+        "ExpectedYield": {
+          "MineableJade": 280,
+          "MineableComponentsIndustrial": 52,
+          "MineableSteel": 5880,
+          "MineableUranium": 1520,
+          "MineablePlasteel": 560,
+          "MineableGold": 400
+        },
+        "Value": {
+          "MineableJade": 1400,
+          "MineableComponentsIndustrial": 1664,
+          "MineableSteel": 11172,
+          "MineableUranium": 9120,
+          "MineablePlasteel": 5040,
+          "MineableGold": 4000
+        }
+      },
+      "ore": {
+        "MineableJade": 7,
+        "MineableComponentsIndustrial": 26,
+        "MineableSteel": 147,
+        "MineableUranium": 38,
+        "MineablePlasteel": 14,
+        "MineableGold": 10
+      },
+      "clusters": {
+        "MineableJade": 2,
+        "MineableComponentsIndustrial": 6,
+        "MineableSteel": 4,
+        "MineableUranium": 4,
+        "MineablePlasteel": 2,
+        "MineableGold": 2
+      },
+      "yields": {
+        "MineableJade": 280,
+        "MineableComponentsIndustrial": 52,
+        "MineableSteel": 5880,
+        "MineableUranium": 1520,
+        "MineablePlasteel": 560,
+        "MineableGold": 400
+      },
+      "values": {
+        "MineableJade": 1400,
+        "MineableComponentsIndustrial": 1664,
+        "MineableSteel": 11172,
+        "MineableUranium": 9120,
+        "MineablePlasteel": 5040,
+        "MineableGold": 4000
+      },
+      "lava": 576
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731010,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 475,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableSteel": 418,
+          "MineableUranium": 39,
+          "MineableComponentsIndustrial": 9,
+          "MineablePlasteel": 2,
+          "MineableSilver": 7
+        },
+        "ClusterCounts": {
+          "MineableSteel": 12,
+          "MineableUranium": 4,
+          "MineableComponentsIndustrial": 2,
+          "MineablePlasteel": 1,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 16720,
+          "MineableUranium": 1560,
+          "MineableComponentsIndustrial": 18,
+          "MineablePlasteel": 80,
+          "MineableSilver": 280
+        },
+        "Value": {
+          "MineableSteel": 31768,
+          "MineableUranium": 9360,
+          "MineableComponentsIndustrial": 576,
+          "MineablePlasteel": 720,
+          "MineableSilver": 280
+        }
+      },
+      "ore": {
+        "MineableSteel": 418,
+        "MineableUranium": 39,
+        "MineableComponentsIndustrial": 9,
+        "MineablePlasteel": 2,
+        "MineableSilver": 7
+      },
+      "clusters": {
+        "MineableSteel": 12,
+        "MineableUranium": 4,
+        "MineableComponentsIndustrial": 2,
+        "MineablePlasteel": 1,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 16720,
+        "MineableUranium": 1560,
+        "MineableComponentsIndustrial": 18,
+        "MineablePlasteel": 80,
+        "MineableSilver": 280
+      },
+      "values": {
+        "MineableSteel": 31768,
+        "MineableUranium": 9360,
+        "MineableComponentsIndustrial": 576,
+        "MineablePlasteel": 720,
+        "MineableSilver": 280
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731011,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 264,
+        "LavaCells": 554,
+        "Cells": {
+          "MineableSilver": 21,
+          "MineableGold": 16,
+          "MineablePlasteel": 7,
+          "MineableSteel": 141,
+          "MineableUranium": 64,
+          "MineableComponentsIndustrial": 15
+        },
+        "ClusterCounts": {
+          "MineableSilver": 2,
+          "MineableGold": 3,
+          "MineablePlasteel": 1,
+          "MineableSteel": 4,
+          "MineableUranium": 7,
+          "MineableComponentsIndustrial": 3
+        },
+        "ExpectedYield": {
+          "MineableSilver": 840,
+          "MineableGold": 640,
+          "MineablePlasteel": 280,
+          "MineableSteel": 5640,
+          "MineableUranium": 2560,
+          "MineableComponentsIndustrial": 30
+        },
+        "Value": {
+          "MineableSilver": 840,
+          "MineableGold": 6400,
+          "MineablePlasteel": 2520,
+          "MineableSteel": 10716,
+          "MineableUranium": 15360,
+          "MineableComponentsIndustrial": 960
+        }
+      },
+      "ore": {
+        "MineableSilver": 21,
+        "MineableGold": 16,
+        "MineablePlasteel": 7,
+        "MineableSteel": 141,
+        "MineableUranium": 64,
+        "MineableComponentsIndustrial": 15
+      },
+      "clusters": {
+        "MineableSilver": 2,
+        "MineableGold": 3,
+        "MineablePlasteel": 1,
+        "MineableSteel": 4,
+        "MineableUranium": 7,
+        "MineableComponentsIndustrial": 3
+      },
+      "yields": {
+        "MineableSilver": 840,
+        "MineableGold": 640,
+        "MineablePlasteel": 280,
+        "MineableSteel": 5640,
+        "MineableUranium": 2560,
+        "MineableComponentsIndustrial": 30
+      },
+      "values": {
+        "MineableSilver": 840,
+        "MineableGold": 6400,
+        "MineablePlasteel": 2520,
+        "MineableSteel": 10716,
+        "MineableUranium": 15360,
+        "MineableComponentsIndustrial": 960
+      },
+      "lava": 554
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731012,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 309,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableSteel": 213,
+          "MineableGold": 19,
+          "MineableUranium": 29,
+          "MineableSilver": 15,
+          "MineablePlasteel": 15,
+          "MineableComponentsIndustrial": 6,
+          "MineableJade": 12
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineableGold": 3,
+          "MineableUranium": 3,
+          "MineableSilver": 2,
+          "MineablePlasteel": 3,
+          "MineableComponentsIndustrial": 1,
+          "MineableJade": 2
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8520,
+          "MineableGold": 760,
+          "MineableUranium": 1160,
+          "MineableSilver": 600,
+          "MineablePlasteel": 600,
+          "MineableComponentsIndustrial": 12,
+          "MineableJade": 480
+        },
+        "Value": {
+          "MineableSteel": 16188,
+          "MineableGold": 7600,
+          "MineableUranium": 6960,
+          "MineableSilver": 600,
+          "MineablePlasteel": 5400,
+          "MineableComponentsIndustrial": 384,
+          "MineableJade": 2400
+        }
+      },
+      "ore": {
+        "MineableSteel": 213,
+        "MineableGold": 19,
+        "MineableUranium": 29,
+        "MineableSilver": 15,
+        "MineablePlasteel": 15,
+        "MineableComponentsIndustrial": 6,
+        "MineableJade": 12
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineableGold": 3,
+        "MineableUranium": 3,
+        "MineableSilver": 2,
+        "MineablePlasteel": 3,
+        "MineableComponentsIndustrial": 1,
+        "MineableJade": 2
+      },
+      "yields": {
+        "MineableSteel": 8520,
+        "MineableGold": 760,
+        "MineableUranium": 1160,
+        "MineableSilver": 600,
+        "MineablePlasteel": 600,
+        "MineableComponentsIndustrial": 12,
+        "MineableJade": 480
+      },
+      "values": {
+        "MineableSteel": 16188,
+        "MineableGold": 7600,
+        "MineableUranium": 6960,
+        "MineableSilver": 600,
+        "MineablePlasteel": 5400,
+        "MineableComponentsIndustrial": 384,
+        "MineableJade": 2400
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731013,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 390,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableUranium": 70,
+          "MineableSilver": 13,
+          "MineableSteel": 290,
+          "MineableJade": 4,
+          "MineableComponentsIndustrial": 6,
+          "MineablePlasteel": 7
+        },
+        "ClusterCounts": {
+          "MineableUranium": 7,
+          "MineableSilver": 2,
+          "MineableSteel": 8,
+          "MineableJade": 1,
+          "MineableComponentsIndustrial": 1,
+          "MineablePlasteel": 1
+        },
+        "ExpectedYield": {
+          "MineableUranium": 2800,
+          "MineableSilver": 520,
+          "MineableSteel": 11600,
+          "MineableJade": 160,
+          "MineableComponentsIndustrial": 12,
+          "MineablePlasteel": 280
+        },
+        "Value": {
+          "MineableUranium": 16800,
+          "MineableSilver": 520,
+          "MineableSteel": 22040,
+          "MineableJade": 800,
+          "MineableComponentsIndustrial": 384,
+          "MineablePlasteel": 2520
+        }
+      },
+      "ore": {
+        "MineableUranium": 70,
+        "MineableSilver": 13,
+        "MineableSteel": 290,
+        "MineableJade": 4,
+        "MineableComponentsIndustrial": 6,
+        "MineablePlasteel": 7
+      },
+      "clusters": {
+        "MineableUranium": 7,
+        "MineableSilver": 2,
+        "MineableSteel": 8,
+        "MineableJade": 1,
+        "MineableComponentsIndustrial": 1,
+        "MineablePlasteel": 1
+      },
+      "yields": {
+        "MineableUranium": 2800,
+        "MineableSilver": 520,
+        "MineableSteel": 11600,
+        "MineableJade": 160,
+        "MineableComponentsIndustrial": 12,
+        "MineablePlasteel": 280
+      },
+      "values": {
+        "MineableUranium": 16800,
+        "MineableSilver": 520,
+        "MineableSteel": 22040,
+        "MineableJade": 800,
+        "MineableComponentsIndustrial": 384,
+        "MineablePlasteel": 2520
+      },
+      "lava": 575
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731014,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 357,
+        "LavaCells": 558,
+        "Cells": {
+          "MineableGold": 13,
+          "MineableComponentsIndustrial": 21,
+          "MineableSteel": 289,
+          "MineableUranium": 20,
+          "MineablePlasteel": 14
+        },
+        "ClusterCounts": {
+          "MineableGold": 3,
+          "MineableComponentsIndustrial": 5,
+          "MineableSteel": 8,
+          "MineableUranium": 2,
+          "MineablePlasteel": 2
+        },
+        "ExpectedYield": {
+          "MineableGold": 520,
+          "MineableComponentsIndustrial": 42,
+          "MineableSteel": 11560,
+          "MineableUranium": 800,
+          "MineablePlasteel": 560
+        },
+        "Value": {
+          "MineableGold": 5200,
+          "MineableComponentsIndustrial": 1344,
+          "MineableSteel": 21964,
+          "MineableUranium": 4800,
+          "MineablePlasteel": 5040
+        }
+      },
+      "ore": {
+        "MineableGold": 13,
+        "MineableComponentsIndustrial": 21,
+        "MineableSteel": 289,
+        "MineableUranium": 20,
+        "MineablePlasteel": 14
+      },
+      "clusters": {
+        "MineableGold": 3,
+        "MineableComponentsIndustrial": 5,
+        "MineableSteel": 8,
+        "MineableUranium": 2,
+        "MineablePlasteel": 2
+      },
+      "yields": {
+        "MineableGold": 520,
+        "MineableComponentsIndustrial": 42,
+        "MineableSteel": 11560,
+        "MineableUranium": 800,
+        "MineablePlasteel": 560
+      },
+      "values": {
+        "MineableGold": 5200,
+        "MineableComponentsIndustrial": 1344,
+        "MineableSteel": 21964,
+        "MineableUranium": 4800,
+        "MineablePlasteel": 5040
+      },
+      "lava": 558
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731015,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 312,
+        "LavaCells": 576,
+        "Cells": {
+          "MineablePlasteel": 13,
+          "MineableUranium": 36,
+          "MineableSteel": 211,
+          "MineableJade": 6,
+          "MineableGold": 13,
+          "MineableSilver": 22,
+          "MineableComponentsIndustrial": 11
+        },
+        "ClusterCounts": {
+          "MineablePlasteel": 2,
+          "MineableUranium": 4,
+          "MineableSteel": 6,
+          "MineableJade": 2,
+          "MineableGold": 2,
+          "MineableSilver": 2,
+          "MineableComponentsIndustrial": 2
+        },
+        "ExpectedYield": {
+          "MineablePlasteel": 520,
+          "MineableUranium": 1440,
+          "MineableSteel": 8440,
+          "MineableJade": 240,
+          "MineableGold": 520,
+          "MineableSilver": 880,
+          "MineableComponentsIndustrial": 22
+        },
+        "Value": {
+          "MineablePlasteel": 4680,
+          "MineableUranium": 8640,
+          "MineableSteel": 16036,
+          "MineableJade": 1200,
+          "MineableGold": 5200,
+          "MineableSilver": 880,
+          "MineableComponentsIndustrial": 704
+        }
+      },
+      "ore": {
+        "MineablePlasteel": 13,
+        "MineableUranium": 36,
+        "MineableSteel": 211,
+        "MineableJade": 6,
+        "MineableGold": 13,
+        "MineableSilver": 22,
+        "MineableComponentsIndustrial": 11
+      },
+      "clusters": {
+        "MineablePlasteel": 2,
+        "MineableUranium": 4,
+        "MineableSteel": 6,
+        "MineableJade": 2,
+        "MineableGold": 2,
+        "MineableSilver": 2,
+        "MineableComponentsIndustrial": 2
+      },
+      "yields": {
+        "MineablePlasteel": 520,
+        "MineableUranium": 1440,
+        "MineableSteel": 8440,
+        "MineableJade": 240,
+        "MineableGold": 520,
+        "MineableSilver": 880,
+        "MineableComponentsIndustrial": 22
+      },
+      "values": {
+        "MineablePlasteel": 4680,
+        "MineableUranium": 8640,
+        "MineableSteel": 16036,
+        "MineableJade": 1200,
+        "MineableGold": 5200,
+        "MineableSilver": 880,
+        "MineableComponentsIndustrial": 704
+      },
+      "lava": 576
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731016,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 293,
+        "LavaCells": 560,
+        "Cells": {
+          "MineableSteel": 212,
+          "MineablePlasteel": 7,
+          "MineableGold": 12,
+          "MineableUranium": 30,
+          "MineableComponentsIndustrial": 24,
+          "MineableSilver": 8
+        },
+        "ClusterCounts": {
+          "MineableSteel": 6,
+          "MineablePlasteel": 1,
+          "MineableGold": 3,
+          "MineableUranium": 3,
+          "MineableComponentsIndustrial": 6,
+          "MineableSilver": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 8480,
+          "MineablePlasteel": 280,
+          "MineableGold": 480,
+          "MineableUranium": 1200,
+          "MineableComponentsIndustrial": 48,
+          "MineableSilver": 320
+        },
+        "Value": {
+          "MineableSteel": 16112,
+          "MineablePlasteel": 2520,
+          "MineableGold": 4800,
+          "MineableUranium": 7200,
+          "MineableComponentsIndustrial": 1536,
+          "MineableSilver": 320
+        }
+      },
+      "ore": {
+        "MineableSteel": 212,
+        "MineablePlasteel": 7,
+        "MineableGold": 12,
+        "MineableUranium": 30,
+        "MineableComponentsIndustrial": 24,
+        "MineableSilver": 8
+      },
+      "clusters": {
+        "MineableSteel": 6,
+        "MineablePlasteel": 1,
+        "MineableGold": 3,
+        "MineableUranium": 3,
+        "MineableComponentsIndustrial": 6,
+        "MineableSilver": 1
+      },
+      "yields": {
+        "MineableSteel": 8480,
+        "MineablePlasteel": 280,
+        "MineableGold": 480,
+        "MineableUranium": 1200,
+        "MineableComponentsIndustrial": 48,
+        "MineableSilver": 320
+      },
+      "values": {
+        "MineableSteel": 16112,
+        "MineablePlasteel": 2520,
+        "MineableGold": 4800,
+        "MineableUranium": 7200,
+        "MineableComponentsIndustrial": 1536,
+        "MineableSilver": 320
+      },
+      "lava": 560
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731017,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 373,
+        "LavaCells": 574,
+        "Cells": {
+          "MineableUranium": 34,
+          "MineableGold": 3,
+          "MineableSteel": 299,
+          "MineablePlasteel": 16,
+          "MineableJade": 12,
+          "MineableSilver": 4,
+          "MineableComponentsIndustrial": 5
+        },
+        "ClusterCounts": {
+          "MineableUranium": 4,
+          "MineableGold": 1,
+          "MineableSteel": 8,
+          "MineablePlasteel": 3,
+          "MineableJade": 2,
+          "MineableSilver": 1,
+          "MineableComponentsIndustrial": 1
+        },
+        "ExpectedYield": {
+          "MineableUranium": 1360,
+          "MineableGold": 120,
+          "MineableSteel": 11960,
+          "MineablePlasteel": 640,
+          "MineableJade": 480,
+          "MineableSilver": 160,
+          "MineableComponentsIndustrial": 10
+        },
+        "Value": {
+          "MineableUranium": 8160,
+          "MineableGold": 1200,
+          "MineableSteel": 22724,
+          "MineablePlasteel": 5760,
+          "MineableJade": 2400,
+          "MineableSilver": 160,
+          "MineableComponentsIndustrial": 320
+        }
+      },
+      "ore": {
+        "MineableUranium": 34,
+        "MineableGold": 3,
+        "MineableSteel": 299,
+        "MineablePlasteel": 16,
+        "MineableJade": 12,
+        "MineableSilver": 4,
+        "MineableComponentsIndustrial": 5
+      },
+      "clusters": {
+        "MineableUranium": 4,
+        "MineableGold": 1,
+        "MineableSteel": 8,
+        "MineablePlasteel": 3,
+        "MineableJade": 2,
+        "MineableSilver": 1,
+        "MineableComponentsIndustrial": 1
+      },
+      "yields": {
+        "MineableUranium": 1360,
+        "MineableGold": 120,
+        "MineableSteel": 11960,
+        "MineablePlasteel": 640,
+        "MineableJade": 480,
+        "MineableSilver": 160,
+        "MineableComponentsIndustrial": 10
+      },
+      "values": {
+        "MineableUranium": 8160,
+        "MineableGold": 1200,
+        "MineableSteel": 22724,
+        "MineablePlasteel": 5760,
+        "MineableJade": 2400,
+        "MineableSilver": 160,
+        "MineableComponentsIndustrial": 320
+      },
+      "lava": 574
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731018,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 328,
+        "LavaCells": 553,
+        "Cells": {
+          "MineableSteel": 242,
+          "MineableUranium": 43,
+          "MineablePlasteel": 15,
+          "MineableComponentsIndustrial": 16,
+          "MineableSilver": 7,
+          "MineableGold": 5
+        },
+        "ClusterCounts": {
+          "MineableSteel": 7,
+          "MineableUranium": 4,
+          "MineablePlasteel": 3,
+          "MineableComponentsIndustrial": 4,
+          "MineableSilver": 1,
+          "MineableGold": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 9680,
+          "MineableUranium": 1720,
+          "MineablePlasteel": 600,
+          "MineableComponentsIndustrial": 32,
+          "MineableSilver": 280,
+          "MineableGold": 200
+        },
+        "Value": {
+          "MineableSteel": 18392,
+          "MineableUranium": 10320,
+          "MineablePlasteel": 5400,
+          "MineableComponentsIndustrial": 1024,
+          "MineableSilver": 280,
+          "MineableGold": 2000
+        }
+      },
+      "ore": {
+        "MineableSteel": 242,
+        "MineableUranium": 43,
+        "MineablePlasteel": 15,
+        "MineableComponentsIndustrial": 16,
+        "MineableSilver": 7,
+        "MineableGold": 5
+      },
+      "clusters": {
+        "MineableSteel": 7,
+        "MineableUranium": 4,
+        "MineablePlasteel": 3,
+        "MineableComponentsIndustrial": 4,
+        "MineableSilver": 1,
+        "MineableGold": 1
+      },
+      "yields": {
+        "MineableSteel": 9680,
+        "MineableUranium": 1720,
+        "MineablePlasteel": 600,
+        "MineableComponentsIndustrial": 32,
+        "MineableSilver": 280,
+        "MineableGold": 200
+      },
+      "values": {
+        "MineableSteel": 18392,
+        "MineableUranium": 10320,
+        "MineablePlasteel": 5400,
+        "MineableComponentsIndustrial": 1024,
+        "MineableSilver": 280,
+        "MineableGold": 2000
+      },
+      "lava": 553
+    },
+    {
+      "depth": 9,
+      "rngSeed": 731019,
+      "record": {
+        "Version": 1,
+        "Seed": -282981248,
+        "Layer": 5,
+        "Depth": 9,
+        "Budget": 20,
+        "Clusters": 20,
+        "OreCells": 433,
+        "LavaCells": 575,
+        "Cells": {
+          "MineableSteel": 375,
+          "MineableComponentsIndustrial": 15,
+          "MineableUranium": 18,
+          "MineableJade": 6,
+          "MineablePlasteel": 2,
+          "MineableSilver": 15,
+          "MineableGold": 2
+        },
+        "ClusterCounts": {
+          "MineableSteel": 10,
+          "MineableComponentsIndustrial": 3,
+          "MineableUranium": 2,
+          "MineableJade": 1,
+          "MineablePlasteel": 1,
+          "MineableSilver": 2,
+          "MineableGold": 1
+        },
+        "ExpectedYield": {
+          "MineableSteel": 15000,
+          "MineableComponentsIndustrial": 30,
+          "MineableUranium": 720,
+          "MineableJade": 240,
+          "MineablePlasteel": 80,
+          "MineableSilver": 600,
+          "MineableGold": 80
+        },
+        "Value": {
+          "MineableSteel": 28500,
+          "MineableComponentsIndustrial": 960,
+          "MineableUranium": 4320,
+          "MineableJade": 1200,
+          "MineablePlasteel": 720,
+          "MineableSilver": 600,
+          "MineableGold": 800
+        }
+      },
+      "ore": {
+        "MineableSteel": 375,
+        "MineableComponentsIndustrial": 15,
+        "MineableUranium": 18,
+        "MineableJade": 6,
+        "MineablePlasteel": 2,
+        "MineableSilver": 15,
+        "MineableGold": 2
+      },
+      "clusters": {
+        "MineableSteel": 10,
+        "MineableComponentsIndustrial": 3,
+        "MineableUranium": 2,
+        "MineableJade": 1,
+        "MineablePlasteel": 1,
+        "MineableSilver": 2,
+        "MineableGold": 1
+      },
+      "yields": {
+        "MineableSteel": 15000,
+        "MineableComponentsIndustrial": 30,
+        "MineableUranium": 720,
+        "MineableJade": 240,
+        "MineablePlasteel": 80,
+        "MineableSilver": 600,
+        "MineableGold": 80
+      },
+      "values": {
+        "MineableSteel": 28500,
+        "MineableComponentsIndustrial": 960,
+        "MineableUranium": 4320,
+        "MineableJade": 1200,
+        "MineablePlasteel": 720,
+        "MineableSilver": 600,
+        "MineableGold": 800
+      },
+      "lava": 575
+    }
+  ]
+}

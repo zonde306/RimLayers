@@ -1,0 +1,1223 @@
+{
+  "mode": "generate",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "test-profile-loads-requested-official-dlc",
+      "pass": true,
+      "detail": "expected=0, actual=0"
+    },
+    {
+      "name": "environment-localization-loaded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-RockOffset",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-GeothermalGradient",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-RockResponseDays",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-SlabHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-OpeningHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-AltitudeLapse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-WindStrength",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-AirExchange",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-PollutionHalfLife",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-WeatherPenalty",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-TornadoDamage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-MineralDepth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LumpSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-GeothermalEnrichment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-VolcanicLavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-VolcanicLavaStart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaCoverage",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaCap",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaGrowth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaMinSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaMinSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaMaxSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaMaxSize",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LavaHeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InitialHiveDensity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InfestationWeight",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-LightSuppression",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectCold",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectHot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-InsectSpawnSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-min-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-max-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "parameter-invalid-default-HiveReproductionSpeed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "paired-coverage-and-area-bounds",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "missing-old-save-component-is-disabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "new-game-environment-enabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "settings-reset-does-not-change-save-activation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "environment-has-five-real-layers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "geology-records-once-per-new-basement",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "normal-lava-begins-at-B6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "lava-never-exceeds-coverage-budget",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "production-statistics-count-real-native-mineables",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "real-ore-keeps-native-hp-and-yield",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "same-seed-identical-ore-B1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B1-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B1-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "same-seed-identical-ore-B5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B5-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B5-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "same-seed-identical-ore-B9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "zero-mineral-budget-has-no-geothermal-bonus-ore",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed1",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed2",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed3",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed4",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed6",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed7",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed9",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed10",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed11",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed12",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed13",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed14",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed15",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed16",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed17",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed18",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-mask-B9-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "batch-count-only-multiplier-B9-seed19",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "unknown-mod-ore-has-neutral-depth-profile",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "unknown-legal-natural-mod-ore-enters-eligibility-pool",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "weight-cannot-enable-disabled-mod-ore",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-value-ceiling-remains-effective",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "zero-depth-difference-restores-neutral-profiles",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "all-zero-per-ore-weights-exclude-all-minerals",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "disabled-magma-generates-no-core-or-shore",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "zero-magma-coverage-generates-no-core",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "enrichment-never-adds-extra-cluster-budget",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "lump-size-changes-cells-not-cluster-budget-or-native-yield",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "magma-and-shore-protect-eight-cell-entrance-work-radius",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "shallow-magma-cools-through-native-queue-even-without-odyssey",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "deep-magma-remains-permanent",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "deep-gold-cluster-share-increases",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "deep-uranium-cluster-share-increases",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "deep-industrial-components-cluster-share-falls",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "ludeon.rimworld",
+    "brrainz.harmony",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

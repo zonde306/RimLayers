@@ -1,0 +1,78 @@
+{
+  "mode": "load",
+  "failures": 0,
+  "errors": [],
+  "checks": [
+    {
+      "name": "save-enablement-survives-native-restart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "tornado-native-position-and-fade-progress-survive-reload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-ore-identity-and-damage-survive",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "finite-hive-is-not-converted-on-reload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "continuous-hive-keeps-remaining-timer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "global-parameters-are-not-frozen-into-save",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "rock-temperature-survives-restart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native-room-temperature-survives-restart",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pollution-survives-with-byte-quantization",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "generation-records-do-not-repeat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "reentering-generated-layer-does-not-refresh-resources",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "failed-expansion-rolls-back-geology-and-climate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-runtime-errors",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "activeMods": [
+    "ludeon.rimworld",
+    "brrainz.harmony",
+    "rimlayers.core"
+  ],
+  "assemblyMvid": "484efdc5765b463ca9cc54a6131e38f0"
+}

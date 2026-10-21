@@ -21,3 +21,18 @@ for(int test=0;test<100000;test++)
  Require(gas.SequenceEqual(reverse.Reverse()),"independent of layer iteration direction");
 }
 Console.WriteLine("Gas exchange: 3 fixed cases + 100000 randomized chains passed (mass, bounds, smoke, direction).");
+
+foreach(float strength in new[]{0f,.1f,.5f,1f,1.5f,2f,3f,4f})
+for(int test=0;test<5000;test++)
+{
+ int length=random.Next(1,9);var gas=Enumerable.Range(0,length).Select(_=>(uint)random.NextInt64(0,1L<<32)).ToArray();
+ var links=Enumerable.Range(0,length-1).Select(_=>random.Next(2)==1).ToArray();var previous=gas.ToArray();
+ GasExchange.Apply(gas,links,strength);
+ for(int channel=0;channel<4;channel++)
+  Require(gas.Sum(g=>(int)((g>>(channel*8))&255))==previous.Sum(g=>(int)((g>>(channel*8))&255)),"scaled mass conservation");
+ for(int i=0;i<length;i++)Require((gas[i]&255)==(previous[i]&255),"scaled smoke unchanged");
+ if(strength==0)Require(gas.SequenceEqual(previous),"zero exchange paused");
+ var reverse=previous.Reverse().ToArray();GasExchange.Apply(reverse,links.Reverse().ToArray(),strength);
+ Require(gas.SequenceEqual(reverse.Reverse()),"scaled order independence");
+}
+Console.WriteLine("Gas exchange: 40000 additional scaled chains passed (0 through 4x).");

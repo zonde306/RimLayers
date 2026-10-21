@@ -65,7 +65,7 @@ internal static partial class V1Integration
         if (GenCommandLine.TryGetCommandLineArg("rimlayersmode", out var value)) mode = value;
         if (mode != "generate" && mode != "load") throw new ArgumentException("Invalid V1 test mode.");
         if (GenCommandLine.TryGetCommandLineArg("rimlayerscase", out var testCase)) scenario = testCase;
-        if (scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
+        if (scenario != "environment" && scenario != "environment-geology" && scenario != "environment-perf" && scenario != "vehicle-flight" && scenario != "vehicle-ramp" && scenario != "vehicle-lift" && scenario != "vehicle-ground" && scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
         Directory.CreateDirectory(directory);
         var h = new Harmony("rimlayers.core.v1test");
         if(scenario=="mountains")
@@ -83,6 +83,13 @@ internal static partial class V1Integration
         {
             h.Patch(AccessTools.Method(typeof(Pawn),nameof(Pawn.ExitMap)),prefix:new HarmonyMethod(typeof(V1Integration),nameof(ObserveWorldExit)));
             h.Patch(AccessTools.Method(typeof(CaravanFormingUtility),nameof(CaravanFormingUtility.FormAndCreateCaravan)),prefix:new HarmonyMethod(typeof(V1Integration),nameof(ObserveCaravanSend)));
+        }
+        if(scenario.StartsWith("vehicle-"))
+        {
+            h.Patch(AccessTools.Method(typeof(RimLayers.Vehicles.Building_VehicleConnector), nameof(Thing.DeSpawn)), prefix:new HarmonyMethod(typeof(V1Integration), nameof(VehicleConnectorRemoving)));
+            h.Patch(AccessTools.Method(typeof(Root), nameof(Root.Update)), postfix:new HarmonyMethod(typeof(V1Integration), nameof(VehicleRootProgress)));
+            h.Patch(AccessTools.Method(typeof(Map), nameof(Map.FinalizeInit)), postfix:new HarmonyMethod(typeof(V1Integration), nameof(VehicleMapReady)));
+            h.Patch(AccessTools.Method(typeof(Game), nameof(Game.InitNewGame)), postfix:new HarmonyMethod(typeof(V1Integration), nameof(VehicleGameReady)));
         }
         h.Patch(AccessTools.Method(typeof(Root_Play), nameof(Root_Play.SetupForQuickTestPlay)),
             postfix: new HarmonyMethod(typeof(V1Integration), nameof(Setup)));
@@ -117,9 +124,21 @@ internal static partial class V1Integration
 
     private static bool AllowTestTick() => !GenCommandLine.CommandLineArgPassed("rimlayerscorpsefixture") && (mode != "load" || stage != 0);
 
+    private static void VehicleConnectorRemoving(RimLayers.Vehicles.Building_VehicleConnector __instance)=>Log.Message($"[RimLayers.VehicleLifecycle] removing {__instance.ThingID} at {__instance.Position}: {System.Environment.StackTrace}");
+    private static long nextVehicleProgress;
+    private static void VehicleRootProgress()
+    {
+        long now=System.Environment.TickCount64;
+        if(now<nextVehicleProgress)return;
+        nextVehicleProgress=now+15000;
+        Log.Message($"[RimLayers.VehicleLifecycle] root state={Current.ProgramState} map={Find.CurrentMap?.uniqueID} longEvent={LongEventHandler.ShouldWaitForEvent} frame={frame} stage={stage} load={loadIssued}/{loadPending}");
+    }
+    private static void VehicleMapReady(Map __instance)=>Log.Message($"[RimLayers.VehicleLifecycle] FinalizeInit completed: {__instance.uniqueID}");
+    private static void VehicleGameReady()=>Log.Message("[RimLayers.VehicleLifecycle] InitNewGame completed");
+
     private static void Setup()
     {
-        Find.GameInitData.mapSize = scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:120;
+        Find.GameInitData.mapSize = scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:120;
         foreach (var tile in Find.WorldGrid.Tiles)
             if (tile.PrimaryBiome == BiomeDefOf.TemperateForest && tile.hilliness == Hilliness.Flat &&
                 RimWorld.Planet.TileFinder.IsValidTileForNewSettlement(tile.tile))
@@ -128,6 +147,11 @@ internal static partial class V1Integration
 
     private static void JobEnding(Pawn_JobTracker __instance, JobCondition condition)
     {
+        if(scenario=="vehicle-flight"&&AccessTools.Field(typeof(Pawn_JobTracker),"pawn").GetValue(__instance) is Pawn airActor&&RimLayers.Vehicles.VehicleCompatibility.Adapter?.IsVehicle(airActor)==true)
+            Log.Message($"[RimLayers.FlightJob] job={airActor.CurJob}, condition={condition}, cell={airActor.Position}\n{System.Environment.StackTrace}");
+        if(scenario.StartsWith("vehicle-"))
+            foreach(var actor in new[]{testVehicle,secondLiftVehicle}.Where(p=>p!=null&&p.CurJobDef==JobDefOf.Goto&&ReferenceEquals(p.jobs,__instance)))
+                Log.Message($"[RimLayers.VehicleTrace] vehicle={actor.ThingID}, job={actor.CurJob}, condition={condition}, cell={actor.Position}, trip={actor.MapHeld?.GetComponent<RimLayers.Vehicles.VehicleTraffic>().Trip(actor)?.Phase}\n{System.Environment.StackTrace}");
         if(scenario=="mountains"&&pawn!=null&&ReferenceEquals(pawn.jobs,__instance)&&pawn.CurJob?.def is {} d&&(d==JobDefOf.Mine||d.defName=="RL_MineVertical"))
             Log.Message($"[RimLayers.MountainTrace] {d.defName} end={condition},ticks={ticks},toil={pawn.jobs.curDriver?.CurToilIndex},pawn={pawn.Position},target={pawn.CurJob?.targetA},designation={map.designationManager.DesignationAt(pawn.CurJob!.targetA.Cell,DesignationDefOf.Mine)!=null},hp={pawn.CurJob?.targetA.Thing?.HitPoints}\n{System.Environment.StackTrace}");
         if (scenario == "work" && pawn != null && ReferenceEquals(pawn.jobs, __instance) &&
@@ -164,13 +188,13 @@ internal static partial class V1Integration
             }
             map = Find.CurrentMap;
             owner = LayerMapComponent.For(map)!;
-            if(owner==null&&scenario!="migration"&&scenario!="expansion"&&scenario!="stairs-bootstrap"&&scenario!="mountains"&&scenario!="underground"&&scenario!="shaft-extension")throw new Exception("No layer map.");
+            if(owner==null&&!GenCommandLine.CommandLineArgPassed("rimlayersvehicleflat")&&!scenario.StartsWith("environment")&&scenario!="migration"&&scenario!="expansion"&&scenario!="stairs-bootstrap"&&scenario!="mountains"&&scenario!="underground"&&scenario!="shaft-extension")throw new Exception("No layer map.");
             if (stage == 0)
             {
                 if (mode == "generate") { if(GenCommandLine.CommandLineArgPassed("rimlayerscorpsefixture")) BeginCorpseFixture();else Seed(); }
                 else
                 {
-                    if(scenario=="cargo") { RestoreCargo(); } else if(scenario=="temperature") { RestoreTemperature(); } else if(scenario=="jump") { RestoreJumps(); } else if(scenario=="transition") { RestoreTransitions(); }
+                    if(scenario=="environment") { RestoreEnvironment(); } else if(scenario=="vehicle-flight") { RestoreVehicleFlight(); } else if(scenario=="vehicle-ramp") { RestoreVehicleRamp(); } else if(scenario=="vehicle-lift") { RestoreVehicleLift(); } else if(scenario=="vehicle-ground") { RestoreVehicleGround(); } else if(scenario=="cargo") { RestoreCargo(); } else if(scenario=="temperature") { RestoreTemperature(); } else if(scenario=="jump") { RestoreJumps(); } else if(scenario=="transition") { RestoreTransitions(); }
                     else if(scenario=="settings-behavior") { RestoreSettingsBehavior(); }
                     else if(scenario=="settings-recovery") { RestoreSettingsRecovery(); }
                     else if(scenario=="combat-raid-audit") { AuditSavedRaid(); }
@@ -221,6 +245,7 @@ internal static partial class V1Integration
                     }
                 }
             }
+            if(scenario.StartsWith("vehicle-")&&screenshotHold>0)return;
             if(scenario=="transition") { TransitionsStep(); return; }
             for (int i = 0; i < 15 && !finished; i++)
             {
@@ -231,8 +256,10 @@ internal static partial class V1Integration
                 if (!finished)
                 {
                     long stamp=(scenario=="scale"&&scaleSampling||scenario=="underground"&&undergroundPhase==5)?System.Diagnostics.Stopwatch.GetTimestamp():0;
+                    if(scenario=="environment-perf")EnvironmentPerfBeforeTick();
                     if(scenario=="settings-perf")SettingsPerfBeforeTick();
                     Find.TickManager.DoSingleTick();
+                    if(scenario=="environment-perf")EnvironmentPerfAfterTick();
                     if(scenario=="settings-perf")SettingsPerfAfterTick();
                     if(stamp!=0){if(scenario=="underground")undergroundTickMs.Add(ScaleMilliseconds(stamp));else scaleTickMs.Add(ScaleMilliseconds(stamp));}
                     if(scenario=="scale"&&stage==240)ScaleProgress("after-native-tick");
@@ -248,6 +275,9 @@ internal static partial class V1Integration
             (ModsConfig.AnomalyActive?1:0)+(ModsConfig.OdysseyActive?1:0);
         int expectedDlc=GenCommandLine.CommandLineArgPassed("rimlayersalldlc")?5:scenario=="temperature"&&GenCommandLine.CommandLineArgPassed("rimlayerstemperaturecore")?0:scenario is "temperature" or "jump" or "ship-landing-items" or "ship-coexistence" or "gravship" or "ship-structure" or "mechanitor" or "combat-shields" or "combat-shield-save" or "combat-shield-pass" or "work-container"?1:0;
         Check("test-profile-loads-requested-official-dlc",dlcCount==expectedDlc,$"expected={expectedDlc}, actual={dlcCount}");
+        if(scenario.StartsWith("environment")){BeginEnvironment();return;}
+        if(scenario=="vehicle-flight"){BeginVehicleFlight();return;}
+        if(scenario=="vehicle-ground"&&GenCommandLine.CommandLineArgPassed("rimlayersvehicleflat")){BeginVehicleFlat();return;}
         if(scenario=="jump"){BeginJumps();return;} if(scenario=="settings-behavior"){BeginSettingsBehavior();return;}
         if(scenario=="settings-perf"){BeginSettingsPerf();return;}
         if(scenario=="settings-quota"){BeginSettingsQuota();return;}
@@ -299,6 +329,7 @@ internal static partial class V1Integration
         pawn.pather.ResetToCurrentPosition();
         pawn.Drawer.tweener.Notify_Teleported();
         if(scenario=="corpse-refresh") { BeginCorpseRefresh();return; }
+        if(scenario is "vehicle-ground" or "vehicle-lift" or "vehicle-ramp") { BeginVehicleGround();return; }
         if(scenario=="cargo") { BeginCargo();return; }
         if(scenario=="temperature") { BeginTemperature();return; }
         if(scenario=="reinstall") { BeginReinstall();return; }
@@ -372,6 +403,13 @@ internal static partial class V1Integration
 
     private static void Step()
     {
+        if(stage==560){EnvironmentStep();return;}
+        if(stage==561){EnvironmentPerfStep();return;}
+        if(stage==554){VehicleFlightStep();return;}
+        if(stage==553){VehicleFlatStep();return;}
+        if(stage==552){VehicleRampStep();return;}
+        if(stage==551){VehicleLiftStep();return;}
+        if(stage==550){VehicleGroundStep();return;}
         if(scenario=="cargo"){CargoStep();return;}
         if(stage==540){TemperatureStep();return;}
         if(scenario=="jump"){JumpStep();return;} if(stage==460){SettingsPerfStep();return;}
@@ -849,6 +887,11 @@ internal static partial class V1Integration
         loadPending = false; loadIssued = true;
         string? saveName=scenario switch
         {
+            "environment"=>GenCommandLine.CommandLineArgPassed("rimlayersenvironmentlegacy")?"RimLayers_EnvironmentLegacy":"RimLayers_Environment",
+            "vehicle-flight"=>"RimLayers_VehicleFlight",
+            "vehicle-ramp"=>"RimLayers_VehicleRamp",
+            "vehicle-lift"=>"RimLayers_VehicleLift",
+            "vehicle-ground"=>"RimLayers_VehicleGround",
             "jump"=>"RimLayers_V1Jump", "transition"=>"RimLayers_Transitions",
             "settings-behavior"=>"RimLayers_SettingsBehavior",
             "settings-recovery"=>"RimLayers_SettingsRecovery",
@@ -908,7 +951,7 @@ internal static partial class V1Integration
         if(scenario=="mechanitor")Check("remote-command-radius-submits-boundary-in-native-overlay-stage",renderedMechRangeFloors.Contains(1)&&mechRingCells>0&&mechRingEdges>0&&mechCenterAllowed,$"floors={string.Join(",",renderedMechRangeFloors)},cells={mechRingCells},edges={mechRingEdges},centerAllowed={mechCenterAllowed},remoteCalls={RemoteMechanitorRadius.DrawCalls}/{RemoteMechanitorRadius.VisibleCalls}; {string.Join(" | ",mechBoundaryFacts.Select(p=>$"L{p.Key}:{p.Value}"))}");
         Check("no-runtime-errors", errors.Count == 0, string.Join("\n", errors.Take(8)));
         finished = true;
-        File.WriteAllText(Path.Combine(directory, (GenCommandLine.CommandLineArgPassed("rimlayersshaftcompletedreload")?"completed-load":GenCommandLine.CommandLineArgPassed("rimlayersmortarflightreload")?"flight-load":GenCommandLine.CommandLineArgPassed("rimlayersshiplandedreload")?"landed-load":GenCommandLine.CommandLineArgPassed("rimlayersmigrationreload")?"converted-load":mode) + "-" + scenario + "-results.json"), JsonSerializer.Serialize(new {
+        File.WriteAllText(Path.Combine(directory, (GenCommandLine.CommandLineArgPassed("rimlayersenvironmentlegacy")?"legacy-load":GenCommandLine.CommandLineArgPassed("rimlayersshaftcompletedreload")?"completed-load":GenCommandLine.CommandLineArgPassed("rimlayersmortarflightreload")?"flight-load":GenCommandLine.CommandLineArgPassed("rimlayersshiplandedreload")?"landed-load":GenCommandLine.CommandLineArgPassed("rimlayersmigrationreload")?"converted-load":mode) + "-" + scenario + "-results.json"), JsonSerializer.Serialize(new {
             mode, failures, errors, checks,
             activeMods=LoadedModManager.RunningModsListForReading.Select(m=>m.PackageId).ToArray(),
             assemblyMvid=typeof(Pawn).Assembly.ManifestModule.ModuleVersionId.ToString("N")
