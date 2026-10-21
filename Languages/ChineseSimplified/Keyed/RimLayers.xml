@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_Layer>楼层 {0}/{1}</RL_Layer>
+  <RL_Development>先建下层人工屋顶，再建楼梯与结构楼板。Alt + ↑ / ↓ 切换楼层。</RL_Development>
+  <RL_NoSurface>此处没有有效楼面。</RL_NoSurface>
+  <RL_UpperOnly>结构楼板只能建在上层。</RL_UpperOnly>
+  <RL_NeedsRoof>每个占地格的紧邻下层都需要已建成的人工屋顶。</RL_NeedsRoof>
+  <RL_NeedsPlatform>请从已有平台向外扩建。</RL_NeedsPlatform>
+  <RL_TopLayer>这里已经是顶层。</RL_TopLayer>
+  <RL_BlockedLanding>楼梯落脚处被阻挡。</RL_BlockedLanding>
+  <RL_RequiresLayerMap>需要 RimLayers 地图。</RL_RequiresLayerMap>
+  <RL_PowerNoPeer>相邻楼层的对应位置没有启用的电力端子。</RL_PowerNoPeer>
+  <RL_PowerPeers>连接楼层：{0}</RL_PowerPeers>
+  <RL_StairMapUnsupported>此地图不支持创建上层（口袋或地下地图）。</RL_StairMapUnsupported>
+  <RL_StairExpansionFailed>上层创建失败，请查看日志。未完成的楼梯框架与材料仍保留。</RL_StairExpansionFailed>
+  <RL_ShipMultipleCores>同一船体连接了多个逆重引擎，请先拆分船体。</RL_ShipMultipleCores>
+  <RL_ShipOverCapacity>飞船基架超出承载量：{0} / {1}。</RL_ShipOverCapacity>
+  <RL_ShipOutsideField>部分船体超出逆重力场范围。</RL_ShipOutsideField>
+  <RL_ShipCapacity>全船甲板基架：{0} / {1} 格</RL_ShipCapacity>
+  <RL_ShipFloorOnly>飞船结构楼板必须连接合法的逆重飞船结构。</RL_ShipFloorOnly>
+  <RL_StandardFloorOnly>飞船上请使用飞船结构楼板。</RL_StandardFloorOnly>
+<RL_LiftStop>本站停靠</RL_LiftStop>
+<RL_LiftStopHelp>关闭本站停靠后保留贯通井道，但不能在本层进出。</RL_LiftStopHelp>
+<RL_LiftShaftOnly>仅作贯通井道</RL_LiftShaftOnly>
+<RL_LiftPowered>通电快速通行</RL_LiftPowered>
+<RL_LiftEmergency>低速应急通行</RL_LiftEmergency>
+<RL_UseShipFloorAbove>上层甲板请使用飞船结构楼板，原版逆重飞船基架用于地面甲板。</RL_UseShipFloorAbove>
+</LanguageData>

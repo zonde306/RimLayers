@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <RL_SettingsDisplay>显示</RL_SettingsDisplay>
+  <RL_SettingsFloors>楼层</RL_SettingsFloors>
+  <RL_SettingsGameplay>玩法</RL_SettingsGameplay>
+  <RL_SettingsUnderground>地下生成</RL_SettingsUnderground>
+  <RL_SettingsRecovery>兼容与恢复</RL_SettingsRecovery>
+  <RL_SettingsImmediate>即时生效</RL_SettingsImmediate>
+  <RL_SettingsNewFloors>仅限制新增楼层；已有楼层和通行不受影响。</RL_SettingsNewFloors>
+  <RL_SettingsLayerTransitions>换层过渡动画</RL_SettingsLayerTransitions>
+  <RL_SettingsFloorPanel>楼层面板</RL_SettingsFloorPanel>
+  <RL_SettingsKeyHints>快捷键提示</RL_SettingsKeyHints>
+  <RL_SettingsLandingMarkers>楼梯标记／返层按钮</RL_SettingsLandingMarkers>
+  <RL_SettingsPlanningBounds>规划边界</RL_SettingsPlanningBounds>
+  <RL_SettingsLowerBackground>下层背景与目标拾取</RL_SettingsLowerBackground>
+  <RL_SettingsMist>漂浮雾效</RL_SettingsMist>
+  <RL_SettingsCombatInfo>战斗信息框</RL_SettingsCombatInfo>
+  <RL_SettingsTrajectory>轨迹预览</RL_SettingsTrajectory>
+  <RL_SettingsHiddenPanelHelp>隐藏面板不禁用楼层快捷键。山体迁移也可从“兼容与恢复”页进入。</RL_SettingsHiddenPanelHelp>
+  <RL_SettingsUpperLimit>单图地上上限</RL_SettingsUpperLimit>
+  <RL_SettingsUndergroundLimit>单图地下上限</RL_SettingsUndergroundLimit>
+  <RL_SettingsGlobalLimit>全局额外楼层上限</RL_SettingsGlobalLimit>
+  <RL_SettingsSpaceExpansion>允许在太空地图新增楼层</RL_SettingsSpaceExpansion>
+  <RL_SettingsQuotaHelp>空层仍占额度，只有地图真正移除才释放占用。数量配额用于保护资源，不保证固定帧率。太空仍禁止地下开挖。</RL_SettingsQuotaHelp>
+  <RL_SettingsSaveCompatibility>含超出旧版 −2～+2 上限楼层的存档，不能回退旧版 RimLayers DLL 读取。</RL_SettingsSaveCompatibility>
+  <RL_SettingsStairTime>楼梯耗时倍率</RL_SettingsStairTime>
+  <RL_SettingsPoweredLiftTime>通电电梯耗时倍率</RL_SettingsPoweredLiftTime>
+  <RL_SettingsEmergencyLiftTime>应急电梯耗时倍率</RL_SettingsEmergencyLiftTime>
+  <RL_SettingsHeightRange>直射高差射程效果倍率</RL_SettingsHeightRange>
+  <RL_SettingsRestart>重启后生效——仅影响本 MOD 定义</RL_SettingsRestart>
+  <RL_SettingsMaterialCost>建造材料倍率</RL_SettingsMaterialCost>
+  <RL_SettingsWorkCost>建造工时倍率</RL_SettingsWorkCost>
+  <RL_SettingsLiftPower>电梯耗电倍率</RL_SettingsLiftPower>
+  <RL_SettingsCurrentDefinitions>已有蓝图需求及拆解返还采用当前定义。曲射射程不变。</RL_SettingsCurrentDefinitions>
+  <RL_SettingsNewUnderground>仅影响新生成地下层</RL_SettingsNewUnderground>
+  <RL_SettingsMinerals>地下矿物数量倍率</RL_SettingsMinerals>
+  <RL_SettingsCaves>生成地下洞穴</RL_SettingsCaves>
+  <RL_SettingsCaveHives>初始洞穴虫巢</RL_SettingsCaveHives>
+  <RL_SettingsUndergroundHelp>不会重新生成已有地下地形。初始虫巢同时遵守难度与剧本限制。</RL_SettingsUndergroundHelp>
+  <RL_SettingsAutoRecovery>自动恢复异常空域实体</RL_SettingsAutoRecovery>
+  <RL_SettingsRecoveryMode>异常恢复方式</RL_SettingsRecoveryMode>
+  <RL_SettingsFallThenReset>先下落，再安全传送</RL_SettingsFallThenReset>
+  <RL_SettingsResetFirst>优先安全复位</RL_SettingsResetFirst>
+  <RL_SettingsRecoveryHelp>兼容纠错不附加伤害；没有合法落点时，暂存原实体并告警。关闭自动恢复不删除已有待恢复对象。</RL_SettingsRecoveryHelp>
+  <RL_SettingsExclusions>恢复排除项（Def 名称，以逗号分隔）</RL_SettingsExclusions>
+  <RL_SettingsExclusionsHelp>排除项只影响异常恢复，不改变地形、寻路或结构规则。</RL_SettingsExclusionsHelp>
+  <RL_SettingsMountainMigration>山体迁移</RL_SettingsMountainMigration>
+  <RL_SettingsReset>恢复默认</RL_SettingsReset>
+  <RL_SettingsResetConfirm>恢复全部 RimLayers 设置的默认值？已有楼层和待恢复内容将保留。</RL_SettingsResetConfirm>
+  <RL_SettingsRestartPending>定义倍率已更改，请重启游戏</RL_SettingsRestartPending>
+  <RL_SettingsLoadGameForUsage>载入存档后显示楼层占用。</RL_SettingsLoadGameForUsage>
+  <RL_SettingsGenerated>已生成：{0}／上限：{1}</RL_SettingsGenerated>
+  <RL_SettingsMapUsage>{0}（地图 {1}）：{2} 个额外楼层；{3} 个额外存储格</RL_SettingsMapUsage>
+  <RL_SettingsShipHeight>逆重飞船载荷最多跨越地表以上 6 层。</RL_SettingsShipHeight>
+  <RL_SettingsReserved>运输已预留：{0}</RL_SettingsReserved>
+  <RL_QuotaHardCapacity>RimLayers 硬容量为海拔 −9～+9。</RL_QuotaHardCapacity>
+  <RL_QuotaUpperLimit>地上楼层上限阻止新增此楼层。</RL_QuotaUpperLimit>
+  <RL_QuotaUndergroundLimit>地下楼层上限阻止新增此楼层。</RL_QuotaUndergroundLimit>
+  <RL_QuotaSpace>太空地图禁止新增楼层；太空始终禁止地下开挖。</RL_QuotaSpace>
+  <RL_QuotaGlobalLimit>全局额外楼层额度不足（包含运输预留）。</RL_QuotaGlobalLimit>
+  <RL_SettingsOpenRecoveryList>待恢复列表…</RL_SettingsOpenRecoveryList>
+  <RL_RecoveryTitle>待恢复实体</RL_RecoveryTitle>
+  <RL_RecoveryNoGame>请先载入存档。</RL_RecoveryNoGame>
+  <RL_RecoveryCounts>待处理 {0}；休眠暂存 {1}。自动重试仅使用原地图。</RL_RecoveryCounts>
+  <RL_RecoverySource>{0}（地图 {1}），原位置 {2}</RL_RecoverySource>
+  <RL_RecoveryMissing>对象缺失</RL_RecoveryMissing>
+  <RL_RecoveryLocate>定位</RL_RecoveryLocate>
+  <RL_RecoveryRetry>重试</RL_RecoveryRetry>
+  <RL_RecoveryEmpty>当前没有待恢复实体。</RL_RecoveryEmpty>
+  <RL_RecoverySelectHelp>选择一个实体可指定合法落点。暂存实体保留原身份与内容，自身模拟暂停。</RL_RecoverySelectHelp>
+  <RL_RecoveryChooseLanding>为选中实体指定落点</RL_RecoveryChooseLanding>
+  <RL_RecoveryChooseMap>选择地图</RL_RecoveryChooseMap>
+  <RL_RecoveryRelease>恢复至此格</RL_RecoveryRelease>
+  <RL_RecoveryLandingHelp>X/Z 为逻辑楼层坐标。不创建楼层，不挤走其他实体。原地图已移除时，恢复到其他地图前须明确确认。</RL_RecoveryLandingHelp>
+  <RL_RecoveryCrossMapQuestion>原地图已移除。将 {0} 恢复到 {1}？</RL_RecoveryCrossMapQuestion>
+  <RL_RecoveryCrossMapConfirm>仅在原地图已移除并明确确认后，才能跨地图恢复。</RL_RecoveryCrossMapConfirm>
+  <RL_RecoveryIllegalLanding>此格不符合该实体的承托、占地或环境安全要求。</RL_RecoveryIllegalLanding>
+  <RL_RecoveryNotStored>该实体当前不在恢复容器中。</RL_RecoveryNotStored>
+  <RL_RecoveryCannotLocate>原地图或原坐标已不可用。</RL_RecoveryCannotLocate>
+  <RL_RecoveryManualOnly>需要手动检查</RL_RecoveryManualOnly>
+  <RL_RecoveryWarning>RimLayers 检测到 {0} 个恢复问题。请打开 MOD 设置 → RimLayers → 兼容与恢复 → 待恢复列表。未知建筑不会被自动搬移。</RL_RecoveryWarning>
+  <RL_RecoveryReasonUnsupported>无承托空域</RL_RecoveryReasonUnsupported>
+  <RL_RecoveryReasonIsolation>存储隔离带</RL_RecoveryReasonIsolation>
+  <RL_RecoveryReasonInvalidCoordinates>非法地图坐标</RL_RecoveryReasonInvalidCoordinates>
+  <RL_RecoveryReasonSpawn>生成于无承托位置</RL_RecoveryReasonSpawn>
+  <RL_RecoveryReasonPosition>移动至无承托空域</RL_RecoveryReasonPosition>
+  <RL_RecoveryReasonStructure>承托已移除</RL_RecoveryReasonStructure>
+  <RL_RecoveryReasonRepeatedMovement>反复外部移动，已暂停循环纠正</RL_RecoveryReasonRepeatedMovement>
+  <RL_RecoveryReasonCollapse>结构坍塌</RL_RecoveryReasonCollapse>
+  <RL_RecoveryStageDiscovered>已发现</RL_RecoveryStageDiscovered>
+  <RL_RecoveryStagePending>待处理</RL_RecoveryStagePending>
+  <RL_RecoveryStageFalling>逻辑下落</RL_RecoveryStageFalling>
+  <RL_RecoveryStageResetting>安全复位</RL_RecoveryStageResetting>
+  <RL_RecoveryStageStored>休眠暂存</RL_RecoveryStageStored>
+  <RL_RecoveryStageCompleted>已完成</RL_RecoveryStageCompleted>
+</LanguageData>

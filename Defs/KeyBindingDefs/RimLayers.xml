@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <KeyBindingDef ParentName="GameMapKeyBinding"><defName>RL_LayerUp</defName><label>RimLayers: floor up</label><defaultKeyCodeA>F8</defaultKeyCodeA></KeyBindingDef>
+  <KeyBindingDef ParentName="GameMapKeyBinding"><defName>RL_LayerDown</defName><label>RimLayers: floor down</label><defaultKeyCodeA>F7</defaultKeyCodeA></KeyBindingDef>
+</Defs>

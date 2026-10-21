@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ShipSplitObject>Split the upper structure at the gravship boundary before launch: {0}.</RL_ShipSplitObject>
+  <RL_ShipSplitZone>Split this upper-floor zone at the gravship boundary before launch: {0}.</RL_ShipSplitZone>
+  <RL_ShipNeedsLayers>This destination has no RimLayers floors. Choose a new map or an already layered map.</RL_ShipNeedsLayers>
+  <RL_ShipLandOnGround>Land the gravship on the ground floor.</RL_ShipLandOnGround>
+  <RL_ShipUpperOutOfBounds>An upper deck would be outside the map.</RL_ShipUpperOutOfBounds>
+  <RL_ShipUpperBlocked>An upper deck would overlap an existing floor, roof or object.</RL_ShipUpperBlocked>
+  <RL_ShipDestinationUnsupported>This destination cannot safely acquire RimLayers floors (pocket or underground map).</RL_ShipDestinationUnsupported>
+  <RL_ShipExpansionFailed>The destination could not be prepared. Departure was cancelled; see the log for details.</RL_ShipExpansionFailed>
+</LanguageData>

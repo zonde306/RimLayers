@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_PowerRiser.label>垂直电力端子</RL_PowerRiser.label>
+  <RL_PowerRiser.description>可开关的竖向电力连接。相邻楼层的相同局部位置均有启用的端子时，两端电网连通。每层分别建造端子，楼梯本身不导电；端子必须有有效楼面支撑。</RL_PowerRiser.description>
+</LanguageData>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef ParentName="PowerConduit">
+    <defName>RL_PowerRiser</defName>
+    <label>vertical power terminal</label>
+    <description>A switchable electrical terminal. Active terminals at the same local position on adjacent layers join their power networks. Build a terminal on each layer; stairs do not carry electricity. Every terminal needs a valid supported floor.</description>
+    <thingClass>Building_PowerSwitch</thingClass>
+    <drawerType>MapMeshAndRealTime</drawerType>
+    <altitudeLayer>Building</altitudeLayer>
+    <graphicData Inherit="False">
+      <texPath>Things/Building/Power/PowerSwitch</texPath>
+      <graphicClass>Graphic_Single</graphicClass>
+      <shaderType>Transparent</shaderType>
+      <color>(0.45,0.8,1)</color>
+    </graphicData>
+    <uiIconPath>Things/Building/Power/PowerSwitch</uiIconPath>
+    <uiIconScale>1</uiIconScale>
+    <statBases><MaxHitPoints>120</MaxHitPoints><WorkToBuild>300</WorkToBuild><Flammability>0.3</Flammability><Beauty>-2</Beauty></statBases>
+    <costList><Steel>10</Steel></costList>
+    <comps>
+      <li Class="CompProperties_Flickable"/>
+      <li Class="RimLayers.Environment.CompProperties_PowerRiser"/>
+    </comps>
+    <tickerType>Normal</tickerType>
+    <designationHotKey IsNull="True"/>
+    <uiOrder>2005</uiOrder>
+  </ThingDef>
+</Defs>

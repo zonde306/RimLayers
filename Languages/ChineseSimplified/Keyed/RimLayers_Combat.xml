@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_CombatLaunchBlocked>发射空间受阻</RL_CombatLaunchBlocked>
+  <RL_CombatOutOfRange>超出高度修正后的射程</RL_CombatOutOfRange>
+  <RL_CombatBlocked>射线被遮挡</RL_CombatBlocked>
+  <RL_CombatIntercepted>炮弹将撞击遮挡物</RL_CombatIntercepted>
+  <RL_CombatClear>射击路径可用</RL_CombatClear>
+  <RL_CombatObstacle>首个障碍：{0}（{1}，{2},{3}）</RL_CombatObstacle>
+  <RL_CombatFloor>楼板</RL_CombatFloor>
+  <RL_CombatRoof>屋顶</RL_CombatRoof>
+  <RL_CombatWall>墙体／掩体</RL_CombatWall>
+  <RL_CombatRange>目标：{0} · 射程 {1}（{2}）</RL_CombatRange>
+  <RL_CombatArc>曲射弹道</RL_CombatArc>
+  <RL_CombatExposure>目标暴露：{0}</RL_CombatExposure>
+</LanguageData>

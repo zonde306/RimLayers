@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_NaturalFloorImmutable>Natural rock floor (cannot be removed)</RL_NaturalFloorImmutable>
+  <RL_WaitingVerticalMine>Waiting for vertical excavation (Mining work)</RL_WaitingVerticalMine>
+  <RL_MountainMigration>Restore upper mountain…</RL_MountainMigration>
+  <RL_MountainMigrationHelp>Floor {0}: {1} empty cells can be restored; {2} occupied or reserved cells will be skipped.
+Green: eligible. Yellow: skipped.
+Adds natural floors, rock and mineral veins. Existing work is preserved. Save to a new slot first; this operation does not save automatically.</RL_MountainMigrationHelp>
+  <RL_MountainMigrationApply>Restore empty cells</RL_MountainMigrationApply>
+  <RL_MountainMigrated>Restored {0} mountain cells.</RL_MountainMigrated>
+  <RL_MountainMigrationFailed>Mountain restoration failed and was rolled back. See the log.</RL_MountainMigrationFailed>
+</LanguageData>

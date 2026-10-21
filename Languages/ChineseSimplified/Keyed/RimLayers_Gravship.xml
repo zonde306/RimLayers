@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ShipSplitObject>起飞前请拆分跨越飞船边界的上层建筑：{0}。</RL_ShipSplitObject>
+  <RL_ShipSplitZone>起飞前请拆分跨越飞船边界的上层分区：{0}。</RL_ShipSplitZone>
+  <RL_ShipNeedsLayers>该目的地图尚未扩层。请选择新地图或已有多层地图。</RL_ShipNeedsLayers>
+  <RL_ShipLandOnGround>请将逆重飞船降落在地面层。</RL_ShipLandOnGround>
+  <RL_ShipUpperOutOfBounds>上层甲板将超出地图边界。</RL_ShipUpperOutOfBounds>
+  <RL_ShipUpperBlocked>上层甲板将与现有楼面、屋顶或物体重叠。</RL_ShipUpperBlocked>
+  <RL_ShipDestinationUnsupported>此目的地图不支持安全扩层（口袋或地下地图）。</RL_ShipDestinationUnsupported>
+  <RL_ShipExpansionFailed>目的地图准备失败，已取消出发。详情请查看日志。</RL_ShipExpansionFailed>
+</LanguageData>

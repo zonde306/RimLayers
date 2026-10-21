@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.vs/
+Tests/Artifacts/
+*.obj
+Assets.*
+*.pdb
+/About/PublishedFileId.txt

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><Defs>
+<ThingDef Name="RL_LiftBase" ParentName="BuildingBase" Abstract="True">
+ <designationCategory>Structure</designationCategory><thingClass>RimLayers.Structure.Building_Elevator</thingClass><size>(1,1)</size><rotatable>false</rotatable>
+ <passability>PassThroughOnly</passability><pathCost>0</pathCost><fillPercent>0.2</fillPercent><holdsRoof>false</holdsRoof><terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded><canOverlapZones>false</canOverlapZones>
+ <building><isInert>true</isInert><ai_chillDestination>false</ai_chillDestination></building>
+ <comps><li Class="CompProperties_Forbiddable"/><li Class="CompProperties_Flickable"/><li Class="RimLayers.Structure.CompProperties_ConnectorState"/></comps>
+ <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+</ThingDef>
+<ThingDef ParentName="RL_LiftBase"><defName>RL_LiftSingle</defName><label>single-floor lift</label><description>A fast powered connector to the floor above. Slow emergency access remains available without power.</description>
+ <graphicData><texPath>Things/Building/RimLayers/LiftSingle</texPath><graphicClass>Graphic_Single</graphicClass></graphicData>
+ <statBases><MaxHitPoints>300</MaxHitPoints><WorkToBuild>2200</WorkToBuild><Mass>35</Mass><Flammability>0</Flammability></statBases><costList><Steel>80</Steel><ComponentIndustrial>2</ComponentIndustrial></costList>
+ <researchPrerequisites><li>Autodoors</li></researchPrerequisites><constructionSkillPrerequisite>6</constructionSkillPrerequisite>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>150</basePowerConsumption></li></comps></ThingDef><ThingDef ParentName="RL_LiftBase"><defName>RL_LiftVertical</defName><label>vertical lift station</label><description>Aligned stations form a continuous shaft. Use Extend shaft upward or Excavate shaft downward to open one adjacent floor and place a normally costed station blueprint. Miners clear the exit and a construction position; slow access is available during construction. Disable a middle stop to use that station as a through-shaft. No shared cabin scheduling. Slow emergency access remains available without power.</description>
+ <graphicData><texPath>Things/Building/RimLayers/LiftVertical</texPath><graphicClass>Graphic_Single</graphicClass></graphicData>
+ <statBases><MaxHitPoints>450</MaxHitPoints><WorkToBuild>4000</WorkToBuild><Mass>35</Mass><Flammability>0</Flammability></statBases><costList><Steel>160</Steel><Plasteel>30</Plasteel><ComponentIndustrial>4</ComponentIndustrial></costList>
+ <researchPrerequisites><li>Autodoors</li><li>MicroelectronicsBasics</li></researchPrerequisites><constructionSkillPrerequisite>6</constructionSkillPrerequisite>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>300</basePowerConsumption></li></comps></ThingDef></Defs>

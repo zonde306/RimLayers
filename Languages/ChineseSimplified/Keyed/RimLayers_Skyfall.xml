@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SkyfallWaiting>落点受阻，内容物已保留：{0}。请清理或扩建本层楼面。</RL_SkyfallWaiting>
+  <RL_SkyfallRecovered>内容物已卸载：{0}。</RL_SkyfallRecovered>
+</LanguageData>

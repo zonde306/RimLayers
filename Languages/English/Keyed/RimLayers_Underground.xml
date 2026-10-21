@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_UndergroundLevel>B{0}</RL_UndergroundLevel>
+  <RL_SurfaceLevel>Floor {0}</RL_SurfaceLevel>
+  <RL_ReturnToLevel>Return: {0}</RL_ReturnToLevel>
+  <RL_DigMapUnsupported>This map does not support downward excavation.</RL_DigMapUnsupported>
+  <RL_DigIceBiome>Downward excavation is unavailable on ice sheets and sea ice.</RL_DigIceBiome>
+  <RL_DigFromGround>Excavate down from the surface or an underground level.</RL_DigFromGround>
+  <RL_DigBottom>Maximum underground depth reached (B2).</RL_DigBottom>
+  <RL_DigBadTerrain>No excavatable land substrate. Water, ice, lava, bridges and foundations cannot be excavated.</RL_DigBadTerrain>
+  <RL_DigBadExit>The underground exit terrain is unsuitable. Choose another entrance position.</RL_DigBadExit>
+  <RL_DigShipUnsupported>Underground levels cannot host gravship construction or landing.</RL_DigShipUnsupported>
+  <RL_ReturnToLevelHelp>View the other end of this passage.</RL_ReturnToLevelHelp>
+</LanguageData>

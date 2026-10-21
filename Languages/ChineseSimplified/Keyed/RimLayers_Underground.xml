@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_UndergroundLevel>地下 {0} 层</RL_UndergroundLevel>
+  <RL_SurfaceLevel>地上 {0} 层</RL_SurfaceLevel>
+  <RL_ReturnToLevel>返回{0}</RL_ReturnToLevel>
+  <RL_DigMapUnsupported>此地图不支持向下开挖。</RL_DigMapUnsupported>
+  <RL_DigIceBiome>冰盖和海冰地图不能向下开挖。</RL_DigIceBiome>
+  <RL_DigFromGround>只能从地表或地下层向下开挖。</RL_DigFromGround>
+  <RL_DigBottom>已达地下深度上限（B2）。</RL_DigBottom>
+  <RL_DigBadTerrain>此处没有可开挖的陆地基底。水、冰、熔岩、桥面和基架不能开挖。</RL_DigBadTerrain>
+  <RL_DigBadExit>地下出口地形不可用，请更换入口位置。</RL_DigBadExit>
+  <RL_DigShipUnsupported>地下层不能用于飞船建造或起降。</RL_DigShipUnsupported>
+  <RL_ReturnToLevelHelp>查看此通道另一端所在的楼层。</RL_ReturnToLevelHelp>
+</LanguageData>

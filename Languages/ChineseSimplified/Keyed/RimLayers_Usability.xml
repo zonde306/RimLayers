@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SwitchHelp>使用下方快捷键切层，可在选项→按键中修改。也支持 Alt + 上/下。</RL_SwitchHelp>
+  <RL_StairsDown>↓ {0} 层</RL_StairsDown>
+  <RL_StairsDownHelp>通往下一层的楼梯口。点击查看下一层。</RL_StairsDownHelp>
+  <RL_SpawnRecovered>已将 {0} 从无支撑空域移至安全落点。</RL_SpawnRecovered>
+  <RL_KeyHints>下层：{0}    上层：{1}</RL_KeyHints>
+</LanguageData>

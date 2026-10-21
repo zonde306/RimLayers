@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_JumpNoLanding>Cannot jump: the destination needs a clear, revealed, solid landing surface.</RL_JumpNoLanding>
+  <RL_JumpOutOfRange>Cannot jump: the destination is beyond jump range, including height difference.</RL_JumpOutOfRange>
+  <RL_JumpBlocked>Cannot jump: a floor, roof or obstacle blocks the flight path.</RL_JumpBlocked>
+  <RL_JumpClear>Clear jump path. Height difference counts toward jump range.</RL_JumpClear>
+  <RL_JumpWaiting>Jump interrupted. No clear landing is available on this side of the obstruction. The pawn and carried contents are retained; clear the landing area to resume.</RL_JumpWaiting>
+  <RL_JumpRetry>Retry safe landing</RL_JumpRetry>
+</LanguageData>

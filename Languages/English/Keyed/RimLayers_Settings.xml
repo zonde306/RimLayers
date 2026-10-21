@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LanguageData>
+  <RL_SettingsDisplay>Display</RL_SettingsDisplay>
+  <RL_SettingsFloors>Floors</RL_SettingsFloors>
+  <RL_SettingsGameplay>Gameplay</RL_SettingsGameplay>
+  <RL_SettingsUnderground>Underground</RL_SettingsUnderground>
+  <RL_SettingsRecovery>Recovery</RL_SettingsRecovery>
+  <RL_SettingsImmediate>Takes effect immediately</RL_SettingsImmediate>
+  <RL_SettingsNewFloors>Limits new floors only; existing floors and access are preserved.</RL_SettingsNewFloors>
+  <RL_SettingsLayerTransitions>Floor transition animation</RL_SettingsLayerTransitions>
+  <RL_SettingsFloorPanel>Floor panel</RL_SettingsFloorPanel>
+  <RL_SettingsKeyHints>Floor hotkey hints</RL_SettingsKeyHints>
+  <RL_SettingsLandingMarkers>Stair markers and return buttons</RL_SettingsLandingMarkers>
+  <RL_SettingsPlanningBounds>Construction planning boundary</RL_SettingsPlanningBounds>
+  <RL_SettingsLowerBackground>Lower-floor background and target picking</RL_SettingsLowerBackground>
+  <RL_SettingsMist>Drifting atmospheric mist</RL_SettingsMist>
+  <RL_SettingsCombatInfo>Combat information box</RL_SettingsCombatInfo>
+  <RL_SettingsTrajectory>Trajectory preview</RL_SettingsTrajectory>
+  <RL_SettingsHiddenPanelHelp>Hiding the panel keeps floor hotkeys active. Mountain migration is also available on the Recovery page.</RL_SettingsHiddenPanelHelp>
+  <RL_SettingsUpperLimit>Upper floors per map</RL_SettingsUpperLimit>
+  <RL_SettingsUndergroundLimit>Underground floors per map</RL_SettingsUndergroundLimit>
+  <RL_SettingsGlobalLimit>Extra floors across all maps</RL_SettingsGlobalLimit>
+  <RL_SettingsSpaceExpansion>Allow new floors on space maps</RL_SettingsSpaceExpansion>
+  <RL_SettingsQuotaHelp>Empty floors count. Only removing a map releases its used quota. The quota protects resources; it is not a frame-rate guarantee. Space excavation remains unavailable.</RL_SettingsQuotaHelp>
+  <RL_SettingsSaveCompatibility>Saves containing floors beyond the old ±2 limits cannot be loaded with an older RimLayers DLL.</RL_SettingsSaveCompatibility>
+  <RL_SettingsStairTime>Stair travel time</RL_SettingsStairTime>
+  <RL_SettingsPoweredLiftTime>Powered lift travel time</RL_SettingsPoweredLiftTime>
+  <RL_SettingsEmergencyLiftTime>Emergency lift travel time</RL_SettingsEmergencyLiftTime>
+  <RL_SettingsHeightRange>Direct-fire height range effect</RL_SettingsHeightRange>
+  <RL_SettingsRestart>Requires restart — RimLayers definitions only</RL_SettingsRestart>
+  <RL_SettingsMaterialCost>Construction materials</RL_SettingsMaterialCost>
+  <RL_SettingsWorkCost>Construction work</RL_SettingsWorkCost>
+  <RL_SettingsLiftPower>Lift power consumption</RL_SettingsLiftPower>
+  <RL_SettingsCurrentDefinitions>Existing blueprints and demolition returns use the current definitions. Indirect-fire range is unchanged.</RL_SettingsCurrentDefinitions>
+  <RL_SettingsNewUnderground>New underground floors only</RL_SettingsNewUnderground>
+  <RL_SettingsMinerals>Mineral quantity</RL_SettingsMinerals>
+  <RL_SettingsCaves>Generate caves</RL_SettingsCaves>
+  <RL_SettingsCaveHives>Initial cave insect hives</RL_SettingsCaveHives>
+  <RL_SettingsUndergroundHelp>Existing underground terrain is never regenerated. Initial hives also obey difficulty and scenario rules.</RL_SettingsUndergroundHelp>
+  <RL_SettingsAutoRecovery>Automatically recover entities in invalid airspace</RL_SettingsAutoRecovery>
+  <RL_SettingsRecoveryMode>Recovery order</RL_SettingsRecoveryMode>
+  <RL_SettingsFallThenReset>Fall first, then safe reset</RL_SettingsFallThenReset>
+  <RL_SettingsResetFirst>Prefer safe reset</RL_SettingsResetFirst>
+  <RL_SettingsRecoveryHelp>Compatibility recovery adds no damage. If no legal position exists, the original entity waits in persistent storage. Disabling automatic recovery keeps existing queued entities.</RL_SettingsRecoveryHelp>
+  <RL_SettingsExclusions>Recovery exclusions (Def names, separated by commas)</RL_SettingsExclusions>
+  <RL_SettingsExclusionsHelp>Exclusions affect recovery only, not terrain, pathing or structural rules.</RL_SettingsExclusionsHelp>
+  <RL_SettingsMountainMigration>Mountain migration</RL_SettingsMountainMigration>
+  <RL_SettingsReset>Restore defaults</RL_SettingsReset>
+  <RL_SettingsResetConfirm>Restore all RimLayers settings? Existing floors and recovery contents will be kept.</RL_SettingsResetConfirm>
+  <RL_SettingsRestartPending>Definition changes pending restart</RL_SettingsRestartPending>
+  <RL_SettingsLoadGameForUsage>Load a game to see floor usage.</RL_SettingsLoadGameForUsage>
+  <RL_SettingsGenerated>Generated: {0} / limit: {1}</RL_SettingsGenerated>
+  <RL_SettingsMapUsage>{0} (map {1}): {2} extra floors; {3} extra storage cells</RL_SettingsMapUsage>
+  <RL_SettingsShipHeight>A gravship payload can span at most six above-ground decks.</RL_SettingsShipHeight>
+  <RL_SettingsReserved>Reserved for transport: {0}</RL_SettingsReserved>
+  <RL_QuotaHardCapacity>RimLayers supports elevations from −9 to +9.</RL_QuotaHardCapacity>
+  <RL_QuotaUpperLimit>The upper-floor limit prevents adding this floor.</RL_QuotaUpperLimit>
+  <RL_QuotaUndergroundLimit>The underground-floor limit prevents adding this floor.</RL_QuotaUndergroundLimit>
+  <RL_QuotaSpace>New floors are disabled on space maps; underground excavation is never allowed there.</RL_QuotaSpace>
+  <RL_QuotaGlobalLimit>The save-wide extra-floor quota is full, including transport reservations.</RL_QuotaGlobalLimit>
+  <RL_SettingsOpenRecoveryList>Pending recovery…</RL_SettingsOpenRecoveryList>
+  <RL_RecoveryTitle>Pending recovery</RL_RecoveryTitle>
+  <RL_RecoveryNoGame>Load a game first.</RL_RecoveryNoGame>
+  <RL_RecoveryCounts>{0} pending; {1} in suspended storage. Automatic retries use the original map only.</RL_RecoveryCounts>
+  <RL_RecoverySource>{0} (map {1}), source {2}</RL_RecoverySource>
+  <RL_RecoveryMissing>Missing entity</RL_RecoveryMissing>
+  <RL_RecoveryLocate>Locate</RL_RecoveryLocate>
+  <RL_RecoveryRetry>Retry</RL_RecoveryRetry>
+  <RL_RecoveryEmpty>No entities are waiting for recovery.</RL_RecoveryEmpty>
+  <RL_RecoverySelectHelp>Select an entity to specify a legal landing. Stored entities keep their original identity and contents; their own simulation is suspended.</RL_RecoverySelectHelp>
+  <RL_RecoveryChooseLanding>Specify a landing for the selected entity</RL_RecoveryChooseLanding>
+  <RL_RecoveryChooseMap>Choose map</RL_RecoveryChooseMap>
+  <RL_RecoveryRelease>Recover to this cell</RL_RecoveryRelease>
+  <RL_RecoveryLandingHelp>X/Z are logical floor coordinates. No floors are created and no other entity is displaced. A removed source map requires explicit confirmation before recovery elsewhere.</RL_RecoveryLandingHelp>
+  <RL_RecoveryCrossMapQuestion>The original map is gone. Move {0} to {1}?</RL_RecoveryCrossMapQuestion>
+  <RL_RecoveryCrossMapConfirm>Cross-map recovery requires a removed source map and explicit confirmation.</RL_RecoveryCrossMapConfirm>
+  <RL_RecoveryIllegalLanding>That cell is not a legal, supported and safe landing for this entity.</RL_RecoveryIllegalLanding>
+  <RL_RecoveryNotStored>The entity is no longer in recovery storage.</RL_RecoveryNotStored>
+  <RL_RecoveryCannotLocate>The source map or its original coordinates are no longer available.</RL_RecoveryCannotLocate>
+  <RL_RecoveryManualOnly>Manual review required</RL_RecoveryManualOnly>
+  <RL_RecoveryWarning>RimLayers detected {0} recovery issues. Open Mod settings → RimLayers → Recovery → Pending recovery. Unknown buildings are not moved.</RL_RecoveryWarning>
+  <RL_RecoveryReasonUnsupported>Unsupported airspace</RL_RecoveryReasonUnsupported>
+  <RL_RecoveryReasonIsolation>Storage isolation band</RL_RecoveryReasonIsolation>
+  <RL_RecoveryReasonInvalidCoordinates>Invalid map coordinates</RL_RecoveryReasonInvalidCoordinates>
+  <RL_RecoveryReasonSpawn>Spawned without support</RL_RecoveryReasonSpawn>
+  <RL_RecoveryReasonPosition>Moved into unsupported airspace</RL_RecoveryReasonPosition>
+  <RL_RecoveryReasonStructure>Support removed</RL_RecoveryReasonStructure>
+  <RL_RecoveryReasonRepeatedMovement>Repeated external movement; automatic correction paused</RL_RecoveryReasonRepeatedMovement>
+  <RL_RecoveryReasonCollapse>Structural collapse</RL_RecoveryReasonCollapse>
+  <RL_RecoveryStageDiscovered>Discovered</RL_RecoveryStageDiscovered>
+  <RL_RecoveryStagePending>Pending</RL_RecoveryStagePending>
+  <RL_RecoveryStageFalling>Logical fall</RL_RecoveryStageFalling>
+  <RL_RecoveryStageResetting>Safe reset</RL_RecoveryStageResetting>
+  <RL_RecoveryStageStored>Suspended storage</RL_RecoveryStageStored>
+  <RL_RecoveryStageCompleted>Complete</RL_RecoveryStageCompleted>
+</LanguageData>

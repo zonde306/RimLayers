@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs><TerrainDef ParentName="FloorBase" MayRequire="Ludeon.RimWorld.Odyssey">
+ <defName>RL_ShipStructuralFloor</defName><label>ship structural floor</label>
+ <description>A roof-supported upper gravship deck. Counts towards the engine's shared substructure capacity. Decorative flooring can be laid on top.</description>
+ <texturePath>Terrain/Surfaces/Substructure/Substructure</texturePath><isFoundation>true</isFoundation><layerable>false</layerable>
+ <edgeType>Hard</edgeType><renderPrecedence>399</renderPrecedence><designationCategory>Odyssey</designationCategory>
+ <terrainAffordanceNeeded>RL_FloorSupport</terrainAffordanceNeeded><requireInspectedGravEngine>true</requireInspectedGravEngine>
+ <affordances Inherit="False"><li>Light</li><li>Medium</li><li>Heavy</li><li>Walkable</li><li>RL_FloorSupport</li><li>Substructure</li></affordances>
+ <tags><li>Substructure</li></tags><statBases><WorkToBuild>600</WorkToBuild><Flammability>0</Flammability></statBases>
+ <costList><GravlitePanel>1</GravlitePanel><Steel>4</Steel></costList><resourcesFractionWhenDeconstructed>1</resourcesFractionWhenDeconstructed>
+ <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+</TerrainDef></Defs>

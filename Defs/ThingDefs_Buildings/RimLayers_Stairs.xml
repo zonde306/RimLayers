@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef ParentName="BuildingBase">
+    <defName>RL_Stairs</defName>
+    <label>stairs up</label>
+    <description>A stair connecting this layer to the next. Completing this stair creates only the next floor if it does not yet exist (up to three floors). Build a completed roof below the destination first. The landing is structural floor; additional floors can be built from it. Its open channel carries air, heat, noise and flames between floors; a closed landing door seals the channel. Forbidding pawn use does not close it. Stairs do not carry electricity. Unroped pen animals cannot use the stairs by themselves.</description>
+    <thingClass>RimLayers.Structure.Building_Stairs</thingClass>
+    <designationCategory>Structure</designationCategory>
+    <uiOrder>2050</uiOrder>
+    <size>(1,1)</size>
+    <rotatable>false</rotatable>
+    <passability>PassThroughOnly</passability>
+    <pathCost>12</pathCost>
+    <fillPercent>0.15</fillPercent>
+    <holdsRoof>false</holdsRoof>
+    <terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded>
+    <canOverlapZones>false</canOverlapZones>
+    <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>1200</WorkToBuild><Mass>25</Mass><Flammability>0.2</Flammability></statBases>
+    <costList><Steel>40</Steel><WoodLog>20</WoodLog></costList>
+    <building><isInert>true</isInert><ai_chillDestination>false</ai_chillDestination></building>
+    <graphicData><texPath>Things/Building/RimLayers/Stairs</texPath><graphicClass>Graphic_Single</graphicClass><drawSize>(1,1)</drawSize></graphicData>
+    <comps><li Class="CompProperties_Forbiddable"/></comps>
+    <modExtensions><li Class="RimLayers.Navigation.ConnectorTransmission"><air>true</air><heat>true</heat><sound>true</sound><fire>true</fire></li></modExtensions>
+    <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+  </ThingDef>
+</Defs>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef ParentName="PawnFlyerBase">
+    <defName>RL_LayerJumpFlyer</defName>
+    <label>layer jump</label>
+    <selectable>true</selectable>
+    <thingClass>RimLayers.Navigation.LayerJumpFlyer</thingClass>
+  </ThingDef>
+</Defs>

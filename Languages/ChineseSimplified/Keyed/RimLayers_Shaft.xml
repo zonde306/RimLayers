@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ExpandShaftUp>向上扩井</RL_ExpandShaftUp>
+  <RL_ExpandShaftDown>向下开挖</RL_ExpandShaftDown>
+  <RL_CancelShaftUp>取消向上扩井</RL_CancelShaftUp>
+  <RL_CancelShaftDown>取消向下开挖</RL_CancelShaftDown>
+  <RL_ExpandShaftHelp>在同坐标开通相邻一层。矿工先开采出口及相邻施工位的真实岩石，再在出口放置站点蓝图，按原配方供料建造。施工期间，启用停靠的起点站提供慢速施工通行。取消会停止采矿并取消未完工站点，已开采岩石和楼面保留。</RL_ExpandShaftHelp>
+  <RL_ShaftAlreadyConnected>相邻层已有电梯站。</RL_ShaftAlreadyConnected>
+  <RL_ShaftUpStatus>向上扩井：{0}</RL_ShaftUpStatus>
+  <RL_ShaftDownStatus>向下开挖：{0}</RL_ShaftDownStatus>
+  <RL_ShaftMining>等待采矿／清理井道</RL_ShaftMining>
+  <RL_ShaftBuilding>站点施工中（慢速通行）</RL_ShaftBuilding>
+  <RL_ShaftNeedsWorkCell>出口旁需要有支撑且未被建筑占用的施工位。</RL_ShaftNeedsWorkCell>
+</LanguageData>

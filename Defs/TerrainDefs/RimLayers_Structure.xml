@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <TerrainAffordanceDef><defName>RL_FloorSupport</defName><label>upper structural floor</label></TerrainAffordanceDef>
+  <TerrainDef ParentName="FloorBase">
+    <defName>RL_StructuralFloor</defName>
+    <label>structural floor</label>
+    <description>A load-bearing upper floor built over a completed roof directly below. The roof must remain in place.</description>
+    <texturePath>Terrain/Surfaces/Concrete</texturePath>
+    <color>(145,151,160)</color>
+    <edgeType>Hard</edgeType>
+    <renderPrecedence>300</renderPrecedence>
+    <layerable>false</layerable>
+    <terrainAffordanceNeeded>RL_FloorSupport</terrainAffordanceNeeded>
+    <affordances Inherit="False"><li>Light</li><li>Medium</li><li>Heavy</li><li>Walkable</li><li>RL_FloorSupport</li></affordances>
+    <statBases><WorkToBuild>450</WorkToBuild><Beauty>0</Beauty><Cleanliness>0</Cleanliness><Flammability>0</Flammability></statBases>
+    <costList><Steel>4</Steel></costList>
+    <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+  </TerrainDef>
+</Defs>

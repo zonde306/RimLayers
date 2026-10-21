@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ShipBaseNeedsColonyFloor>Build the initial gravship substructure on a supported ordinary structural floor.</RL_ShipBaseNeedsColonyFloor>
+  <RL_ShipDeckOccupied>This cell already belongs to an ordinary floor. Remove it before building an upper ship deck.</RL_ShipDeckOccupied>
+  <RL_ShipVerticalBlocked>The vertical flight path is blocked at {0}.</RL_ShipVerticalBlocked>
+  <RL_ShipSplitFacility>A gravship facility crosses the departure boundary. Move it fully onto the ship before takeoff.</RL_ShipSplitFacility>
+  <RL_ShipDemolitionConfirm>Takeoff will destroy {0} buildings crossing the ship boundary. Their contents will remain here.\n\n{1}\n\nContinue?</RL_ShipDemolitionConfirm>
+  <RL_ShipSelectCore>Use as construction core</RL_ShipSelectCore>
+  <RL_ShipSelectCoreHelp>Bind new ship decks to this engine when more than one ship is adjacent. This does not merge existing ships.</RL_ShipSelectCoreHelp>
+  <RL_ShipCoreSelected>Ship construction core: {0}</RL_ShipCoreSelected>
+  <RL_ShipUnsupportedLanding>The elevated ship bottom needs a supported platform or roof below.</RL_ShipUnsupportedLanding>
+  <RL_ShipLandingLayerOverflow>The ship would occupy floors {0}–{1}, but this map supports up to floor {2}. Choose a lower landing floor.</RL_ShipLandingLayerOverflow>
+  <RL_ShipMigrateLegacy>Convert legacy decks</RL_ShipMigrateLegacy>
+  <RL_ShipMigrateLegacyHelp>Preview ordinary floors on the viewed upper floor that can be explicitly converted to this ship. No automatic conversion.</RL_ShipMigrateLegacyHelp>
+  <RL_ShipMigrationEmpty>No convertible legacy floors on the viewed floor. Select an upper floor and the intended construction core.</RL_ShipMigrationEmpty>
+  <RL_ShipMigrationConfirm>Convert the {0} highlighted ordinary floor cells into ship decks? These floors will leave with the ship and will no longer be restored as a colony platform. Decoration is preserved.</RL_ShipMigrationConfirm>
+</LanguageData>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_Stairs.label>上行楼梯</RL_Stairs.label>
+  <RL_Stairs.description>连接本层与上一层。目标上一层尚不存在时，楼梯完工只创建该上一层，最多三层。先完成上层落脚处正下方的屋顶；楼梯会建立最小结构平台，可从合法邻格继续扩建楼板。开放通道可传递空气、热、惊扰与火焰，关闭落脚点的门可封闭通道。禁止 Pawn 使用楼梯不会封闭通道。楼梯本身不导电。未牵引的放牧动物不会自行通过楼梯。</RL_Stairs.description>
+</LanguageData>

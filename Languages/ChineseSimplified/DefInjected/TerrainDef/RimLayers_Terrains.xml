@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_StructuralFloor.label>结构楼板</RL_StructuralFloor.label>
+  <RL_StructuralFloor.description>建在紧邻下层已完成屋顶上的承重楼板。下方屋顶必须持续有效。</RL_StructuralFloor.description>
+  <RL_OpenAir.label>空域</RL_OpenAir.label>
+  <RL_OpenAir.description>上层尚未铺设楼板的空间，不能站立或行走。</RL_OpenAir.description>
+  <RL_Isolation.label>楼层隔离带</RL_Isolation.label>
+  <RL_Isolation.description>逻辑楼层之间预留的存储坐标，不对应实际空间。</RL_Isolation.description>
+</LanguageData>

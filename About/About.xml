@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ModMetaData>
+  <name>RimLayers</name>
+  <author>zonde306</author>
+  <packageId>rimlayers.core</packageId>
+  <supportedVersions>
+    <li>1.7</li>
+  </supportedVersions>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>vanillaexpanded.gravship</li>
+    <li>vanillaexpanded.gravship2</li>
+    <li>brrainz.harmony</li>
+  </loadAfter>
+  <incompatibleWith>
+    <li>Peren.IsoRimProjectZ</li>
+    <li>Baal.SecondFloor</li>
+  </incompatibleWith>
+  <description>RimLayers 0.1.5 · RimWorld 1.7 · 开发候选
+向上建造，向下开拓。
+
+把卧室搬到工坊楼上，把矿道开到殖民地下方。RimLayers 在同一张地图里提供地表与可扩展的地上、地下层，默认上下各 2 层；殖民者通过楼梯和电梯连续寻路、搬运、取料、生产和战斗。
+
+• 按需扩层：完成连接器才追加所需楼层。人工平台先完成紧邻下层屋顶，再铺结构楼板；支撑必须持续有效。
+• 山体与地下：独立矿脉、天然岩石楼面、洞穴与可能出现的虫巢。矿工先挖通出口，建筑工再完工；冰盖、海冰整图禁挖。
+• 跨层战斗：支持原版射位 AI、炮台、护盾、曲射与三维爆炸，真实楼板和屋顶会挡弹；开放通道可传气、换热与蔓延火焰。
+• 垂直交通与供电：单层电梯、贯通电梯站、独立竖向电力端子；停电仍有慢速应急通行。
+• Odyssey 多层飞船：甲板、乘员、货物与设施随船航行，可停靠合法上层平台，载荷最多跨 6 层甲板，最高海拔不超过 +9，新增层受设置配额约束；普通楼板不会自动成为甲板。跨起飞边界建筑确认后销毁，真实内容和框架材料留岸；原版逆重锚政策不变。
+
+开始：Harmony → RimLayers，启用后重启。F7 下层 / F8 上层，可在选项中改键。基础玩法不要求 DLC，飞船需要 Odyssey。详细图文指南见 mod 目录 README.md。
+
+设置：显示、楼层、玩法、地下生成、兼容与恢复五页，全局共用。单图上下默认各 2 层，全局额外层默认 20；降低上限不删除旧层。异常空域中的 Pawn、物品和尸体可自动恢复，无合法落点时暂存原对象并提供手动恢复。详情见 Docs/SETTINGS.md。
+
+存档：先备份并另存新槽。超出旧版 ±2 上限的存档不能回退旧版 DLL。楼层存档持续依赖 RimLayers，不能安全移除。更新 DLL 后必须重启游戏。
+兼容：需要 1.7 对应的 Harmony 3；不要同时启用 IsoRim ProjectZ 或 Baal.SecondFloor。VGE Chapter 1 / 2 为可选兼容，启用时 RimLayers 排在其后，保留 VGE 单活动引擎及资源规则；不装 VGE 仍支持原生多船。CE、其他飞船框架尚未适配；原生独立地下与 Pocket 地图不自动扩层。建议地表不超过 250×250。
+封面与介绍卡为概念示意，游戏使用俯视切层显示。
+
+—— English ——
+RimLayers 0.1.5 · Development candidate
+Build upward. Dig deeper.
+
+RimLayers adds expandable upper and underground floors within one Map, defaulting to two above and two below the surface. Colonists use real stairs and lifts while continuing hauling, production and combat.
+
+Create floors only when needed. Build a completed roof directly below artificial platforms and keep it supported. Mine independent mountain and underground deposits; clear real rock at connector exits before construction finishes. Ice sheets and sea ice cannot be excavated.
+
+Fight across layers with native shooting AI, turrets, shields, curved projectiles and 3D explosions. Floors and roofs block shots; open channels exchange gas, heat and fire. Powered lifts retain slow emergency access; separate vertical terminals join adjacent power networks.
+
+With Odyssey, travel with multi-deck gravships and land on valid upper platforms. A payload may span up to six decks, with its highest deck at elevation +9 or below; new floors also require available quota. Ordinary floors do not become ship decks automatically. Confirmed departure destroys buildings crossing its boundary; real contents and frame materials remain ashore. Native grav-anchor abandonment rules still apply.
+
+Requires RimWorld 1.7 and the matching Harmony 3. Load Harmony before RimLayers, then restart. F7/F8 switch floors; keys can be rebound. No DLC is required for the basic layer system; ships require Odyssey.
+
+Five global settings pages cover display, floors, gameplay, underground generation, and recovery. Defaults allow two upper/two underground floors per map and twenty extra floors across the save. Lowering limits preserves existing floors. Abnormal airspace recovery keeps original Pawns, items and corpses; when no legal landing exists they remain in suspended storage with manual recovery. See Docs/SETTINGS.md.
+
+Back up saves and use a new save slot. Saves beyond the old ±2 limits cannot be loaded with an older DLL. Layered saves require RimLayers and cannot safely have it removed. Restart after DLL updates. Do not combine with IsoRim ProjectZ or Baal.SecondFloor. Optional VGE Chapter 1 / 2 compatibility: load RimLayers after both chapters. VGE keeps its single-active-engine and resource rules; without VGE, native multiple ships remain supported. CE and other ship frameworks are not adapted; native pocket/independent underground Maps do not auto-expand. Recommended surface size: up to 250×250.
+
+See README.md for the illustrated guide. Cover and cards are concept illustrations; gameplay uses a top-down layer view.</description>
+</ModMetaData>

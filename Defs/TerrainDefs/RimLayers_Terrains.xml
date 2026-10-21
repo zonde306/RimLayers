@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <TerrainDef Name="RL_EmptyBase" Abstract="True">
+    <dontRender>true</dontRender>
+    <passability>Impassable</passability>
+    <pathCost>300</pathCost>
+    <fertility>0</fertility>
+    <edgeType>Hard</edgeType>
+    <renderPrecedence>300</renderPrecedence>
+    <layerable>false</layerable>
+    <changeable>false</changeable>
+    <holdSnowOrSand>false</holdSnowOrSand>
+    <avoidWander>true</avoidWander>
+    <preventCraters>true</preventCraters>
+    <canEverTerraform>false</canEverTerraform>
+    <supportsRock>false</supportsRock>
+    <canBePolluted>false</canBePolluted>
+    <takeFootprints>false</takeFootprints>
+    <filthAcceptanceMask><li>None</li></filthAcceptanceMask>
+    <statBases><WorkToBuild>0</WorkToBuild><Flammability>0</Flammability><MarketValue>0</MarketValue></statBases>
+    <affordances />
+  </TerrainDef>
+  <TerrainDef ParentName="RL_EmptyBase">
+    <defName>RL_OpenAir</defName>
+    <changeable>true</changeable>
+    <affordances><li>RL_FloorSupport</li></affordances>
+    <label>open air</label>
+    <description>Empty space on an upper layer. It is not a walkable floor.</description>
+  </TerrainDef>
+  <TerrainDef ParentName="RL_EmptyBase">
+    <defName>RL_Isolation</defName>
+    <label>layer isolation</label>
+    <description>Reserved storage space between logical layers. It has no physical location.</description>
+  </TerrainDef>
+</Defs>

@@ -1,0 +1,73 @@
+using RimLayers.Layout;
+
+int checks = 0;
+void Assert(bool condition, string message)
+{
+    checks++;
+    if (!condition) throw new Exception(message);
+}
+void Reject(Action action)
+{
+    try { action(); }
+    catch (ArgumentException) { checks++; return; }
+    catch (OverflowException) { checks++; return; }
+    throw new Exception("Expected invalid layout rejection.");
+}
+foreach (var (width, height) in new[] { (1, 1), (17, 16), (18, 17), (50, 18), (120, 120), (250, 250), (251, 249) })
+{
+    int stride = LayerLayout.CalculateStride(height);
+    Assert(stride > height && stride % 17 == 0, "Missing aligned isolation rows.");
+    var layout = new LayerLayout(width, height, 3, stride);
+    int logical = 0, isolation = 0;
+    for (int z = 0; z < layout.StorageHeight; z++)
+        for (int x = 0; x < width; x++)
+        {
+            var storage = new StorageCell(x, 0, z);
+            bool expected = z % stride < height;
+            bool decoded = layout.TryDecode(storage, out var cell);
+            Assert(decoded == expected, "Storage/gap classification failed.");
+            if (decoded)
+            {
+                logical++;
+                Assert(layout.Contains(cell) && layout.ToStorage(cell) == storage, "Address roundtrip failed.");
+            }
+            else isolation++;
+        }
+    Assert(logical == width * height * 3, "Logical area mismatch.");
+    Assert(isolation == width * (stride - height) * 3, "Isolation area mismatch.");
+    Assert(layout.MatchesStorage(width, stride * 3), "Storage extent mismatch.");
+    foreach (var outside in new[] { new StorageCell(-1, 0, 0), new StorageCell(width, 0, 0),
+        new StorageCell(0, 1, 0), new StorageCell(0, 0, -1), new StorageCell(0, 0, layout.StorageHeight) })
+        Assert(!layout.TryDecode(outside, out _), "Accepted out-of-bounds cell.");
+    Reject(() => layout.ToStorage(new LayerCell(3, 0, 0)));
+    Reject(() => layout.ToStorage(new LayerCell(0, width, 0)));
+    Reject(() => layout.ToStorage(new LayerCell(0, 0, height)));
+}
+Reject(() => LayerLayout.CalculateStride(0));
+Reject(() => LayerLayout.CalculateStride(int.MaxValue));
+Reject(() => new LayerLayout(0, 120, 3, 136));
+Reject(() => new LayerLayout(120, 120, 1, 136));
+Reject(() => new LayerLayout(120, 120, 3, 120));
+Reject(() => new LayerLayout(int.MaxValue, 120, 3, 136));
+Console.WriteLine($"PASS: {checks} layout checks including all cells, separators, bounds and overflow.");
+
+foreach(var levels in new[]{new[]{0,-1,-2,1,2},new[]{0,1,-1,2,-2},new[]{0,1,2,-1,-2}})
+{
+    var mixed=new LayerLayout(120,120,levels,136);
+    Assert(mixed.OrderedLayers.Select(mixed.ElevationOf).SequenceEqual(new[]{-2,-1,0,1,2}),"Physical order differs from allocation order.");
+    for(int id=0;id<5;id++)
+    {
+        Assert(mixed.ToStorage(new(id,5,7))==new StorageCell(5,0,id*136+7),"Existing bands moved.");
+        Assert(mixed.ProjectionLayer(mixed.ElevationOf(id)*3+1)==id,"Negative-height projection failed.");
+        if(mixed.ElevationOf(id)<2)Assert(mixed.TryGetAdjacentLayer(id,1,out int up)&&mixed.ElevationOf(up)==mixed.ElevationOf(id)+1,"Wrong upper neighbor.");
+        if(mixed.ElevationOf(id)>-2)Assert(mixed.TryGetAdjacentLayer(id,-1,out int down)&&mixed.ElevationOf(down)==mixed.ElevationOf(id)-1,"Wrong lower neighbor.");
+    }
+}
+var firstDown=new LayerLayout(120,120,new[]{0,-1},136);
+var withUp=firstDown.Append(1);
+Assert(withUp.Extends(firstDown)&&withUp.ToStorage(new(1,8,9))==firstDown.ToStorage(new(1,8,9)),"Appending changed stable addresses.");
+Assert(firstDown.LayerOrFuture(1)==2&&firstDown.ElevationOrFuture(2)==1,"Future upper preview aliases underground.");
+Reject(()=>new LayerLayout(120,120,new[]{0,-2},136));
+Reject(()=>new LayerLayout(120,120,new[]{0,-1,-1},136));
+Reject(()=>new LayerLayout(120,120,Enumerable.Range(0,11).ToArray(),136));
+Console.WriteLine($"PASS: {checks} total layout checks, including mixed underground allocation.");

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ExpandShaftUp>Extend shaft upward</RL_ExpandShaftUp>
+  <RL_ExpandShaftDown>Excavate shaft downward</RL_ExpandShaftDown>
+  <RL_CancelShaftUp>Cancel upward extension</RL_CancelShaftUp>
+  <RL_CancelShaftDown>Cancel downward excavation</RL_CancelShaftDown>
+  <RL_ExpandShaftHelp>Open the next floor at this shaft. Miners clear real rock at the exit and an adjacent construction position, then a station blueprint is placed at the exit. Supply and build it normally. Until completion, enabled source stops provide slow construction access. Canceling stops mining and cancels the unfinished station; mined rock and floors remain.</RL_ExpandShaftHelp>
+  <RL_ShaftAlreadyConnected>A station already occupies the next floor.</RL_ShaftAlreadyConnected>
+  <RL_ShaftUpStatus>Upward extension: {0}</RL_ShaftUpStatus>
+  <RL_ShaftDownStatus>Downward excavation: {0}</RL_ShaftDownStatus>
+  <RL_ShaftMining>clearing shaft / waiting for mining</RL_ShaftMining>
+  <RL_ShaftBuilding>station under construction (slow access)</RL_ShaftBuilding>
+  <RL_ShaftNeedsWorkCell>The exit needs a supported adjacent construction position, clear of buildings.</RL_ShaftNeedsWorkCell>
+</LanguageData>

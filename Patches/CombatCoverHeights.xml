@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch><Operation Class="PatchOperationSequence"><operations>
+<li Class="PatchOperationConditional"><xpath>Defs/ThingDef[defName="Sandbags"]/modExtensions</xpath><nomatch Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Sandbags"]</xpath><value><modExtensions /></value></nomatch></li>
+<li Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Sandbags"]/modExtensions</xpath><value><li Class="RimLayers.Combat.CoverHeightExtension"><height>1</height></li></value></li>
+<li Class="PatchOperationConditional"><xpath>Defs/ThingDef[defName="Barricade"]/modExtensions</xpath><nomatch Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Barricade"]</xpath><value><modExtensions /></value></nomatch></li>
+<li Class="PatchOperationAdd"><xpath>Defs/ThingDef[defName="Barricade"]/modExtensions</xpath><value><li Class="RimLayers.Combat.CoverHeightExtension"><height>1</height></li></value></li>
+</operations></Operation></Patch>

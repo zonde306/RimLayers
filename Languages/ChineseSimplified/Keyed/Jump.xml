@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_JumpNoLanding>无法跳跃：落点须已揭示、有实体楼面承托且无阻挡。</RL_JumpNoLanding>
+  <RL_JumpOutOfRange>无法跳跃：计入高度差后，目标超出跳跃距离。</RL_JumpOutOfRange>
+  <RL_JumpBlocked>无法跳跃：楼板、屋顶或障碍物挡住了飞行轨迹。</RL_JumpBlocked>
+  <RL_JumpClear>跳跃轨迹畅通；高度差计入跳跃距离。</RL_JumpClear>
+  <RL_JumpWaiting>跳跃中断。障碍物这一侧暂时没有安全落点；人物与携带物仍被保留，清理落地区域后会重试。</RL_JumpWaiting>
+  <RL_JumpRetry>重试安全着陆</RL_JumpRetry>
+</LanguageData>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_CombatLaunchBlocked>Firing space obstructed</RL_CombatLaunchBlocked>
+  <RL_CombatOutOfRange>Outside effective range</RL_CombatOutOfRange>
+  <RL_CombatBlocked>Line of fire blocked</RL_CombatBlocked>
+  <RL_CombatIntercepted>Shell will strike an obstruction</RL_CombatIntercepted>
+  <RL_CombatClear>Firing path available</RL_CombatClear>
+  <RL_CombatObstacle>First obstruction: {0} ({1}, {2},{3})</RL_CombatObstacle>
+  <RL_CombatFloor>floor slab</RL_CombatFloor>
+  <RL_CombatRoof>roof</RL_CombatRoof>
+  <RL_CombatWall>wall / cover</RL_CombatWall>
+  <RL_CombatRange>Target: {0} | Range {1} ({2})</RL_CombatRange>
+  <RL_CombatArc>Curved trajectory</RL_CombatArc>
+  <RL_CombatExposure>Target exposure: {0}</RL_CombatExposure>
+</LanguageData>

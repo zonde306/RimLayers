@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_NaturalFloorImmutable>天然岩石楼板（不可拆除）</RL_NaturalFloorImmutable>
+  <RL_WaitingVerticalMine>等待竖向开采（采矿工作）</RL_WaitingVerticalMine>
+  <RL_MountainMigration>补生成山体…</RL_MountainMigration>
+  <RL_MountainMigrationHelp>第 {0} 层：可补生成 {1} 格，跳过已占用或有规划的 {2} 格。
+绿色：可补生成；黄色：跳过。
+将添加天然楼板、岩石和矿脉，保留已有建设。请先另存新槽；操作不会自动保存。</RL_MountainMigrationHelp>
+  <RL_MountainMigrationApply>补生成空白区域</RL_MountainMigrationApply>
+  <RL_MountainMigrated>已补生成 {0} 格山体。</RL_MountainMigrated>
+  <RL_MountainMigrationFailed>补生成失败，已回滚。请查看日志。</RL_MountainMigrationFailed>
+</LanguageData>

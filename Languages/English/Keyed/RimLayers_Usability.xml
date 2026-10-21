@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SwitchHelp>Switch floors with the keys shown below. Rebind them in Options &gt; Keyboard. Alt + Up/Down also works.</RL_SwitchHelp>
+  <RL_StairsDown>Down to {0}</RL_StairsDown>
+  <RL_StairsDownHelp>Stair entrance to the floor below. Click to view that floor.</RL_StairsDownHelp>
+  <RL_SpawnRecovered>{0} was moved from unsupported air to a safe landing.</RL_SpawnRecovered>
+  <RL_KeyHints>Down: {0}    Up: {1}</RL_KeyHints>
+</LanguageData>

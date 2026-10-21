@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_Layer>Layer {0}/{1}</RL_Layer>
+  <RL_Development>Build an artificial roof below, then stairs and structural floors. Alt + ↑ / ↓ switches layers.</RL_Development>
+  <RL_NoSurface>No valid floor at this location.</RL_NoSurface>
+  <RL_UpperOnly>Structural floors are for upper layers.</RL_UpperOnly>
+  <RL_NeedsRoof>A completed artificial roof is required directly below every occupied cell.</RL_NeedsRoof>
+  <RL_NeedsPlatform>Build outward from an existing platform.</RL_NeedsPlatform>
+  <RL_TopLayer>There is no layer above this one.</RL_TopLayer>
+  <RL_BlockedLanding>The landing is blocked.</RL_BlockedLanding>
+  <RL_RequiresLayerMap>This requires a RimLayers map.</RL_RequiresLayerMap>
+  <RL_PowerNoPeer>No active terminal on an adjacent layer at this position.</RL_PowerNoPeer>
+  <RL_PowerPeers>Connected layers: {0}</RL_PowerPeers>
+  <RL_StairMapUnsupported>This map cannot acquire upper floors (pocket or underground map).</RL_StairMapUnsupported>
+  <RL_StairExpansionFailed>Upper floors could not be created. Check the log; unfinished stair frames and their materials are retained.</RL_StairExpansionFailed>
+  <RL_ShipMultipleCores>Multiple grav engines share this structure. Separate the ships before using cross-floor links.</RL_ShipMultipleCores>
+  <RL_ShipOverCapacity>Ship substructure exceeds capacity: {0} / {1}.</RL_ShipOverCapacity>
+  <RL_ShipOutsideField>Part of this ship lies outside its grav field.</RL_ShipOutsideField>
+  <RL_ShipCapacity>All decks: {0} / {1} substructure cells</RL_ShipCapacity>
+  <RL_ShipFloorOnly>Ship structural floors require a connected gravship structure.</RL_ShipFloorOnly>
+  <RL_StandardFloorOnly>Use ship structural floors on a gravship.</RL_StandardFloorOnly>
+<RL_LiftStop>Stop on this floor</RL_LiftStop>
+<RL_LiftStopHelp>Disable this stop to retain a through-shaft without allowing entry or exit.</RL_LiftStopHelp>
+<RL_LiftShaftOnly>Through-shaft only</RL_LiftShaftOnly>
+<RL_LiftPowered>Powered travel</RL_LiftPowered>
+<RL_LiftEmergency>Slow emergency access</RL_LiftEmergency>
+<RL_UseShipFloorAbove>Use ship structural floors on upper decks; native substructure is for the ground deck.</RL_UseShipFloorAbove>
+</LanguageData>

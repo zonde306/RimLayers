@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ShipBaseNeedsColonyFloor>请先完成有支撑的普通结构楼板，再在上面建造逆重飞船基架。</RL_ShipBaseNeedsColonyFloor>
+  <RL_ShipDeckOccupied>此格已有普通楼板；建造飞船上甲板前需先拆除。</RL_ShipDeckOccupied>
+  <RL_ShipVerticalBlocked>垂直起降通道在 {0} 被阻挡。</RL_ShipVerticalBlocked>
+  <RL_ShipSplitFacility>飞船设施跨越起飞边界，请先将其完整移入船内。</RL_ShipSplitFacility>
+  <RL_ShipDemolitionConfirm>起飞将摧毁跨越船体边界的 {0} 个建筑，其实际内容物留在此地图。\n\n{1}\n\n继续起飞？</RL_ShipDemolitionConfirm>
+  <RL_ShipSelectCore>设为造船核心</RL_ShipSelectCore>
+  <RL_ShipSelectCoreHelp>当新甲板邻接多艘飞船时，明确使用此引擎；不会合并既有飞船。</RL_ShipSelectCoreHelp>
+  <RL_ShipCoreSelected>造船核心：{0}</RL_ShipCoreSelected>
+  <RL_ShipUnsupportedLanding>高层船底需要有效普通平台或下层屋顶支撑。</RL_ShipUnsupportedLanding>
+  <RL_ShipLandingLayerOverflow>飞船将占用第 {0}–{1} 层，地图最高支持第 {2} 层，请降低停靠层。</RL_ShipLandingLayerOverflow>
+  <RL_ShipMigrateLegacy>转换旧甲板</RL_ShipMigrateLegacy>
+  <RL_ShipMigrateLegacyHelp>预览当前上层可明确转换给此船的普通楼板；不会自动转换。</RL_ShipMigrateLegacyHelp>
+  <RL_ShipMigrationEmpty>当前查看层没有可转换旧楼板，请先选择上层及对应造船核心。</RL_ShipMigrationEmpty>
+  <RL_ShipMigrationConfirm>将高亮的 {0} 格普通楼板转换为飞船甲板？它们将随船离开，不再作为普通平台还原；保留装修。</RL_ShipMigrationConfirm>
+</LanguageData>

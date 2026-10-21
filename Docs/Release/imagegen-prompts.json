@@ -1,0 +1,118 @@
+{
+  "date": "2026-10-20",
+  "tool": "built-in image_gen.imagegen",
+  "mode": "default built-in",
+  "assets": [
+    {
+      "file": "About/Preview.png",
+      "title": "RimLayers 封面",
+      "actual_size": [
+        1254,
+        1254
+      ],
+      "prompt": "Use case: ads-marketing.\nAsset type: square release cover / RimWorld mod About/Preview.png, 1536 x 1536.\nCreate finished premium illustrated cover for the mod \"RimLayers\". Core idea: expand a small frontier colony upwards into two upper floors, and excavate two underground levels. One continuous connected colony, not floating disconnected islands.\nComposition: upper third large exceptionally legible title, central two thirds carefully designed isometric cutaway of a compact lived-in sci-fi colony and the earth beneath. Show EXACTLY three above-ground usable floor levels (ground, second and third), supported steel-and-timber rooms on columns and walls with stair connections. Ground agricultural courtyard, middle workshop, upper sleeping rooms. Below ground show two excavated tunnel levels with stone strata, small independent mineral seams and wooden stair entrances. Stairs are functional short staircases with timber steps and gray steel rails. A small teal industrial single-floor lift can be visible. All above-ground platforms visibly supported, all underground rooms carved in rock. Small faceless pawn-like colonists carry supplies; no realistic detailed humans.\nStyle: beautifully inked, hand-painted isometric strategy-game architectural diorama; crisp silhouettes, tactile modest steel, wood and rough stone, flat clean shapes with subtle painterly depth. Not a screenshot, not photorealistic, no UI. Warm habitation lights against cool slate earth, muted teal industrial accents, warm amber wayfinding. Quiet dark charcoal background, ivory title, restrained fine engineering guide rules and plenty of breathing room. Cohesive, mature and inviting, not a busy movie poster.\nText verbatim: top small \"RIMWORLD 1.7\"; main very large \"RimLayers\"; below title medium \"向上建造 · 向下开拓\"; bottom tiny but readable \"封面概念图\".\nDo not add other text or labels. No official RimWorld logo, no ships, no unsupported floating platforms, no extra floor levels, no battle, no watermark. Square image. Keep title and essential subject inside generous 8% margins for thumbnail cropping. Chinese must be accurate.",
+      "reference_images": []
+    },
+    {
+      "file": "Docs/Images/Release/01-stairs-up.png",
+      "title": "向上楼梯",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"向上楼梯\". Subtitle verbatim: \"STAIRS UP\". Scene: Show one practical wooden staircase with steel-gray side rails connecting ground floor to a supported upper landing. Reference image 2 is the actual top-down stair sprite: preserve warm brown step and gray rail visual identity, but illustrate in isometric cutaway, no need to reproduce sprite arrow. Show the completed lower room roof beneath the upper floor; highlight supported landing in amber. One thin upwards arrow. TWO levels only.\nRight column text, verbatim, each line separate: \"连接相邻两层\" / \"人工平台先完成下层屋顶\" / \"开放梯口传气、换热与火焰\". Bottom cost band text verbatim: \"钢铁 40 · 木材 20\". ",
+      "reference_images": [
+        "About/Preview.png",
+        "Textures/Things/Building/RimLayers/Stairs.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/02-stairs-down.png",
+      "title": "向下楼梯",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"向下楼梯\". Subtitle verbatim: \"STAIRS DOWN\". Scene: Show a short brown timber staircase with gray metal rails descending from stable ground into a cutaway underground B1 passage. Reference image 2 gives step and rail identity. Ground surface above, rough stone below, one small mineral seam. At tunnel exit a small faceless miner is breaking the last rock block with a pick; materials stack stays at the ground entrance. A thin downwards amber arrow. Exactly ground and ONE underground level.\nRight column text, verbatim, each line separate: \"逐层开挖，最深到 B2\" / \"矿工先挖通出口，再完工\" / \"冰盖与海冰整图禁挖\". Bottom cost band text verbatim: \"钢铁 40 · 木材 20\". ",
+      "reference_images": [
+        "About/Preview.png",
+        "Textures/Things/Building/RimLayers/Stairs.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/03-single-lift.png",
+      "title": "单层电梯",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"单层电梯\". Subtitle verbatim: \"SINGLE-FLOOR LIFT\". Scene: A cutaway of exactly two above-ground levels with one enclosed compact steel lift passage linking them. Actual sprite reference 2 is the design cue: dark gray square border, deep teal twin panel doors, small ivory UP arrow. Use these colors and motifs prominently on a practical small lift doorway. Show enclosed industrial connection, supported upper landing and roof below; no shared multi-stop tower. Small power cable enters lift, amber thin up/down wayfinding arrow.\nRight column text, verbatim, each line separate: \"连接相邻层，按需创建上层\" / \"通电快速，断电仍可应急通行\" / \"研究：自动门 · 耗电 150 W\". Bottom cost band text verbatim: \"钢铁 80 · 零部件 2\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png",
+        "Textures/Things/Building/RimLayers/LiftSingle.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/04-single-lift-down.png",
+      "title": "向下单层电梯",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"向下单层电梯\". Subtitle verbatim: \"SINGLE-FLOOR LIFT DOWN\". Scene: A compact enclosed teal-and-gray lift passage descends from stable ground into ONE basement cutaway, B1. Actual sprite reference 2 is the color/shape cue: gray square frame, teal twin doors and ivory arrow; illustrate an enclosed lift station with a downwards wayfinding arrow on the surrounding diagram. Solid rough stone and small mining seam below. Small pile of steel materials remains at ground entrance, tiny faceless miner clearing rock near underground doorway. Exactly two levels, ground and B1.\nRight column text, verbatim, each line separate: \"向下开挖，最深到 B2\" / \"先挖通出口，断电可应急通行\" / \"研究：自动门 · 耗电 150 W\". Bottom cost band text verbatim: \"钢铁 80 · 零部件 2\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png",
+        "Textures/Things/Building/RimLayers/LiftSingle.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/05-vertical-lift.png",
+      "title": "垂直电梯站",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"垂直电梯站\". Subtitle verbatim: \"VERTICAL LIFT STATION\". Scene: Show exactly three completed supported aboveground floor levels, same x/y aligned enclosed steel lift station on each, full continuous shaft. Actual sprite reference 2 gives identity: gray square border, muted copper-brown twin doors, small ivory UP arrow. Each visible station doorway has copper twin doors. Top and bottom stop icons glow amber, middle stop has a subtle closed-stop circle icon but continuous shaft. One thin continuous vertical arrow passes all three levels. Small cable enters each station separately. NO shared moving passenger cabin illustrated. Keep structure compact; no underground.\nRight column text, verbatim, each line separate: \"各层同坐标建站，井道须贯通\" / \"中间可不停靠，各站独立接电\" / \"研究：自动门＋微电子 · 每站 300 W\". Bottom cost band text verbatim: \"每站：钢铁 160 · 塑钢 30 · 零部件 4\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png",
+        "Textures/Things/Building/RimLayers/LiftVertical.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/06-power-riser.png",
+      "title": "垂直电力端子",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"垂直电力端子\". Subtitle verbatim: \"VERTICAL POWER TERMINAL\". Scene: An extremely clear two-level supported architectural cutaway. On each floor a small cyan-gray metal electrical switch terminal with a simple switch lever is mounted ON THE WALKABLE FLOOR, EXACTLY aligned vertically. One short floor cable goes horizontally to the left on ground, another goes to the right on upper floor, in muted blue. Show a dotted cyan vertical connecting line between the two enabled terminals indicating networks bridge at the same coordinate. It is an electricity connection, not a lift, generator or battery; do NOT show elevator doors, shafts, stairs, lightning explosions or a huge machine. Terminals should look modest, small and utilitarian, inspired by an ordinary power switch tinted pale cyan. The building must have visible supporting walls/columns and valid floor.\nRight column text, verbatim, each line separate: \"相邻层同位置，两端启用才并网\" / \"每层分别建造，楼梯不导电\" / \"端子需要有效楼面支撑\". Bottom cost band text verbatim: \"每个端子：钢铁 10\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/07-structural-floor.png",
+      "title": "结构楼板",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"结构楼板\". Subtitle verbatim: \"STRUCTURAL FLOOR\". Scene: Clear two-level cutaway explaining construction: lower room with modest steel posts and walls holds a finished roof. Directly on top of that roof sits the upper structural gray floor slab, highlighted by restrained amber edges. One small corner of upper slab is shown in exploded cutaway raised a few centimeters purely as an engineering layer illustration; do not draw a whole unsupported floating platform. A worker at the existing upper edge lays the next section outward over the completed lower roof. Upper slab has ordinary gray surface, one tiny optional wood-finish patch; no ship or turbine. Show support continuous all the way from ground to roof to slab.\nRight column text, verbatim, each line separate: \"先完成紧邻下层屋顶\" / \"从合法边缘向外连续施工\" / \"下方屋顶必须持续有效\". Bottom cost band text verbatim: \"每格：钢铁 4\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png"
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/08-ship-structural-floor.png",
+      "title": "飞船结构楼板",
+      "actual_size": [
+        1536,
+        1024
+      ],
+      "prompt": "Use case: infographic-diagram. Asset type: landscape building introduction card for the Chinese README of RimLayers, 1536 x 1024.\nDesign a finished, readable architectural field-guide card, matching reference image 1's slate-charcoal, warm ivory, muted amber/teal palette and hand-inked painterly isometric strategy-game diorama. Reference image 1 is STYLE ONLY, not an edit target; create a NEW landscape card with a single focused building diagram. Do not reproduce the cover colony or title size. Editorial layout: tiny top-left \"RimLayers / 建造手册\"; large Chinese building title beneath; small English subtitle; large focused cutaway illustration occupying left 60%; right 40% holds three short text lines with generous spacing and tiny restrained wayfinding glyphs. Bottom horizontal band for cost. Consistent margins, exquisite readable Chinese typography, crisp shapes, high contrast. Cutaway is a CONCEPT diagram, not in-game graphics. Small footer text exactly \"概念示意 · 非实机画面\". No extra text, no watermarks, no gratuitous furniture or unrelated components. \nTitle text verbatim: \"飞船结构楼板\". Subtitle verbatim: \"SHIP STRUCTURAL FLOOR\". Scene: A cropped focused multi-deck industrial gravship hull construction detail resting on a legal supported platform, NOT a flying spacecraft. Show bottom deck with an already-installed modest reverse-gravity engine machine housing, upper deck with a highlight around specialized dark metallic structural panel, lower deck completed roof supporting that panel. Material cue for specialized deck: riveted dark steel, blue-gray gravlite inset panels; tiny optional timber decorative floor patch on top. Must clearly read as upper deck with continuous roof support, no rocket engines or giant battleship, no sky flight. Keep two floor levels only and focus on the panel, engine is secondary and unlabeled.\nRight column text, verbatim, each line separate: \"需要 Odyssey 与已有逆重引擎\" / \"紧邻下层屋顶支撑上甲板\" / \"各层基架共享引擎承载量\". Bottom cost band text verbatim: \"每格：逆重板材 1 · 钢铁 4\". ",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png"
+      ]
+    }
+  ]
+}

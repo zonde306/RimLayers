@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <JobDef><defName>RL_MineVertical</defName><driverClass>RimLayers.Mountains.JobDriver_VerticalMine</driverClass><reportString>excavating a vertical passage.</reportString></JobDef>
+  <WorkGiverDef><defName>RL_MineVertical</defName><label>excavate vertical passage</label><giverClass>RimLayers.Mountains.WorkGiver_VerticalMine</giverClass><workType>Mining</workType><priorityInType>110</priorityInType><verb>excavate</verb><gerund>excavating</gerund><requiredCapacities><li>Manipulation</li></requiredCapacities></WorkGiverDef>
+</Defs>

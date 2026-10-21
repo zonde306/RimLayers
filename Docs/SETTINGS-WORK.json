@@ -1,0 +1,68 @@
+{
+  "objective": "Implement complete user specification: five-page settings, expansion quotas/ship commitments, persistent abnormal-entity recovery, bilingual docs and all acceptance tests.",
+  "status": "implemented_and_validated",
+  "source": "Source/RimLayers",
+  "baseline": "Tests/Artifacts/settings-baseline (original files before edits; no Git repository)",
+  "candidate": "Assemblies/RimLayers.dll is now the test candidate; original DLL/PDB retained in Tests/Artifacts/settings-baseline/Assemblies. Native runner builds installed output.",
+  "required_work_remaining": [],
+  "evidence": {
+    "candidate_build": "Final 2026-10-21 Release/net10.0 zero warnings/errors; installed Assemblies/RimLayers.dll.",
+    "SettingsTests": "8778 assertions passed,252 complete11-floor append orders; rerun2026-10-20 after render helper extraction.",
+    "LayoutTests": "862865 assertions passed",
+    "XML": "39 XML parsed;92 settings keys identical between English/Chinese (2026-10-20 23:39).",
+    "game_tests": "Final accepted native suites and earlier retained failures are listed in Docs/SETTINGS-VALIDATION.md. Recovery00290245/18,quota00215533,underground00172419/28,ships00223058/28/11,sixdeck23451056/28/11,legacy00043749/26/10,UI002027and00272410each,perf00244613.",
+    "visual_tests": "Five pages/gameplay bottom/pending selected valid225407/225622; current002724Chinese recovery and00244611-floor upper render inspected.",
+    "performance": "002446:13 PASS; actual250x25011floors then2maps20extras,60colonists+30items;24shared inspection/512candidates budgets;90 recovered per burst. Final rawJSON, machine data and inspected11-floor upper-view screenshot retained.",
+    "settings_restart": "v1-settings-behavior-20261020-233435:generate6/load36 passed; all fields persisted; own defs material2/work3/liftpower0.5, foreign defs unchanged; repeatApply does not compound; reset does not change live defs.",
+    "recovery_latest": "v1-settings-recovery-20261021-002902:45/18 PASS. Includes all expanded exclusions, GC/game-over positive/negative, hostile fall, external lease after enqueue, multi-cell footprint, nativebase manual release, loopbreaker and per-entity failure isolation.",
+    "travel_multipliers": "v1-elevators-20261020-233847:generate20/load6 passed with stairs2,powered0.5,emergency3; actual native path nextCellCostTotal matches routed scaled cost, outage/shaft removal/reload.",
+    "ships": "Sixdeck234510 56/28/11 PASS; legacynewtarget000437 49/26/10 PASS; before/after-takeoff exception002230 58/28/11 PASS.",
+    "quota_latest": "002155:33 PASS; overlapping/shared and distinct-destination reservations plus full new-only geology switches.",
+    "underground": "001724:19/28 PASS native mining/reload/hives/infestation/mixed-band ship.",
+    "ui": "002027 English1280x720 and002724 Chinese1920x1080/UI1.25 each10 PASS actual native checkbox/tab/slider/reset; earlier alltabs/pending visuals valid, current Chinese recovery inspected.",
+    "raw_position_scan_latency": "002654 test asserted too soon at30ticks; same original recovered afterwards in log.002902 waits one bounded inventory cursor rotation and passes; productionbudgetunchanged."
+  },
+  "verified_native_facts": [
+    "CompProperties_Power.basePowerConsumption private; use Harmony FieldRef; public PowerConsumption getter",
+    "BuildableDef.CostList can return costListForDifficulty; current RimLayers XML has no such list, but future own-def support may need scaling branch",
+    "Verse.WorldComponent_GravshipController (not RimWorld.Planet) InitiateTakeoff sets cutscene and capture; TakeoffEnded calls TravelTo then ResetCutscene",
+    "AbortLanding redirects current ship destination then ArriveNewMap; preserve original in-flight span only when rebooking",
+    "GameEnder.CheckOrUpdateGameOver checks alive free colonists in maps/pods/carry/caravans/transport, CurrentGravship and special survival sources; recovery guard must be narrowly scoped",
+    "Verse.ISuspendableThingHolder.IsContentsSuspended available; Pawn.Flying is actual flight property",
+    "Existing native test harness in Diagnostics/V1Integration.cs and Tests/Run-V1.ps1; independent profile strictly Tests/Artifacts/<run>; -savedatafolder isolates saves/config not Player.log",
+    "Thing.SpawnSetup assigns holdingOwner=map.spawnedThings; spawned entities are NOT unowned. DeSpawn removes this owner. Some IThingHolder.GetDirectlyHeldThings return null (e.g. Pawn); enumerate child holders separately.",
+    "Pawn_PathFollower.TryRecoverFromUnwalkablePosition destroys pawn if no radial native destination; unsupported layered air is deferred to recovery instead.",
+    "Thing.BeingTransportedOnGravship is a native transport exclusion flag.",
+    "ISuspendableThingHolder suspends held Pawn age/food in real native save/load test; original equipment/inventory/carry retain identities."
+  ],
+  "next_actions": [
+    "User: restart RimWorld to load the updated DLL; open Mod settings > RimLayers. Back up saves before creating floors beyond old limits."
+  ],
+  "completed_at": "2026-10-21",
+  "implemented": [
+    "RimLayersSettings ExposeData/defaults/normalization/reset; Mod settings entry; scrollable five-page menu; bilingual keyed text",
+    "Display switches including lower-background picking; native floor hotkeys unaffected; mountain migration settings entry",
+    "Independent stair/powered/emergency times through ConnectorEdge.CurrentTicks; route invalidation on menu changes",
+    "Height effect multiplier in shared ShotProfiles and AI maximum search radius; curved unchanged",
+    "One-shot only-owned Def material/work/power scaling at startup; cloned lists/comp properties",
+    "Mineral/cave/hive controls only new underground generation; existing difficulty/scenario gates retained",
+    "Stable storage layout hard elevations -9..+9; ship payload <=6 decks; nonnegative disjoint backdrop queue bands through 18-floor difference",
+    "GameComponent quota/reservation service derived loaded-map occupancy and tile-based reserved increments",
+    "Connector preview and live full-batch pre-commit checks; existing levels bypass lowered limits",
+    "Ship pre-fuel confirmed-action reservation; arrival allocation; higher landing quota rechecks; existing in-flight promises; idle canceled-reservation cleanup",
+    "Game-level suspended ThingOwner, original entity identities, persistent provenance/state/history, shared-budget scan/search, retries and loop breaker; native spawnedThings ownership respected",
+    "Recovery legality and first-contact fall, safe reset, manual cross-map confirmation, GC/enumeration/game-over protection; normal collapse uses the same owner with saved single damage state",
+    "Recovery dialog, Def exclusions, temporary claim/defer API, native transport-state exclusions, full-footprint illegal movement interception",
+    "Bulk expansion delays region rebuild until rocks/terrain/roof complete; native hive/Pawn/Lord spawn deferred until regions ready, with independent per-layer seed and rollback tracking",
+    "Recovery inspection roles now visit each map with Pawn/item/audit cursors; HaulableEver avoids burying items behind hundreds of thousands of rocks",
+    "Narrow native CleanupCurrentJob override keeps carried object only for the Pawn currently being recovered",
+    "Bilingual SETTINGS.md and README/About/DECKS/UNDERGROUND/SHIP-COLONY current guidance updated; original historical validation tables retained"
+  ],
+  "validation_report": "Docs/SETTINGS-VALIDATION.md",
+  "known_boundaries": [
+    "Dedicated third-party ship/transport/CE adapters, space underground and underground ships outside scope.",
+    "Direct field mutations are discovered by bounded rotating inspection, not guaranteed instant notice.",
+    "Perf uses60draftedcolonists plus native wildlife/hives; CPU tick/service timings, notFPS or fullcolonyAI guarantee.",
+    "Environment startup retains two staleVulkanlayer paths and three duplicatepackageId inventory errors; no unrelated installation cleanup performed."
+  ]
+}

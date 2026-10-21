@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_SkyfallWaiting>Cargo retained: {0}. Clear or extend this floor to unload.</RL_SkyfallWaiting>
+  <RL_SkyfallRecovered>Cargo unloaded: {0}.</RL_SkyfallRecovered>
+</LanguageData>

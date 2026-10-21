@@ -1,0 +1,28 @@
+<Defs><ThingDef ParentName="BuildingBase">
+    <defName>RL_StairsDown</defName>
+    <label>stairs down</label>
+    <description>Excavate a passage to the level below. Ice sheets and sea ice cannot be excavated. A miner must clear real rock at the exit before construction can finish. Maximum depth: B2.</description>
+    <thingClass>RimLayers.Structure.Building_Stairs</thingClass>
+    <designationCategory>Structure</designationCategory>
+    <uiOrder>2051</uiOrder>
+    <size>(1,1)</size>
+    <rotatable>false</rotatable>
+    <passability>PassThroughOnly</passability>
+    <pathCost>12</pathCost>
+    <fillPercent>0.15</fillPercent>
+    <holdsRoof>false</holdsRoof>
+    <terrainAffordanceNeeded>Heavy</terrainAffordanceNeeded>
+    <canOverlapZones>false</canOverlapZones>
+    <statBases><MaxHitPoints>200</MaxHitPoints><WorkToBuild>1200</WorkToBuild><Mass>25</Mass><Flammability>0.2</Flammability></statBases>
+    <costList><Steel>40</Steel><WoodLog>20</WoodLog></costList>
+    <building><isInert>true</isInert><ai_chillDestination>false</ai_chillDestination></building>
+    <graphicData><texPath>Things/Building/RimLayers/Stairs</texPath><graphicClass>Graphic_Single</graphicClass><drawSize>(1,1)</drawSize></graphicData>
+    <comps><li Class="CompProperties_Forbiddable" /></comps>
+    <modExtensions><li Class="RimLayers.Navigation.ConnectorTransmission"><air>true</air><heat>true</heat><sound>true</sound><fire>true</fire></li></modExtensions>
+    <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+  </ThingDef>
+<ThingDef ParentName="RL_LiftBase"><defName>RL_LiftSingleDown</defName><label>single-floor lift down</label><description>A powered passage to the level below, with slow emergency access. Excavation rules and depth limits are the same as stairs down.</description>
+ <graphicData><texPath>Things/Building/RimLayers/LiftSingle</texPath><graphicClass>Graphic_Single</graphicClass></graphicData>
+ <statBases><MaxHitPoints>300</MaxHitPoints><WorkToBuild>2200</WorkToBuild><Mass>35</Mass><Flammability>0</Flammability></statBases><costList><Steel>80</Steel><ComponentIndustrial>2</ComponentIndustrial></costList>
+ <researchPrerequisites><li>Autodoors</li></researchPrerequisites><constructionSkillPrerequisite>6</constructionSkillPrerequisite>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>150</basePowerConsumption></li></comps></ThingDef></Defs>
