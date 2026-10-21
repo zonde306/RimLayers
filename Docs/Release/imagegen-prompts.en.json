@@ -1,0 +1,204 @@
+{
+  "date": "2026-10-22",
+  "tool": "built-in image_gen.imagegen",
+  "mode": "default built-in",
+  "intent": "text-localization",
+  "language": "English",
+  "assets": [
+    {
+      "file": "Docs/Images/Release/en/00-cover.png",
+      "edit_target": "About/Preview.png",
+      "reference_images": [
+        "About/Preview.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Keep the square cover illustration, RimLayers title, RIMWORLD 1.7 label, all architecture, palette, lighting and composition unchanged. Replace the Chinese tagline with \"BUILD UPWARD · DIG DEEPER\" and bottom Chinese footer with \"CONCEPT COVER\". No Chinese text remains.  No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/01-stairs-up.png",
+      "edit_target": "Docs/Images/Release/01-stairs-up.png",
+      "reference_images": [
+        "Docs/Images/Release/01-stairs-up.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Stairs up\". Remove the redundant English subtitle from the old bilingual version, retain its ornamental rule. Right facts: \"Connect adjacent floors\"; \"Build the roof below first\"; \"Open stairs pass gas, heat and fire\". Cost \"Steel 40 · Wood 20\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/02-stairs-down.png",
+      "edit_target": "Docs/Images/Release/02-stairs-down.png",
+      "reference_images": [
+        "Docs/Images/Release/02-stairs-down.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Stairs down\". Remove old redundant English subtitle. Right facts: \"Dig one floor at a time\"; \"Default depth limit: B2\"; \"Mine the exit before completion\"; \"No digging on ice sheets or sea ice\". Group first two short lines in first fact block, others in next two. Cost \"Steel 40 · Wood 20\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/03-single-lift.png",
+      "edit_target": "Docs/Images/Release/03-single-lift.png",
+      "reference_images": [
+        "Docs/Images/Release/03-single-lift.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Single-floor lift\" (two lines if needed). Remove old redundant subtitle. Right facts: \"Connect adjacent floors; create above on demand\"; \"Fast with power; slow emergency access\"; \"Research: Autodoors · Power: 150 W\". Cost \"Steel 80 · Components 2\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/04-single-lift-down.png",
+      "edit_target": "Docs/Images/Release/04-single-lift-down.png",
+      "reference_images": [
+        "Docs/Images/Release/04-single-lift-down.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Single-floor lift down\" (two lines). Remove redundant old subtitle. Right facts: \"Excavate downward · Default limit B2\"; \"Mine the exit first; emergency access without power\"; \"Research: Autodoors · Power: 150 W\". Cost \"Steel 80 · Components 2\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/05-vertical-lift.png",
+      "edit_target": "Docs/Images/Release/05-vertical-lift.png",
+      "reference_images": [
+        "Docs/Images/Release/05-vertical-lift.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Vertical lift station\" (two lines). Remove old redundant subtitle. Right facts: \"Align stations in a continuous shaft\"; \"Skip stops; power each station separately\"; \"Autodoors + Microelectronics · 300 W per station\". Cost band \"Per station: Steel 160 · Plasteel 30 · Components 4\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/06-power-riser.png",
+      "edit_target": "Docs/Images/Release/06-power-riser.png",
+      "reference_images": [
+        "Docs/Images/Release/06-power-riser.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Vertical power terminal\" (two lines). Remove redundant subtitle. Right facts: \"Align on adjacent floors; enable both ends\"; \"Build on each floor; stairs do not carry power\"; \"Requires a supported floor\". Cost \"Per terminal: Steel 10\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/07-structural-floor.png",
+      "edit_target": "Docs/Images/Release/07-structural-floor.png",
+      "reference_images": [
+        "Docs/Images/Release/07-structural-floor.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Structural floor\". Remove redundant subtitle. Right facts: \"Complete the roof directly below first\"; \"Build outward from a valid edge\"; \"Keep the supporting roof intact\". Cost \"Per cell: Steel 4\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/08-ship-structural-floor.png",
+      "edit_target": "Docs/Images/Release/08-ship-structural-floor.png",
+      "reference_images": [
+        "Docs/Images/Release/08-ship-structural-floor.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Ship structural floor\" (two lines). Remove redundant subtitle. Right facts: \"Requires Odyssey and an existing grav engine\"; \"The roof below supports the upper deck\"; \"All decks share the engine's capacity\". Cost \"Per cell: Gravlite panel 1 · Steel 4\". Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/09-cargo-hoists.png",
+      "edit_target": "Docs/Images/Release/09-cargo-hoists.png",
+      "reference_images": [
+        "Docs/Images/Release/09-cargo-hoists.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / BUILDING GUIDE\". Main title \"Cargo hoists\". Remove redundant subtitle. Right facts: \"Haul in first; retrieve on another floor\"; \"One shaft, one basket\"; \"3 stacks · 30 ticks to load or unload\". Variant labels \"Hand-cranked\"; \"Electric\". Connection badges \"Adjacent floors\"; \"Continuous shaft\". Workflow labels \"1 Load basket\"; \"2 Call and wait\"; \"3 Take and continue\". Preserve exactly one basket on lower floor and both people outside it, empty closed upper port. Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/10-layered-environment.png",
+      "edit_target": "Docs/Images/Release/10-layered-environment.png",
+      "reference_images": [
+        "Docs/Images/Release/10-layered-environment.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / ENVIRONMENT GUIDE\". Main title \"Layered environments\" (two lines). Remove redundant subtitle. Four right callouts: \"Exposed upper floors: stronger wind and hazards\"; \"Underground rock buffers temperature; no fixed 15°C\"; \"Open passages gradually admit heat and pollution\"; \"An isolated grid under thick natural rock resists solar flares\". Bottom strip \"On in new saves · Enable in existing saves · Global settings\". Keep underground power loop electrically isolated from surface. Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/11-deep-geology-ecology.png",
+      "edit_target": "Docs/Images/Release/11-deep-geology-ecology.png",
+      "reference_images": [
+        "Docs/Images/Release/11-deep-geology-ecology.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / UNDERGROUND GUIDE\". Main title \"Deep geology & ecology\" (two lines if necessary). Remove redundant subtitle. Keep sample labels B1, B5, B9 and ellipses. Right group 1 title \"Ore cluster budget\"; lines \"B1 1× · B5 1.2× · B9 1.4×\"; \"Gold, uranium and plasteel gain weight\"; \"Fewer machine remnants at depth\". Group 2 title \"Local magma releases heat\"; line \"Normal regions: B6+ · Volcanic: B3+\". Group 3 title \"Different hive lifecycles\"; lines \"Exploration hives: finite insects\"; \"Later infestations: continued growth\". Bottom strip \"Default depth limit: B2 · Generation settings affect new floors only\". Do not turn budget into mining-yield bonus; selected depth samples are not adjacent floors. Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "file": "Docs/Images/Release/en/12-vehicle-compatibility.png",
+      "edit_target": "Docs/Images/Release/12-vehicle-compatibility.png",
+      "reference_images": [
+        "Docs/Images/Release/12-vehicle-compatibility.png"
+      ],
+      "reference_roles": [
+        "Edit target: original Chinese release illustration. Preserve artwork; localize all text."
+      ],
+      "prompt": "Use case: text-localization. Asset type: English README illustration for the RimWorld 1.7 mod RimLayers. Edit the supplied image into its complete English-language edition. Preserve the existing artwork, diagrams, objects, geometry, isometric composition, charcoal background, ivory serif headings, amber rules and teal accents. Change typography/text only, reflow and wrap English naturally in existing text areas to avoid clipping or tiny type. Use only English text; remove ALL Chinese glyphs. Preserve all numbers and facts specified below. Do not add a new illustration or reinterpret mechanics. Header \"RimLayers / VEHICLE COMPATIBILITY\". Main title \"Move the garage upstairs\". Remove redundant subtitle. Badge \"Steel Horizon 4.9.2\". Left heading \"Vehicle ramps\"; facts \"Widen with parallel 1×6 modules\"; \"Two-way traffic, queued access\". Center heading \"Vehicle lifts\"; facts \"9×9 clear vehicle area\"; \"Power loss pauses; power return resumes\". Right heading \"Cross-floor flight\"; facts \"Auto avoidance; manual collisions\"; \"Choose a floor when returning\". Bottom strip \"Original vehicles kept · No cloned crew or cargo · Save in transit\". Preserve one vehicle per ground diagram, exactly one lift cabin, supported landings, and helicopter flight around OUTSIDE edge of slab. Replace every Chinese concept-art footer with \"CONCEPT ILLUSTRATION · NOT GAMEPLAY\". Keep a wide 3:2 landscape card, target 1536×1024. No watermark, no new claims, no unrelated decorative text.",
+      "actual_size": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}

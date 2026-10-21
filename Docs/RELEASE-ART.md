@@ -20,7 +20,7 @@
 | [深层矿物与生态](Images/Release/11-deep-geology-ecology.png) | 深度预算、矿种倾向、熔岩与虫巢生命周期 | 1536 × 1024 |
 | [载具兼容](Images/Release/12-vehicle-compatibility.png) | 整车坡道、9×9 载具升降机与连续跨层飞行 | 1536 × 1024 |
 
-封面与卡片采用同一套深石墨底色、暖白标题、琥珀指引与青色设备强调，画面为手绘等距剖面。全部卡片已嵌入 [README](../README.md)；封面使用常规 `About/Preview.png` 位置。图片存放在 About / Docs 下，不加入游戏纹理加载目录。
+封面与卡片采用同一套深石墨底色、暖白标题、琥珀指引与青色设备强调，画面为手绘等距剖面。中文卡片已嵌入 [中文 README](../README.zh-CN.md)，英文卡片已嵌入 [English README](../README.md)；封面使用常规 `About/Preview.png` 位置。图片存放在 About / Docs 下，不加入游戏纹理加载目录。
 
 ## 使用与更新
 
@@ -35,3 +35,11 @@
 
 原封面生成提示要求 1536 方图，工具实际返回 1254 方图，采用返回原件；12 张卡片均为 1536 × 1024。未做裁切、重绘或后期图像编辑。
 
+
+## English edition · 2026-10-22
+
+The English [README](../README.md) uses a separately generated set of 13 localized illustrations: [cover](Images/Release/en/00-cover.png) and all 12 feature cards in `Images/Release/en/`. The original Chinese artwork, including `About/Preview.png`, remains unchanged and is used by [README.zh-CN.md](../README.zh-CN.md).
+
+Generated with the built-in `image_gen.imagegen` tool in text-localization edit mode, using each Chinese original as its edit target. The English set retains the original artwork, visual hierarchy and gameplay values. All 13 outputs were visually inspected for English text, costs, units, clipping and diagram consistency. The cover is 1254 × 1254; the cards are 1536 × 1024. No CLI, extra API key or post-generation image editing was used.
+
+Complete prompts, source-image roles and output paths: [imagegen-prompts.en.json](Release/imagegen-prompts.en.json).

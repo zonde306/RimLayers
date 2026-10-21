@@ -1,250 +1,256 @@
 # RimLayers
-## 向上建造，向下开拓
+## Build upward. Dig deeper.
 
-![RimLayers 封面概念图：地表与两个上层相连，地下延伸至 B2](About/Preview.png)
+English · [简体中文](README.zh-CN.md)
 
-把卧室搬到工坊楼上，把矿道开到殖民地下方。**RimLayers 为 RimWorld 1.7 带来同一张地图内的多层殖民地**：地表与按需增建的地上、地下楼层。默认允许地上、地下各 2 层，可在设置中调整。殖民者沿真实连接通行，继续搬运、取料、生产和战斗。
+![RimLayers concept cover: one connected colony with two upper floors and two underground levels](Docs/Images/Release/en/00-cover.png)
 
-**当前版本：0.1.5 开发候选 · 依赖：Harmony 3 · 语言：简体中文 / English**
+Move bedrooms above the workshop. Open a mine beneath the colony. **RimLayers adds a multi-floor colony to one RimWorld 1.7 Map**, with upper and underground floors created as you need them. The default is two floors above and two below the surface, adjustable in settings. Colonists follow real connections while hauling, gathering ingredients, producing goods and fighting.
 
-[开始建造](#开始建造) · [建筑与楼板](#建筑与楼板) · [物品吊篮](#物品吊篮) · [分层环境](#分层环境与地下生态) · [载具通行](#载具也能跨层) · [安装与存档](#安装与存档) · [兼容与验证](#兼容与验证)
+**Version: 0.1.5 development candidate · Requires: Harmony 3 · Languages: English / Simplified Chinese**
 
-## 一座殖民地，多层空间
+[Start building](#start-building) · [Buildings and floors](#buildings-and-floors) · [Cargo hoists](#cargo-hoists) · [Vehicles](#vehicles-across-floors) · [Environment](#layered-environments-and-underground-ecology) · [Installation and saves](#installation-and-saves) · [Compatibility](#compatibility-and-validation)
 
-- **往上盖，而不是另开一张地图。** 用楼梯和电梯连接楼层，在下层屋顶上铺结构楼板，把工坊、仓库和居住区分层安排。
-- **货物上楼，人不用跟着走。** 手动／电动物品吊篮让已有库存跨层取用，支持相邻两层和连续竖井；装入、升降和取出都需要时间。
-- **山体也有纵深。** 厚顶岩上方生成天然岩石楼面与独立矿脉；从山侧平台进入，或让矿工先挖通楼梯出口。
-- **往下挖，收益与风险一起增加。** 矿物按深度与地热分带，深处可能出现持续放热的熔岩；首次探索的有限虫巢与后续会扩张的普通虫灾各有生命周期。
-- **高低差进入战斗。** 支持跨层射击、原版射位 AI、炮台、护盾、曲射与三维爆炸。楼板、屋顶和墙体会真正挡住弹道。
-- **高层迎风，地下隔热。** 天气与灾害按实际暴露作用；开放通道传入热量和污染，关闭后残余污染仍会逐渐沉降。天然厚岩下的独立电网可抗太阳耀斑。
-- **载具沿真实通道上楼。** 可选钢铁地平线兼容提供整车坡道、载具升降机与三维飞行；驾驶员、乘员、货物和损伤保留原对象。
-- **有 Odyssey，还能造多层逆重飞船。** 多层甲板、乘员、货物与设施随同一艘船航行，普通平台与船体保持各自归属。
+## One colony, more room
 
-封面与下方卡片为 AI 生成的概念示意。游戏使用俯视切层显示；实机画面和各功能的运行记录见[兼容与验证](#兼容与验证)。
+- **Build up without opening another Map.** Connect floors with stairs and lifts. Lay structural floors over supported roofs, then separate workshops, storage and living quarters.
+- **Send goods upstairs without sending a hauler along.** Manual and electric cargo hoists share stored goods between adjacent floors or along a continuous shaft. Loading, travel and unloading all take time.
+- **Mountains have depth, too.** Natural rock floors and independent ore veins form above thick mountain roofs. Enter from a mountainside platform, or have miners clear a stair exit first.
+- **Dig deeper for different resources and risks.** Mineral distribution changes with depth and geothermal conditions. Deep magma pockets release heat; finite exploration hives and later expanding infestations have distinct lifecycles.
+- **Elevation matters in combat.** Cross-floor shooting supports native firing-position AI, turrets, shields, arcing projectiles and three-dimensional explosions. Floors, roofs and walls really block trajectories.
+- **Upper floors face the weather; underground rock buffers temperature.** Open passages carry heat and pollution. Closing them stops new input, while existing pollution settles gradually. An isolated grid entirely beneath thick natural rock can resist solar flares.
+- **Vehicles use real connections.** Optional Steel Horizon integration adds full-vehicle ramps, vehicle lifts and three-dimensional flight, preserving the original vehicle, crew, cargo and damage.
+- **With Odyssey, build multi-deck gravships.** Decks, passengers, goods and facilities travel together. Colony platforms and ships keep their own ownership.
 
-## 开始建造
+The cover and feature cards are AI-generated concept illustrations. Gameplay uses a top-down view with floor switching. Actual screenshots and run records are linked under [Compatibility and validation](#compatibility-and-validation). Supporting technical guides are primarily in Simplified Chinese; the settings guide also includes English.
 
-### 先搭一间楼上的房间
+## Start building
 
-1. **在下层完成屋顶。** 人工平台需要紧邻下层的有效人工屋顶或薄岩屋顶；先用墙或柱子把屋顶支撑好。
-2. 在“结构”中建造 **向上楼梯**。完工时只追加需要的上一层，并建立最小落脚平台；新地图不会一开始就生成所有空层。
-3. 按 **F8** 查看上层，选择 **结构楼板**，沿绿色可规划边界拖出蓝图。工人会从真实边缘逐步铺设，不必每建一圈重新下蓝图。
-4. 在有效楼面上正常建房、放家具和下达工作。需要跨层供电时，在相邻层同一位置分别建造 **垂直电力端子**。
-5. 想继续向上，在已有上层重复上述步骤。默认允许地表以上 2 层；需要更多楼层时，在“模组设置 → RimLayers → 楼层”中调整单图和全局额度。
+### Build your first upstairs room
 
-**F7 向下、F8 向上**；右侧 `− / +` 和 `Alt + ↑ / ↓` 也可切层，可在“选项 → 按键”中重绑。切换查看层不搬动殖民者，也不重新分派工作。普通点选和建造作用于当前查看层；有屋顶的下层室内不会被透视揭开。
+1. **Finish the roof below.** Artificial platforms need a valid constructed roof or thin rock roof directly underneath. Support that roof with walls or columns first.
+2. Under **Structure**, build **stairs up**. Completion creates only the next floor and a small landing. A new Map does not allocate every empty floor in advance.
+3. Press **F8** to view the upper floor. Select **structural floor** and drag blueprints along the green planning boundary. Workers build outward from a real edge; you do not need to redraw blueprints after each row.
+4. Build rooms, place furniture and assign work on the valid floor. To share power vertically, build a **vertical power terminal** at the same position on each of two adjacent floors.
+5. Repeat on an existing upper floor to keep building upward. The default allows two upper floors. For more, adjust the per-map and save-wide limits under **Mod settings → RimLayers → Floors**.
 
-手动换层默认播放 **320 毫秒俯视升降与淡入**，界面保持静止。连续按键直接更新目标；点击地图下令或操作相机会立即结束过渡。可在“模组设置 → RimLayers → 显示”关闭“换层过渡动画”，恢复瞬切。选中对象定位与自动相机跳转仍即时完成。
+**F7 moves the view down; F8 moves it up.** The right-side `− / +` controls and `Alt + ↑ / ↓` also switch floors. Rebind keys under **Options → Keyboard**. Changing the viewed floor does not move colonists or reassign work. Ordinary selection and building affect the floor you are viewing; roofed rooms below remain hidden.
 
-人工楼板下的屋顶必须持续有效；移除支撑可能引发坍塌。厚顶岩上方的天然楼面走[山体开挖流程](Docs/MOUNTAINS.md)，不能当普通楼板拆除。
+Manual floor changes use a **320 ms top-down rise/fall and fade** by default, while the interface stays still. Repeated keys update the destination. A map command or camera input ends the transition immediately. Turn off **Floor transition animation** under **Mod settings → RimLayers → Display** for instant switching. Locating a selected object and automatic camera jumps remain immediate.
 
-### 再开一条地下矿道
+The roof beneath an artificial floor must stay valid: removing support can cause a collapse. Natural floors above thick mountain roofs follow the [mountain excavation workflow](Docs/MOUNTAINS.md), rather than ordinary floor removal.
 
-在地表合法基底上建造 **向下楼梯** 或 **向下单层电梯**。如果出口有岩石，框架会显示“等待竖向开采”：启用殖民者的采矿工作，先挖通真实岩体，再由建筑工完工。到 B1 后可在地下上限内继续开挖；挖矿进度、产物和矿脉状态随存档保留。
+### Open your first underground passage
 
-**冰盖和海冰整图禁挖。** 水、冰、熔岩、桥面、基架及悬空位置不能作为入口，装修地板不能改变基底资格。地上楼层、太空与原生独立地下 / Pocket 地图不适用这套向下开挖。详见[地下层指南](Docs/UNDERGROUND.md)。
+Build **stairs down** or a **single-floor lift down** on valid surface ground. If rock blocks the exit, the frame shows **Waiting for vertical excavation (Mining work)**. Enable a colonist's Mining work: miners clear real rock before builders finish the connector. From B1, continue downward within the underground limit. Mining progress, products and vein state persist in saves.
 
-## 建筑与楼板
+**Excavation is disabled across ice-sheet and sea-ice Maps.** Water, ice, magma, bridges, foundations and unsupported air cannot be entrances. Decorative flooring does not change the underlying ground's eligibility. This excavation system does not apply from upper floors, in space, or on native independent underground / Pocket Maps. See the [underground guide](Docs/UNDERGROUND.md).
 
-便宜的日常通路先用楼梯；需要封闭连接和快速通行时用单层电梯；已有多层、需要贯通直达时再布置垂直电梯站。电梯不自动跨层并网，也不作为传气、换热或明火通道。
+## Buildings and floors
 
-基础玩法提供 **6 种通行与供电建筑、7 种吊篮构件及 2 种楼板**；可选载具兼容另有专用坡道、升降机与甲板，见[载具通行](#载具也能跨层)。下方先介绍通行、供电与楼板，储物运输见[物品吊篮](#物品吊篮)。卡片展示默认设置的材料、工时、耗电与楼层范围；修改倍率或扩层上限后，以游戏内当前定义为准。
+Start with stairs for inexpensive everyday access. Use single-floor lifts for enclosed, fast travel, and vertical lift stations for continuous multi-floor access. Lifts do not bridge power grids or transmit gas, heat or open flames.
 
-### 向上楼梯
+The base system provides **six access and power buildings, seven cargo-hoist components and two floor types**. Optional vehicle integration adds its own ramps, lifts and decks; see [Vehicles across floors](#vehicles-across-floors). Cards show default costs, research, power and floor limits. If you change multipliers or expansion limits, use the current in-game values.
 
-![向上楼梯：连接相邻层；人工平台先完成下层屋顶；开放梯口传气、换热与火焰；钢铁40、木材20](Docs/Images/Release/01-stairs-up.png)
+### Stairs up
 
-无需电力和研究。禁止殖民者使用楼梯不会封闭通道；关闭落脚门才封闭该通道。未牵引的放牧动物不能自行使用楼梯，牵引时可以通过。楼梯本身不导电。
+![Stairs up: adjacent-floor access, a completed roof below, open gas and heat passage; 40 steel and 20 wood](Docs/Images/Release/en/01-stairs-up.png)
 
-### 向下楼梯
+No power or research required. Forbidding stair use does not seal the passage; closing the landing door does. Unroped pen animals cannot use stairs independently, but can pass while being led. Stairs do not conduct electricity.
 
-![向下楼梯：逐层开挖至B2；矿工先挖通出口再完工；冰盖与海冰禁挖；钢铁40、木材20](Docs/Images/Release/02-stairs-down.png)
+### Stairs down
 
-从地表或 B1 向下开挖。出口未清理时材料留在框架中；拆掉入口不会删除已经生成的地下层，也不会刷新资源。
+![Stairs down: excavate one floor at a time, default limit B2, mine the exit before completion; 40 steel and 20 wood](Docs/Images/Release/en/02-stairs-down.png)
 
-### 单层电梯
+Excavate downward from the surface or an underground floor, within your configured limit. Materials remain in the frame until the exit is clear. Removing the entrance neither deletes generated underground floors nor refreshes their resources.
 
-![单层电梯：连接相邻层，按需创建上层；停电可应急；自动门研究、150W；钢铁80、零部件2](Docs/Images/Release/03-single-lift.png)
+### Single-floor lift
 
-需要建造技能 6。通电通行耗时 25 tick，断电应急为 180 tick；与楼梯一样只追加所需的上一层，连接建立后可双向通行。
+![Single-floor lift: adjacent-floor access and slow emergency access; Autodoors, 150 W, 80 steel and 2 components](Docs/Images/Release/en/03-single-lift.png)
 
-### 向下单层电梯
+Requires Construction 6. Travel takes **25 ticks with power**, or **180 ticks without power**. Like stairs up, it creates only the next floor when needed. Once connected, access is bidirectional.
 
-![向下单层电梯：向下开挖至B2；先挖通出口、断电可应急；自动门研究、150W；钢铁80、零部件2](Docs/Images/Release/04-single-lift-down.png)
+### Single-floor lift down
 
-需要建造技能 6。挖掘限制与向下楼梯相同，通行耗时与单层电梯相同；成品安装也不会免费清除出口岩石。
+![Single-floor lift down: mine the exit first, default depth limit B2; Autodoors, 150 W, 80 steel and 2 components](Docs/Images/Release/en/04-single-lift-down.png)
 
-### 垂直电梯站
+Requires Construction 6. Excavation restrictions match stairs down; travel times match the upward single-floor lift. Installing a finished lift does not clear rock at the exit for free.
 
-![垂直电梯站：各层同坐标建站、井道贯通；中间可不停靠、各站独立接电；自动门与微电子研究、每站300W；每站钢铁160、塑钢30、零部件4](Docs/Images/Release/05-vertical-lift.png)
+### Vertical lift station
 
-需要建造技能 6。在**已有楼层**逐层建站，不自动生成楼层或整条井道。中间构件可关闭“本站停靠”，但不能拆掉贯通构件。通电耗时为 `30 + 45 × 层差` tick，应急为 `90 + 120 × 层差` tick；不模拟共享轿厢调度。
+![Vertical lift stations: aligned continuous shaft, separate power at each station; 300 W, 160 steel, 30 plasteel and 4 components per station](Docs/Images/Release/en/05-vertical-lift.png)
 
-### 垂直电力端子
+Requires Construction 6, Autodoors and Microelectronics. Build aligned stations on existing floors, or select a completed station and use **Extend shaft upward** / **Excavate shaft downward** to open one adjacent floor at a time. Miners clear real rock at the exit and an adjacent construction position; builders then supply and complete a normally costed station blueprint. Until completion, an enabled source stop provides slow, bidirectional construction access: **210 ticks** at the default emergency-travel multiplier.
 
-![垂直电力端子：相邻层同位置、两端启用才并网；每层分别建造且需要有效楼面；每个钢铁10](Docs/Images/Release/06-power-riser.png)
+Upward and downward extensions can run from the same station. Canceling one direction leaves the other intact; mined rock and generated floors remain. See the [shaft guide](Docs/DECKS-AND-ELEVATORS.md#同一座地面站向上向下扩井) and [in-game shaft validation](Docs/SHAFT-VALIDATION.md).
 
-每层分别接入本层电网。关闭端子会同时切断竖向连接与该格本层输电；不要用楼梯或电梯代替它。
+Keep a component on every intervening floor. Disable a middle stop to retain a through-shaft without entry or exit; removing that component breaks the route. Each station needs its own power connection. Travel takes `30 + 45 × floor difference` ticks with power, or `90 + 120 × floor difference` ticks in emergency mode. Passenger lifts do not simulate shared-cabin scheduling.
 
-### 结构楼板
+### Vertical power terminal
 
-![结构楼板：紧邻下层屋顶须先完成并持续有效；从合法边缘连续施工；每格钢铁4](Docs/Images/Release/07-structural-floor.png)
+![Vertical power terminals: align on adjacent floors and enable both ends; 10 steel per terminal](Docs/Images/Release/en/06-power-riser.png)
 
-上面可以铺装修地板、摆放建筑。人工楼面的整个占地都要有合法支撑；屋顶的背景图像本身不是可走楼面。
+Connect each terminal to its own floor's grid. Turning one off breaks both its vertical connection and local power transmission through that cell. Terminals require valid floor support; stairs and lifts are not substitutes.
 
-### 飞船结构楼板 · Odyssey
+### Structural floor
 
-![飞船结构楼板：需要Odyssey与已有逆重引擎、下层屋顶支撑；全船共享承载量；每格逆重板材1、钢铁4](Docs/Images/Release/08-ship-structural-floor.png)
+![Structural floor: build over a completed, continuously supported roof and extend from a valid edge; 4 steel per cell](Docs/Images/Release/en/07-structural-floor.png)
 
-用于**已有引擎船体的上甲板**，可叠加装修。要在二、三层起造船底，先建普通结构平台，再铺原版逆重飞船基架并安装引擎；普通楼板不会自动变成飞船甲板。
+Supports decorative flooring and buildings. The entire footprint of an artificial floor needs valid support. A roof drawn in the background is not a walkable floor.
 
-## 物品吊篮
+### Ship structural floor · Odyssey
 
-**把钢铁存进一层吊篮，二层建筑工就能叫篮取料，不必亲自下楼。** 吊篮运送的是已经入篮的实物；篮中没有所需物品时，殖民者照常寻找其他来源，不会自动从远处采购装篮。
+![Ship structural floor: an existing grav engine, supported roof below and shared ship capacity; 1 gravlite panel and 4 steel per cell](Docs/Images/Release/en/08-ship-structural-floor.png)
 
-![物品吊篮：先搬入，再跨层取用；每条井道只有一只三堆容量的篮子，支持手动、电动、相邻两层及连续竖井](Docs/Images/Release/09-cargo-hoists.png)
+Use this for **upper decks of a ship with an existing engine**. Decorative flooring can go on top. To start a ship's bottom deck upstairs, first build an ordinary supported platform, then lay native gravship substructure and install an engine. Ordinary floors do not automatically become ship decks.
 
-### 三步开始跨层存取
+## Cargo hoists
 
-1. 在**已有楼层**的“家具”菜单选择 **相邻层吊篮** 或 **竖井吊篮**。相邻式可选手动／电动与向上／向下，主机完工时生成另一端；竖井式先建主机，再在紧邻层同坐标逐层建 **吊篮扩展站**。
-2. 在任一端的“储存”页设置筛选和优先级，再让搬运工把物品放入；也可优先命令搬运。所有端口共享筛选和 **3 个原版堆栈**的容量，默认储存优先级为“优先”。
-3. 做饭、制造、建筑供料和进食需要篮中物品时，殖民者到可达端口操作、等待、取出，再继续原任务。右键端口还可搬出、穿戴、装备或食用适用物品；“呼叫到本站”只叫篮，不补货。
+**Store steel in a ground-floor basket, then let an upstairs builder call it for materials.** Hoists move goods already loaded into their physical basket. If it lacks the required item, colonists look for another source normally; the hoist does not collect supplies from distant warehouses.
 
-| 组合 | 连接方式 | 默认建造材料 |
+![Cargo hoists: load, call and wait, then retrieve; one three-stack basket per shaft, with manual and electric variants](Docs/Images/Release/en/09-cargo-hoists.png)
+
+### Set up cross-floor storage in three steps
+
+1. On **existing floors**, open **Furniture → item hoists** or **cargo shafts**. Adjacent-floor hoists offer manual/electric and up/down variants; completing the main unit creates the other port. For a shaft, build the main unit, then add **cargo shaft stations** at the same coordinates on successive adjacent floors.
+2. Set filters and priority on any port's **Storage** tab, then let haulers fill the basket or prioritize hauling. All ports share filters and a capacity of **three vanilla stacks**. The default storage priority is **Preferred**.
+3. When cooking, crafting, construction or eating requires a stored item, the colonist operates a reachable port, waits, takes the item and resumes the original job. Right-click a port to haul out, wear, equip or eat suitable items. **Call basket here** moves the basket; it does not restock it.
+
+| Variant | Connection | Default materials |
 |---|---|---|
-| 手动物品吊篮 | 相邻两层，向上／向下 | 木材 40＋钢铁 30，包含两端 |
-| 电动物品吊篮 | 相邻两层，向上／向下 | 钢铁 90＋零部件 2，包含两端 |
-| 手动竖井吊篮 | 同坐标连续多层 | 主机木材 60＋钢铁 60 |
-| 电动竖井吊篮 | 同坐标连续多层 | 主机钢铁 140＋零部件 4 |
+| Manual item hoist | Two adjacent floors, up or down | Wood 40 + steel 30, including both ends |
+| Electric item hoist | Two adjacent floors, up or down | Steel 90 + components 2, including both ends |
+| Manual cargo shaft | Continuous aligned floors | Main unit: wood 60 + steel 60 |
+| Electric cargo shaft | Continuous aligned floors | Main unit: steel 140 + components 4 |
 
-竖井每层扩展站另需钢铁 30，增加站点不增加容量。每个端口占 **1×1**，旁边须有操作位置；只连接已有且有合法楼面的楼层，不创建楼层、不清除岩石。吊篮不运人，也不连通空气、热量或电网。
+Each shaft station costs another **30 steel**, without increasing capacity. Each port occupies **1×1**, with an adjacent interaction cell. Hoists connect only existing floors with valid support: they do not create floors or clear rock. They carry items, not people, and do not connect air, heat or power grids.
 
-**装入和取出各需 30 tick。** 跨越 d 层时，手动升降为 `180 × d` tick，请求者必须持续摇动；电动为 `30＋45 × d` tick，主机待机 30 W、运行 120 W，装卸仍由殖民者完成。篮子已在本站时没有升降耗时。手动需“复杂家具”研究，电动另需“电力”。
+**Loading and unloading each take 30 ticks.** For a distance of `d` floors, manual travel takes `180 × d` ticks and requires continuous cranking. Electric travel takes `30 + 45 × d` ticks; the main unit draws **30 W idle / 120 W running**, with colonists still handling loading and unloading. No travel time is needed when the basket is already docked. Manual variants require **Complex furniture**; electric variants also require **Electricity**.
 
-一条井道只有一只篮子，按先到先服务排队；存入预留容量，取出预留实际数量。手动中断保留机械位置，电动取消后完成当前行程；断电暂停升降，已停靠站点仍可装卸。检视栏显示位置、进度、排队及故障；拆主机前先卸空。
+Each shaft has one basket and a first-come, first-served queue. Deposits reserve capacity; withdrawals reserve actual quantities. Interrupted cranking preserves the mechanical position. Canceling electric use lets the current trip finish; power loss pauses travel, while a docked basket remains accessible. The inspect pane shows position, progress, queue and faults. Empty the basket before removing its main unit.
 
-[完整吊篮指南](Docs/CARGO.md) · [任务闭环、存读档与飞船保全验证](Docs/CARGO-VALIDATION.md)
+[Full cargo guide](Docs/CARGO.md) · [Job completion, save/load and gravship cargo validation](Docs/CARGO-VALIDATION.md)
 
-## 载具也能跨层
+## Vehicles across floors
 
-把货车驶上二层仓库，把直升机停到屋顶平台。可选兼容 **钢铁地平线（Steel Horizon）4.9.2**，正常启动自动识别，无需额外开关。加载顺序为 **Harmony → 钢铁地平线 → RimLayers**，车型包按自身依赖排序。
+Drive a truck into an upstairs warehouse or park a helicopter on the roof. Optional **Steel Horizon 4.9.2** integration is detected at startup, with no extra switch. Load **Harmony → Steel Horizon → RimLayers**, and place vehicle packs according to their own dependencies.
 
-![载具兼容：1×6 模块并排组成整车坡道，9×9 载具升降机停电暂停、来电续行；飞机自然跨层，返航可选择目标楼层](Docs/Images/Release/12-vehicle-compatibility.png)
+![Steel Horizon integration: widen ramps with 1×6 modules, use 9×9 vehicle lifts, and fly between floors](Docs/Images/Release/en/12-vehicle-compatibility.png)
 
-### 货车沿真实通道上楼
+### Ground vehicles use real connections
 
-- **坡道按车宽并排建。** 每模块宽 1 格、长 6 格，连接相邻一层；同起点、同方向的模块并排加宽，容纳整车。先准备有支撑的出口平台并清理净空；多层经平台转接，不纵向拼成长坡，也不在坡面掉头。
-- **升降机一次运一辆停稳的车。** 各层同坐标的 **9×9 净载车站点**组成完整竖井，各站接电。车辆完全进入并停稳后运输；相向车辆按通道预约排队。停电暂停，恢复供电续行，不采用人员电梯的断电应急通行。
-- **自动任务与 WASD 共用整车检查。** 自动驾驶沿框架自己的层内路径接续最终目标，手动驾驶可自然通过坡道，升降机使用“前往楼层”。自动运输不强制切镜头，手动跨层跟随所控车辆。
+- **Build ramps wide enough for the whole vehicle.** Each module is one cell wide and six cells long, connecting one adjacent floor. Place modules side by side with the same start and direction. Prepare a supported exit platform and clear overhead space first. Use intermediate landings for multiple floors; do not extend a ramp end to end or turn around on its slope.
+- **Lifts carry one stationary vehicle at a time.** Vertically aligned **9×9 clear vehicle areas** form a continuous shaft, with power at every station. A vehicle must be entirely inside and stopped before travel. Opposing traffic queues through corridor reservations. Power loss pauses the lift; power return resumes it. Vehicle lifts do not have passenger lifts' unpowered emergency travel.
+- **Automatic tasks and WASD share whole-vehicle checks.** Automatic driving uses the framework's local paths to continue toward the final destination. Manual driving can cross ramps naturally; use **Go to floor** for lifts. Automatic transfers do not force a camera change; manual travel follows the controlled vehicle.
 
-站点损坏或取消时优先返回合法出发站；没有合法出口就保留原车。先重建站点、清空整车占地，再从楼层面板恢复。运输保留车辆、乘员、货物、燃料和既有伤损；坡道、轿厢及飞行中的行程可保存重载。
+If a station is damaged or a trip canceled, the lift first tries a legal departure station. With no legal exit, it retains the original vehicle. Rebuild the station, clear the full footprint, then recover it from the floor panel. Transfers preserve the vehicle, passengers, goods, fuel and existing damage. Ramp, lift and flight journeys support saving and loading in transit.
 
-### 飞机按高度跨层，返航选定楼层
+### Aircraft cross floors by altitude
 
-- **沿用原生驾驶与起降。** 每层相隔 **3 米**，直升机、VTOL 和固定翼随爬升、下降自然跨层；高于最高已建楼层时不会自动扩层。固定翼保留前向动力学，需要足够的进近和转弯空间，不能按直升机悬停。
-- **整机检查三维净空。** 自动航路绕障，手动失误、动态障碍或失去动力可能造成实际伤损与坠毁；完整楼板、屋顶和墙体仍会挡住机体。
-- **可从上层离图，并指定楼层返航。** 选点与实际抵达都会复查整机落点和进出空域。落点失效时，原机留在框架持有状态，从世界载具命令或楼层面板“等待降落的载具”重新选点，不会静默改降地表。
+- **Keep native driving, takeoff and landing.** Floors are **3 metres apart**. Helicopters, VTOLs and fixed-wing aircraft cross them naturally while climbing or descending; flying above the highest built floor does not create another. Fixed-wing aircraft retain forward-flight dynamics and need approach and turning room; they cannot hover like helicopters.
+- **Clearance checks cover the whole aircraft in three dimensions.** Automatic routes avoid obstacles. Manual mistakes, changing obstacles or loss of power can cause real damage and crashes. Solid floors, roofs and walls still block aircraft.
+- **Leave from an upper floor and choose a return floor.** Both destination selection and arrival recheck the whole landing footprint and approach airspace. If the landing becomes invalid, the original aircraft stays held by the framework. Choose again through the world vehicle command or the floor panel's waiting-aircraft list; it will not silently divert to the surface.
 
-**已实测车型：** 地面 Bang Bus、BigBread；直升机 Mosquito、VTOL Toad、固定翼 Smuggler。VVE、VVE Tier 3 和 Technical Vehicles 的加载范围与各场景证据见[完整载具指南与实车验证](Docs/VEHICLES-IMPLEMENTATION.md)；其他旧版车型及专有组件需逐一确认。
+**Tested vehicles:** Bang Bus and BigBread on the ground; Mosquito helicopter, Toad VTOL and Smuggler fixed-wing aircraft. See the [vehicle guide and actual-vehicle validation](Docs/VEHICLES-IMPLEMENTATION.md) for VVE, VVE Tier 3 and Technical Vehicles load coverage and scenario evidence. Other older vehicles and proprietary components need individual checks.
 
-只启用**一套**载具框架。未来原版 Vehicle Framework 1.7 仍需按实际接口适配验证，不与钢铁地平线同时加载，也不承诺两套提供者的存档直接互换。未安装框架时，基础楼层照常工作，不显示载具专用设施。本次兼容不扩展水面航行、CE 跨层战斗或全面跨层武器弹道。
+Enable **one vehicle framework only**. Upstream Vehicle Framework 1.7 still needs adaptation and validation against its actual interfaces. Do not load it alongside Steel Horizon or assume saves can be exchanged between providers. Without a vehicle framework, base floors work normally and vehicle-only facilities remain hidden. This integration does not extend water travel, CE cross-floor combat or all cross-floor vehicle weapon trajectories.
 
-## 多层飞船怎么用
+## Multi-deck gravships
 
-需要 **Odyssey**。引擎可以位于任意甲板，驾驶台、推进器、延展器和油箱可跨层关联；各层基架共同消耗承载量，原版研究、燃料、冷却和设施上限继续生效。
+Requires **Odyssey**. The engine may sit on any deck. Piloting consoles, thrusters, extenders and fuel tanks can link across decks. Every deck's substructure counts toward the same ship capacity; native research, fuel, cooldown and facility limits still apply.
 
-- 可选择已有上层作为落点，船底落在选定层，引擎保留相对高度；**载荷最多跨 6 层甲板，最高点不能超过海拔 +9，新增层还须通过配额检查**。高层落点仍需合法下层屋顶支撑，起降通道必须净空，地下不能起降。
-- 船底可以覆盖普通停机坪，离开后还原平台及装修。相邻的船保持独立身份，普通建筑不因贴着船就自动归船。
-- **跨越起飞移动边界的建筑会在确认后销毁**，其真实容器内容与框架材料留岸；跨界区域应先拆分。
-- 旧通用甲板需在引擎上使用“转换旧甲板”预览并确认。原版逆重锚政策不变，**无锚强行起飞仍会放弃原地图**。
+- Choose an existing upper floor as the destination. The bottom deck lands there, preserving the engine's relative height. **A payload may span at most six decks, with its highest point at elevation +9 or below.** New floors must also fit the quota. Upper landings still need valid roof support directly below, with clear departure and arrival airspace. No underground takeoff or landing.
+- A bottom deck can cover an ordinary landing platform; departure restores that platform and its decorative floor. Adjacent ships remain separate, and nearby colony buildings do not automatically belong to a ship.
+- **Buildings crossing the departure boundary are destroyed after confirmation.** Their real container contents and frame materials remain ashore. Split boundary-crossing areas before departure.
+- For old generic decks, use the engine's **Convert legacy decks** preview and confirm. Native grav-anchor rules remain: **forcing departure without an anchor still abandons the original Map**.
 
-详细操作见[飞船与普通楼层共存](Docs/SHIP-COLONY-COEXISTENCE.md)及[多层飞船与电梯](Docs/DECKS-AND-ELEVATORS.md)。
+See [ships and colony floors](Docs/SHIP-COLONY-COEXISTENCE.md) and [multi-deck ships and lifts](Docs/DECKS-AND-ELEVATORS.md).
 
-## 战斗与环境要记住的事
+## Combat and open passages
 
-选中射手并进入原版攻击模式，再切到目标楼层。楼板、屋顶和墙会影响射线；能看见下层背景不代表能射穿它。人物与炮台使用跨层射击解，普通近战仍限同层。迫击炮即使攻击同层目标，也会检查上方空间。具体射程、掩体和灾害规则见[三维战斗指南](Docs/COMBAT-3D.md)。
+Select a shooter, enter the native attack mode, then switch to the target floor. Floors, roofs and walls affect the firing line: seeing a lower-floor background does not mean you can shoot through it. Pawns and turrets use cross-floor firing solutions; ordinary melee remains on the same floor. Mortars check overhead clearance even against same-floor targets. See the [3D combat guide](Docs/COMBAT-3D.md) for range, cover and hazard rules.
 
-跳跃背包和蝗虫装甲可通过原版“跳跃”命令跨层：进入选点后切到目标层。可沿平台边缘上下跳，但不能穿过天花板、楼板、飞船甲板或地表进入地下；高度差计入射程。详见[跳跃背包指南](Docs/JUMP-PACK.md)与[游戏验收](Docs/JUMP-VALIDATION.md)。
+Jump packs and locust armor use the native **Jump** command: enter targeting, then switch to the destination floor. You can jump around platform edges, but not through ceilings, floors, ship decks or the surface into the underground. Height differences count toward range. See the [jump-pack guide](Docs/JUMP-PACK.md) and [in-game validation](Docs/JUMP-VALIDATION.md).
 
-完整楼板阻气，开放井口与楼梯通道按各自授权传气、换热、传声和蔓延火焰。天空暴露按整列楼板与屋顶判断；人工灯光当前限同层。地下边缘不是世界出口，天空投送不会落到地下。
+Solid floors block gas. Open shafts and stair passages transmit gas, heat, sound and flames according to each connection's permissions. Sky exposure considers the full column of floors and roofs; artificial lighting currently stays on its own floor. Underground edges are not world exits, and sky deliveries do not land underground.
 
-## 分层环境与地下生态
+## Layered environments and underground ecology
 
-把需要稳定温度的工坊搬入岩层，把迎风平台留给露天设施；竖井既是便利通路，也会把热量和污染带入地下。
+Put temperature-sensitive workshops in the rock and leave exposed platforms for outdoor facilities. A shaft is convenient access, but can also bring heat and pollution underground.
 
-**新档默认启用；旧档在“模组设置 → RimLayers → 环境与生态”手动启用。** 数值全局共用，启用状态随存档保存。运行参数在下次相应更新生效；矿物、熔岩与初始虫巢的生成参数只影响新层，不重刷已探索资源。
+**Enabled by default in new saves. For existing saves, enable it under Mod settings → RimLayers → Environment & ecology.** Values are global; the enabled state is saved per game. Running parameters apply at the next relevant update. Mineral, magma and initial-hive generation settings affect new floors only, without refreshing explored resources.
 
-### 高层迎风，地下缓冲温差
+### Weather above, buffered temperatures below
 
-![分层环境：露天高层更受风暴影响，地下岩温缓冲外界变化，开放通道传入热量和污染，天然厚岩下的独立电网可抗太阳耀斑](Docs/Images/Release/10-layered-environment.png)
+![Layered environments: exposed upper platforms, underground temperature buffering, gradual pollution transfer and isolated solar-flare-resistant power](Docs/Images/Release/en/10-layered-environment.png)
 
-- **地下不再恒定 15°C。** 新层岩温以当地年均温为基础，默认每深一层增加 0.25°C，之后缓慢追随外界变化。机器、火灾和熔岩仍会使洞室积热，需要安排散热与通风。
-- **遮蔽按真实位置判断。** 楼板与屋顶挡住直接降水，雷击优先接触同列最高暴露承托面；龙卷风风柱作用于地上暴露区域，地下免受直接风伤。
-- **关门停止输入，残余不会立刻清空。** 雾、毒尘与火山灰等按房间浓度传播和沉降；移动看当前位置，射击精度与浓雾射程看三维射线经过的区域。洪水与熔岩流只能沿本层或开放液体通道向下传播。
-- **抗耀斑要隔离整张电网。** 默认只有所有接通节点都受天然厚岩屏蔽的电网可运行；接入一个暴露节点，全网仍受干扰。断开并完成电网重建后恢复屏蔽。人工楼板不能代替厚岩，EMP 与其他停电仍照常生效。
+- **Underground temperature is no longer a fixed 15°C.** A new floor starts from the local annual mean, plus **0.25°C per depth level** by default, then slowly follows outside changes. Machinery, fires and magma still heat caves; plan cooling and ventilation.
+- **Shelter depends on the actual position.** Floors and roofs block direct precipitation. Lightning first contacts the highest exposed supporting surface in its column. Tornadoes affect exposed above-ground areas; underground areas avoid direct wind damage.
+- **Closing a passage stops new input, not existing pollution.** Fog, toxic dust and volcanic ash spread and settle according to room concentration. Movement uses local conditions; accuracy and dense-fog range use the areas crossed by the three-dimensional firing line. Floodwater and lava flows move on the same floor or downward through open liquid passages.
+- **Solar-flare protection requires an isolated grid.** By default, every connected node must be shielded by thick natural rock. A single exposed node leaves the whole grid affected. Disconnect it and let the power grid rebuild to restore shielding. Artificial floors cannot replace thick rock; EMP and other outages still apply.
 
-### 深挖获得不同资源，也要应对地热与虫巢
+### Deeper resources, geothermal heat and insect hives
 
-![深层矿物与生态：B1、B5、B9 的默认矿簇预算为1倍、1.2倍、1.4倍；深层稀有矿权重增加，机械遗存减少；普通地区B6、火山地区B3起生成局部熔岩；探索巢保留有限虫群](Docs/Images/Release/11-deep-geology-ecology.png)
+![Deep geology: B1/B5/B9 ore cluster budgets of 1×/1.2×/1.4×, local magma from B6 or volcanic B3, and finite exploration hives](Docs/Images/Release/en/11-deep-geology-ecology.png)
 
-- **矿带有深度倾向。** 金、铀、塑钢的相对生成权重随深度上升，机械遗存减少；相邻层矿带可偏移、分叉，不复制上一层矿格。深度加成作用于矿簇预算，每格原生产量不变，稀有矿不设每层保底。
-- **熔岩是局部热源。** 默认普通地区 B6、火山地区 B3 起生成，带冷却岩岸和承顶岩柱；深熔岩不可通行，浅熔岩会烧伤并可冷却。地热富集使用同层已有矿物预算。
-- **探索巢与后续虫灾分开。** 初始探索巢有有限虫群，不持续产虫或扩巢；后续普通虫灾保留原生频率、威胁点数与全图巢数上限。低温、高温和照明影响选址，活虫仍可沿真实通道追击。
+- **Mineral bands favour different resources with depth.** Gold, uranium and plasteel gain relative generation weight; machine remnants become less common. Related seams may shift and branch rather than copy the ore cells above. Depth bonuses change the ore-cluster budget, not yield per mined cell. Rare ores are not guaranteed on every floor.
+- **Magma is a local heat source.** By default, it can appear from **B6 in ordinary regions** or **B3 in volcanic regions**, with cooling rock shores and load-bearing rock pillars. Deep magma is impassable; shallow magma burns and can cool. Geothermal enrichment uses the floor's existing mineral budget.
+- **Exploration hives differ from later infestations.** Initial hives contain finite insects and do not continually spawn or expand. Later normal infestations retain native frequency, threat points and map-wide hive limits. Temperature and lighting influence placement; live insects can pursue colonists through real connections.
 
-**默认地下上限仍为 B2。** 想继续深挖，先在“楼层”页提高地下上限，并留足全局额度；已生成层不会因修改生成参数而补矿或补熔岩。
+**The default underground limit is still B2.** To dig deeper, raise it on the **Floors** page and leave enough save-wide quota. Changing generation settings does not add ore or magma to existing floors.
 
-[完整环境、矿物、熔岩与虫灾说明](Docs/ENVIRONMENT-IMPLEMENTATION.md) · [B9 实机画面](Docs/Images/Environment/magma-odyssey.png) · [固定种子矿物统计](Docs/Validation/Environment/mineral-distribution-alldlc.json)
+[Environment, minerals, magma and infestations](Docs/ENVIRONMENT-IMPLEMENTATION.md) · [Actual B9 screenshot](Docs/Images/Environment/magma-odyssey.png) · [Fixed-seed mineral statistics](Docs/Validation/Environment/mineral-distribution-alldlc.json)
 
-## 设置与异常恢复
+## Settings and recovery
 
-从“模组设置 → RimLayers”打开 **显示、楼层、玩法、地下生成、兼容与恢复、环境与生态** 六页。设置全局共用；界面标明即时生效、重启生效和仅新生成层生效的项目。
+**Mod settings → RimLayers** has six pages: **Display, Floors, Gameplay, Underground, Recovery, and Environment & ecology**. Settings are global; the interface identifies options that apply immediately, require restart or affect newly generated floors only.
 
-单图上、下限默认各 2，全局额外楼层默认 20；例如上、下限各 5 可容纳地表加上下共 11 层。降低上限不删除旧层，也不阻断已有通行。空层仍占配额，只有地图真正移除才释放。
+The default per-map limits are **two upper and two underground floors**, with **20 extra floors across the save**. For example, five above and five below allow eleven floors including the surface. Lowering a limit preserves existing floors and access. Empty floors still consume quota; removing a Map releases its allocation.
 
-遇到异常空域实体时，默认先寻找下落承托，再安全复位；没有合法落点就暂存原对象。打开“兼容与恢复 → 待恢复列表”定位、重试或指定合法落点。兼容恢复不附加伤害，正常坍塌仍按每层 8 点钝伤结算。来源地图已移除时，恢复到其他地图需要明确确认。
+For entities in invalid airspace, automatic recovery first looks for support below, then attempts safe relocation. With no legal destination, the original object stays in suspended storage. Open **Recovery → Pending recovery** to locate it, retry or select a valid position. Compatibility recovery adds no damage; normal collapse still deals **8 blunt damage per fallen floor**. Recovery to another Map requires explicit confirmation if the original Map has been removed.
 
-[完整设置与恢复说明 / English guide](Docs/SETTINGS.md)。超出旧版 ±2 范围的楼层存档不能回退旧版 DLL 读取。
+See the [full settings and recovery guide, including English](Docs/SETTINGS.md). Saves containing floors beyond the old **±2** limits cannot be loaded with an older RimLayers DLL.
 
-## 安装与存档
+## Installation and saves
 
-1. 使用 **RimWorld 1.7**。加载顺序为 **Harmony → RimLayers**，使用匹配 1.7 的 **Harmony 3**；基础楼层玩法不要求 DLC，飞船功能需要 Odyssey。 启用载具兼容时，将载具框架排在 RimLayers 之前。
-2. 本地安装时将完整 mod 文件夹放到 `RimWorld/Mods/RimLayers/`，在模组列表启用后重启游戏。当前核对基准为 **1.7.4984 rev1242 / Waylith / .NET 10**。
-3. 旧地图可在首次建成连接器后按需扩层，不会仅因读档就自动增加楼层。**先备份原存档，首次使用后另存新槽。**
-4. **使用了楼层的存档持续依赖 RimLayers，不能安全移除。** 更新 DLL 后必须重启游戏，Def 热重载不能替代重启。
+1. Use **RimWorld 1.7** and its matching **Harmony 3**, loading **Harmony → RimLayers**. The basic floor system needs no DLC; gravships require Odyssey. For vehicle integration, load the vehicle framework before RimLayers.
+2. For local installation, put the complete mod folder in `RimWorld/Mods/RimLayers/`, enable it in the mod list and restart. The documented development baseline is **1.7.4984 rev1242 / Waylith / .NET 10**.
+3. Existing Maps can expand when you complete their first connector; loading alone does not add floors. **Back up the original save, then save to a new slot after first use.**
+4. **Saves using floors continue to require RimLayers; it cannot safely be removed.** Restart after updating the DLL. Def hot reload does not replace a restart.
 
-建议地表尺寸不超过 **250 × 250**。首次追加楼层会暂停片刻，地图越大耗时越高；长期大型殖民地与大型战斗的性能仍需更多验证。
+Recommended surface size: **250 × 250 or smaller**. Creating a floor causes a brief pause that grows with map size. Long-term performance in large colonies and major battles needs further validation.
 
-## 兼容与验证
+## Compatibility and validation
 
-- **不要同时启用 IsoRim ProjectZ 或 Baal.SecondFloor。** 它们与本 mod 的楼层实现冲突，元数据已声明互斥。
-- **可选兼容 Vanilla Gravship Expanded Chapter 1 / 2。** 装有 VGE 时将 RimLayers 排在两章之后；保留 VGE 单活动引擎、燃料管网及干扰规则。不装 VGE 仍支持原生多船。范围与验证见 [VGE 兼容](Docs/VGE-COMPATIBILITY.md)。
-- **钢铁地平线 4.9.2 的可选载具兼容已实车验证。** 使用范围与框架限制见[载具通行](#载具也能跨层)。
-- **CE、其他飞船框架、非投射物特殊 Verb 及其他自定义战斗 / 地质框架需要单独适配。**
-- 原生独立地下地图与 PocketMap 不自动扩层。普通 NPC / 太空地图也不自动扩层；合法入站飞船准备和主动建成连接器按各自规则处理。
-- 已有 Core 与全五 DLC 的独立场景记录，覆盖跨层工作、保存重载、结构、山体、地下、战斗及原生飞船；具体组合和结果以各验收文档为准。
+- **Do not combine with IsoRim ProjectZ or Baal.SecondFloor.** Their floor implementations conflict with RimLayers and are declared incompatible in metadata. Metadata also excludes **As Above, So Below 2** (`astryl.AsAboveSoBelow2`).
+- **Optional Vanilla Gravship Expanded Chapter 1 / 2 integration.** Load RimLayers after both chapters. VGE retains its single-active-engine, fuel-network and interference rules. Native multiple ships still work without VGE. See [VGE compatibility](Docs/VGE-COMPATIBILITY.md).
+- **Optional Steel Horizon 4.9.2 integration has actual-vehicle validation.** See [Vehicles across floors](#vehicles-across-floors) for scope and framework restrictions.
+- **CE, other ship frameworks, special non-projectile Verbs, and custom combat or geology frameworks need separate adaptation.**
+- Native independent underground Maps and PocketMaps do not auto-expand. Ordinary NPC and space Maps do not auto-expand either; valid incoming-ship preparation and deliberately completed connectors follow their own rules.
+- Existing isolated scenarios cover Core and all five DLCs, including cross-floor work, save/load, structures, mountains, underground, combat and native gravships. Consult each validation document for the tested combination and result.
 
-实机画面与运行证据：
+Actual screenshots and run records:
 
-- [分层气候、耀斑隔离、矿物批次、熔岩及虫灾](Docs/ENVIRONMENT-IMPLEMENTATION.md)
-- [载具坡道、电梯、飞行与恢复](Docs/VEHICLES-IMPLEMENTATION.md)
-- [地下 B1/B2、竖向开采与存档](Docs/UNDERGROUND-VALIDATION.md)
-- [山体入口、独立矿脉与旧层迁移](Docs/MOUNTAINS.md)
-- [射击、炮台、爆炸与跨层灾害](Docs/COMBAT-3D.md) · [真实袭击与投掷](Docs/RAID-COMBAT-VALIDATION.md)
-- [吊篮存取、排队、重启读档与飞船货物保全](Docs/CARGO-VALIDATION.md)
-- [飞船停靠高度与普通平台共存](Docs/SHIP-COLONY-VALIDATION.md)
-- [换层过渡、输入回归与性能记录](Docs/TRANSITION-VALIDATION.md)
-- [俯视切层的实际显示](Docs/DISPLAY-VALIDATION.md) · [跨层连续施工与旧档](Docs/USABILITY-VALIDATION.md)
+- [Layered climate, solar-flare isolation, mineral batches, magma and insects](Docs/ENVIRONMENT-IMPLEMENTATION.md)
+- [Vehicle ramps, lifts, flight and recovery](Docs/VEHICLES-IMPLEMENTATION.md)
+- [B1/B2, vertical excavation and saves](Docs/UNDERGROUND-VALIDATION.md)
+- [Mountain entrances, independent veins and older-floor migration](Docs/MOUNTAINS.md)
+- [Shooting, turrets, explosions and cross-floor hazards](Docs/COMBAT-3D.md) · [Real raids and throwing](Docs/RAID-COMBAT-VALIDATION.md)
+- [Hoist storage, queuing, restart/load and ship cargo preservation](Docs/CARGO-VALIDATION.md)
+- [Ship landing heights and ordinary platforms](Docs/SHIP-COLONY-VALIDATION.md)
+- [Bidirectional lift-shaft construction](Docs/SHAFT-VALIDATION.md)
+- [Floor transitions, input regression and performance records](Docs/TRANSITION-VALIDATION.md)
+- [Actual top-down floor display](Docs/DISPLAY-VALIDATION.md) · [Continuous cross-floor construction and older saves](Docs/USABILITY-VALIDATION.md)
 
-### 报告问题
+### Report a problem
 
-请附上游戏版本、RimLayers 版本、启用的 mod 列表、复现步骤，以及问题发生后的 `Player.log`。跨层问题请说明出发层、目标层和连接器类型；存档问题请保留出问题前的存档。
+Include the game version, RimLayers version, enabled mod list, reproduction steps and `Player.log` from after the problem. For cross-floor issues, name the source floor, destination floor and connector type. For save issues, keep a save from before the failure.
 
-Windows 日志位置：`%USERPROFILE%/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log`。
+Windows log location: `%USERPROFILE%/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log`.
 
-## 开发、素材与许可
+## Development, artwork and licensing
 
-- 包标识：`rimlayers.core`；程序集：`RimLayers`；编译目标：`net10.0`。
-- [开发记录、构建命令与历史验证入口](Docs/DEVELOPMENT.md) · [设计计划](Docs/PLAN.md) · [实施记录](Docs/WORK-LOG.md)
-- [封面、卡片与完整生图提示词](Docs/RELEASE-ART.md)
-- [第三方许可声明](ThirdPartyNotices.md)：部分生成适配基于 MIT ProjectZ，保留其许可和归属；这不构成对 ProjectZ 的运行依赖。
-
+- Package ID: `rimlayers.core` · Assembly: `RimLayers` · Target: `net10.0`.
+- [Development notes, build commands and historical validation](Docs/DEVELOPMENT.md) · [Design plan](Docs/PLAN.md) · [Work log](Docs/WORK-LOG.md)
+- [Original artwork and prompts](Docs/RELEASE-ART.md) · [English artwork and complete generation prompts](Docs/Release/imagegen-prompts.en.json)
+- [License: GNU GPL v3](LICENSE). [Third-party notices](ThirdPartyNotices.md): some generation adaptations are based on MIT-licensed ProjectZ, retaining its license and attribution. ProjectZ is not a runtime dependency.
