@@ -840,3 +840,12 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 在隔离的 250×250、20 名工作殖民者、全 DLC 场景复现秒级停顿。坍塌与恢复队列已空，热点实际是搬运工作验证为拒绝容器反复完整寻路。StorageQueries.cs 改为先执行原生接受、阵营、禁用、预订与可达性检查，再计算分层路径分数；保留优先级、等分顺序、吊篮端口成本及同步评分不可用时的旧哨兵分数，无存档格式改动。
 
 最终连锁场景 27 项、原卡顿检查点重放 22 项通过；二楼和三楼共 128 格各结算一次，两个原始银堆身份和数量不变。同一坏档塌后 P99 从 2010.783 ms 降至 13.308 ms，重铺后 5.984 ms。吊篮生成/重载 22/20，飞船生成/落地/落地重载返航 62/35/15 通过，errors=[]；飞船旧夹具按现有物品落地与真实自然地板规则修正，未改生产规则。Release 0 警告/0 错误，本地 DLL 已更新，需完全重启游戏。详细证据、原始失败和复现命令见 [COLLAPSE-STUTTER-FIX.md](COLLAPSE-STUTTER-FIX.md)。
+## 2026-10-23：Dubs Mint Minimap 兼容
+
+用户报告 minimap 被拉长、失去定位作用并伴随警告。静态核对两端后确认：minimap 把 `Map.Size`/`Map.AllCells` 当作整图，而分层地图的 `Map.Size.z` 是存储高度（120×120 三层为 408），因此纹理按 120×408 分配、宽高比 3.4:1、所有标记被 `LerpDoubleClamped` 夹到带边。所谓“警告”其实是每帧异常：minimap 的 `Section.TryUpdate` 前缀用 `cellIndices.CellToIndex(cell)` 写 `dirtyGirls`，该数组只在 null 时按 `AllCells` 重建，扩层后仍为 14400 项，新带 z=136 的索引为 16320，越界抛出；原版 `Section.TryUpdate` 只对 `Regenerate()` 有 try/catch，不含 Prefix，`Refresh=true` 永远执行不到，于是每帧复现直到关闭小地图。
+
+新增 Compatibility/DubsMinimapCompatibility.cs，按 packageId 条件启用，不改 minimap 程序集、`Map.Size` 或存档。核心是线程作用域翻译：仅在 minimap 自身调用栈内把 `Map.Size`/`AllCells`/`Area`/`Thing.DrawPos`/`CameraDriver.rootPos`/`cellIndices.CellToIndex` 读成当前查看层的本地坐标，`procCell` 单点回译到存储坐标，其余原生网格查询不受影响；`Harmony_TryUpdate.Prefix` 只放行完全落在查看层内的 section；相机位置与两个 `JumpToCurrentMapLoc` 重载分别减/加层偏移；检测到查看层变化后强制 `UpdateMapTex` 重建；`RL_OpenAir`/`RL_Isolation` 因 `dontRender` 采到缺失纹理洋红，改为返回扁平中性色。
+
+两处 Harmony 陷阱：静态目标上 `__instance` 绑定 null 实例（改位置绑定 `__0`）；同一补丁类内的两个重载参数名不同会抛 `Parameter "cell" not found`，且因发生在 `RimLayersMod` 构造函数里连带整个 mod 实例化失败，必须拆成独立补丁类。
+
+新增 Diagnostics/V1Minimap.cs 与 `Run-V1.ps1 -Scenario minimap -Minimap`。最终 v1-minimap-20261023-053834 为 16 项断言通过、failures=0、errors=[]；截图确认 120×120 正方形小地图、暗色中性空域、相机框居中跟随当前层。回归 `-Scenario navigation` generate 12 / load 4 通过，确认未装 minimap 时兼容层完全惰性。Release 0 警告 / 0 错误。详细证据与限制见 [MINIMAP-COMPATIBILITY.md](MINIMAP-COMPATIBILITY.md)。
