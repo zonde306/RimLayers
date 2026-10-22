@@ -93,16 +93,20 @@ internal static partial class V1Integration
         if(!report.Accepted)throw new InvalidOperationException("Fixture must obey native landing rules: "+report.Reason);
         designator.DesignateSingleCell(choose);
         Check("existing-map-native-designator-commits-marker-and-rotation",marker.Spawned&&marker.Map==map&&marker.Position==shipLandingRoot&&marker.GravshipRotation==Rot4.East);
-        ShipLayers.TryData(layerShip,out var payload);var local=PrefabUtility.GetAdjustedLocalPosition(payload.floors.First().local,Rot4.East);
+        ShipLayers.TryData(layerShip,out var payload);var local=PrefabUtility.GetAdjustedLocalPosition(payload.floors.First(f=>f.local.y>0).local,Rot4.East);
         var blocked=owner.ToStorage(new LayerCell(local.y,shipLandingRoot.x+local.x,shipLandingRoot.z+local.z));
-        var blocker=GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Steel),blocked,map);
+        // Loose items are allowed by the current landing contract; use a real upper-floor building.
+        var blocker=GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Wall,ThingDefOf.Steel),blocked,map);
         Check("existing-map-upper-collision-rejected-before-cargo-spawn",!ShipLanding.Check(layerShip,shipLandingRoot,map).Accepted&&!shipPawn.Spawned);
         marker.BeginLanding(Find.GravshipController);
         Check("existing-map-blocked-confirm-preserves-marker",marker.Spawned&&!WorldComponent_GravshipController.CutsceneInProgress);
         blocker.Destroy(DestroyMode.Vanish);
         var geology=owner.Mountains.Snapshot();var blockedGeology=geology.Copy();blockedGeology.Floors.Add(blocked);owner.Mountains.Restore(blockedGeology);
+        // A natural-floor fact needs its actual solid terrain, not an open-air cell.
+        var previousTerrain=map.terrainGrid.TerrainAt(blocked);
+        map.terrainGrid.SetTerrain(blocked,DefDatabase<ThingDef>.GetNamed("Granite").building.naturalTerrain);
         Check("natural-mountain-floor-rejects-landing-even-with-no-rock-or-roof",!ShipLanding.Check(layerShip,shipLandingRoot,map).Accepted&&!shipPawn.Spawned);
-        owner.Mountains.Restore(geology);
+        owner.Mountains.Restore(geology);map.terrainGrid.SetTerrain(blocked,previousTerrain);
         marker.BeginLanding(Find.GravshipController);
         AccessTools.Field(typeof(WorldComponent_GravshipController),"landingMarker").SetValue(Find.GravshipController,null);
         shipPhase=2;

@@ -3,7 +3,7 @@ param(
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
-    [ValidateSet("environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
+    [ValidateSet("collapse-perf","environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed")][string]$Scenario = "navigation",
     [switch]$CheckPure,
     [switch]$TemperatureCore,
     [ValidateSet("travel","handling","queue")][string]$CargoCheckpoint="travel",
@@ -30,6 +30,7 @@ param(
     [switch]$AllDlc,
     [int]$RaidSeed=17,
     [string]$RaidAuditSave,
+    [string]$CollapseReplaySave,
     [ValidateRange(120,325)][int]$MapSize=120,
     [ValidateRange(1,120)][int]$PawnCount=20,
     [ValidateRange(2,3)][int]$Layers=3,
@@ -94,7 +95,12 @@ if($Scenario -eq 'combat-raid-audit') {
     $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
     Copy-Item -LiteralPath $RaidAuditSave -Destination (Join-Path $saves 'RimLayers_V1RaidEnd.rws')
 }
-$modes = if($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('environment','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
+if($CollapseReplaySave){
+    if($Scenario -ne 'collapse-perf' -or -not (Test-Path -LiteralPath $CollapseReplaySave -PathType Leaf)){throw 'CollapseReplaySave requires collapse-perf and an existing checkpoint'}
+    $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
+    Copy-Item -LiteralPath $CollapseReplaySave -Destination (Join-Path $saves 'RimLayers_CollapsePerf.rws')
+}
+$modes = if($CollapseReplaySave){@('load')} elseif($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('environment','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
 foreach ($mode in $modes) {
     if($mode -eq 'legacy-load'){
         # Mutate only this run's own checkpoint, never a player save.
@@ -144,6 +150,12 @@ foreach ($mode in $modes) {
         # This is the exact child process launched above, never an existing player session.
         $process.Kill()
         throw ("Timed out in " + $mode + "; inspect " + $runRoot)
+    }
+    if($Scenario -eq 'collapse-perf'){
+        $playerLog='C:/Users/zonre/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log'
+        if((Test-Path -LiteralPath $playerLog) -and [IO.File]::ReadAllText($playerLog).Contains($runRoot)){
+            Copy-Item -LiteralPath $playerLog -Destination (Join-Path $runRoot ($mode+'-Player.log'))
+        }
     }
     Write-Output ($mode + " exit code: " + $process.ExitCode)
     $resultPath = Join-Path $runRoot ($mode + '-' + $Scenario + '-results.json')

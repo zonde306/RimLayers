@@ -38,7 +38,14 @@ internal static partial class V1Integration
         Check("cargo-empty-does-not-invent-stock",empty==null);
         cargoSteel=ThingMaker.MakeThing(ThingDefOf.Steel);cargoSteel.stackCount=20;GenSpawn.Spawn(cargoSteel,At(0,55,54),map);
         var job=HaulAIUtility.HaulToStorageJob(pawn,cargoSteel,false);
-        Check("cargo-native-storage-selects-basket-for-hauling",job?.def==JobDefOf.HaulToContainer&&job.targetB.Thing==cargoMain);
+        string storageDetail=job?.ToString()??"null";
+        if(job?.def!=JobDefOf.HaulToContainer||job.targetB.Thing!=cargoMain)
+        {
+            bool selected=StoreUtility.TryFindBestBetterNonSlotGroupStorageFor(cargoSteel,pawn,map,StoragePriority.Unstored,Faction.OfPlayer,out var dest);
+            using var probe=map.pathFinder.FindPathNow(cargoSteel.Position,cargoMain.Position,TraverseParms.For(pawn),null,PathEndMode.ClosestTouch);
+            storageDetail+=$"; selected={selected}/{dest}; pawn={pawn.Position}; enabled={cargoMain.HaulDestinationEnabled}; accepts={cargoMain.Accepts(cargoSteel)}; priority={cargoMain.GetStoreSettings().Priority}; faction={cargoMain.Faction}; forbidden={cargoMain.IsForbidden(pawn)}; reserve={pawn.CanReserveNew(cargoMain)}; reach={map.reachability.CanReach(cargoSteel.Position,cargoMain,PathEndMode.ClosestTouch,TraverseParms.For(pawn))}; path={probe.Found}; destinations={map.haulDestinationManager.AllHaulDestinationsListInPriorityOrder.Count}";
+        }
+        Check("cargo-native-storage-selects-basket-for-hauling",job?.def==JobDefOf.HaulToContainer&&job.targetB.Thing==cargoMain,storageDetail);
         if(job==null){Finish();return;}
         pawn.jobs.TryTakeOrderedJob(job);
         cargoPhase=0;stage=530;ticks=0;cargoSaved=false;

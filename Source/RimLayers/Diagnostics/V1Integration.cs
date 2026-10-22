@@ -65,7 +65,7 @@ internal static partial class V1Integration
         if (GenCommandLine.TryGetCommandLineArg("rimlayersmode", out var value)) mode = value;
         if (mode != "generate" && mode != "load") throw new ArgumentException("Invalid V1 test mode.");
         if (GenCommandLine.TryGetCommandLineArg("rimlayerscase", out var testCase)) scenario = testCase;
-        if (scenario != "environment" && scenario != "environment-geology" && scenario != "environment-perf" && scenario != "vehicle-flight" && scenario != "vehicle-ramp" && scenario != "vehicle-lift" && scenario != "vehicle-ground" && scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
+        if (scenario != "collapse-perf" && scenario != "environment" && scenario != "environment-geology" && scenario != "environment-perf" && scenario != "vehicle-flight" && scenario != "vehicle-ramp" && scenario != "vehicle-lift" && scenario != "vehicle-ground" && scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed") throw new ArgumentException("Invalid V1 scenario.");
         Directory.CreateDirectory(directory);
         var h = new Harmony("rimlayers.core.v1test");
         if(scenario=="mountains")
@@ -73,6 +73,7 @@ internal static partial class V1Integration
             h.Patch(AccessTools.Method(typeof(RimLayers.Mountains.JobDriver_VerticalMine),"ResetDelay"),postfix:new HarmonyMethod(typeof(V1Integration),nameof(ObserveMountainPickDelay)));
             h.Patch(AccessTools.Method(typeof(RimLayers.Mountains.JobDriver_VerticalMine),"MakeNewToils"),postfix:new HarmonyMethod(typeof(V1Integration),nameof(ObserveMountainWorkTicks)));
         }
+        if(scenario=="collapse-perf")ConfigureCollapsePerf(h);
         if(scenario=="jump")ConfigureJumps(h); if(scenario=="gravship")ConfigureGravship(h);
         if(scenario=="ship-coexistence")ConfigureShipCoexistence(h);
         if(scenario=="reachability")ConfigureReachability(h);
@@ -138,7 +139,7 @@ internal static partial class V1Integration
 
     private static void Setup()
     {
-        Find.GameInitData.mapSize = scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:120;
+        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:120;
         foreach (var tile in Find.WorldGrid.Tiles)
             if (tile.PrimaryBiome == BiomeDefOf.TemperateForest && tile.hilliness == Hilliness.Flat &&
                 RimWorld.Planet.TileFinder.IsValidTileForNewSettlement(tile.tile))
@@ -223,6 +224,7 @@ internal static partial class V1Integration
                     else if (scenario == "work-save") { RestoreBill(); }
                     else if (scenario == "work-container") { RestoreContainer(); }
                     else if (scenario == "skyfall") { RestoreSkyfall(); }
+                    else if (scenario == "collapse-perf") { RestoreCollapsePerf(); }
                     else if (scenario == "structure") { RestoreStructure(); }
                     else if(scenario is "combat-shield-save" or "combat-shield-pass") { RestoreShieldBoundary(); }
                     else if(scenario=="combat-shot") { RestoreCombatShot(); }
@@ -256,9 +258,11 @@ internal static partial class V1Integration
                 if (!finished)
                 {
                     long stamp=(scenario=="scale"&&scaleSampling||scenario=="underground"&&undergroundPhase==5)?System.Diagnostics.Stopwatch.GetTimestamp():0;
+                    if(scenario=="collapse-perf")CollapsePerfBeforeTick();
                     if(scenario=="environment-perf")EnvironmentPerfBeforeTick();
                     if(scenario=="settings-perf")SettingsPerfBeforeTick();
                     Find.TickManager.DoSingleTick();
+                    if(scenario=="collapse-perf")CollapsePerfAfterTick();
                     if(scenario=="environment-perf")EnvironmentPerfAfterTick();
                     if(scenario=="settings-perf")SettingsPerfAfterTick();
                     if(stamp!=0){if(scenario=="underground")undergroundTickMs.Add(ScaleMilliseconds(stamp));else scaleTickMs.Add(ScaleMilliseconds(stamp));}
@@ -362,6 +366,7 @@ internal static partial class V1Integration
         if (scenario is "work" or "work-save" or "work-hunger") { BeginBill(); return; }
         if (scenario == "skyfall-shuttle") { BeginShuttleFall(); return; }
         if (scenario == "skyfall") { BeginSkyfall(); return; }
+        if (scenario == "collapse-perf") { BeginCollapsePerf(); return; }
         if (scenario == "structure") { BeginStructure(); return; }
         if (scenario == "combat-geometry") { CheckCombatGeometry(); return; }
         if(scenario=="combat-shot") { BeginCombatShot(); return; }
@@ -403,6 +408,7 @@ internal static partial class V1Integration
 
     private static void Step()
     {
+        if(stage==562){CollapsePerfStep();return;}
         if(stage==560){EnvironmentStep();return;}
         if(stage==561){EnvironmentPerfStep();return;}
         if(stage==554){VehicleFlightStep();return;}
@@ -922,6 +928,7 @@ internal static partial class V1Integration
             "work-container"=>"RimLayers_V1Container",
             "work-save"=>"RimLayers_V1Work",
             "navigation-maze"=>"RimLayers_V1Maze",
+            "collapse-perf"=>"RimLayers_CollapsePerf",
             "structure"=>"RimLayers_V1Structure",
             "combat-shot"=>"RimLayers_V1Combat",
             "combat-grenade"=>"RimLayers_V1Grenade",
