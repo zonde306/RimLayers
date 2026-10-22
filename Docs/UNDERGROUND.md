@@ -28,6 +28,12 @@ F7/F8 和面板按真实高度切层。地下层显示 B1、B2……（中文为
 
 地下天然石面可以平滑、装修，不能拆成空域。原版采矿留下的 RoughHewn 石面同样是合法岩石基底。普通开采不会挖穿楼板；天然厚岩顶仍按原版承顶与塌顶机制处理。
 
+## 深钻与地质扫描仪
+
+地面穿透扫描仪和深钻只允许建在**地表层和已开挖的地下层**；地上楼层（含飞船甲板）会被拒绝并提示 `RL_DeepResourceGroundOnly`。地下层天然带厚岩顶，因此在那里放开原版"扫描仪不能有屋顶"的限制；地表层仍要求露天，冰盖/海冰/太空等无基岩生物群系照旧不可用。
+
+扫描结果只写进扫描仪自己那一层：候选区是该层经 10 格内缩的矩形，矿簇形状、矿种权重、簇大小和信件沿用原版。深钻读的也是本层那一格，21 格径向取样不会读到相邻层的隔离带。深钻资源覆盖网格按当前查看层过滤，切层后不会把地下矿画到上层楼板上。
+
 ## 岩层、洞穴与虫族
 
 地下保留在同一张 Map 内。连续岩层、石面和厚岩顶采用原生地下规则；石种使用 RockNoises 与 RocksFromGrid 的选择机制，洞穴调用原生 MapGenCavesUtility.Dig 闭合洞穴算法，矿种和矿簇调用原生选择及形状助手。矿量以单层逻辑面积计算，读取 Underground_RocksFromGrid 的配置及适用难度倍率，不把整张扩容地图当作一个大矿区。
@@ -59,6 +65,8 @@ F7/F8 和面板按真实高度切层。地下层显示 B1、B2……（中文为
 ```powershell
 pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario underground
 pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario underground -AllDlc -BootstrapLift -MapSize 250 -TimeoutSeconds 300
+pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario deep-resources -TimeoutSeconds 300
+pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario deep-resources -AllDlc -TimeoutSeconds 400
 ```
 
 有效记录和实际验收结果见 [地下验收](UNDERGROUND-VALIDATION.md)。

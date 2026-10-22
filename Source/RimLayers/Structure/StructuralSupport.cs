@@ -56,6 +56,9 @@ public sealed class StructuralSupport
 
     public AcceptanceReport Validate(BuildableDef buildable, IntVec3 center, Rot4 rotation, bool planning = false)
     {
+        // Deep drills and ground-penetrating scanners read the cell's own band, so an upper floor
+        // would bury resources under a floor that has no substrate at all.
+        if (Compatibility.DeepResourceScope.PlacementReport(buildable, center, owner.map) is { } deepResource) return deepResource;
         if(RimLayers.Vehicles.VehicleFacilitySpace.IsConnector(buildable))
         {
             var report=RimLayers.Vehicles.VehicleFacilitySpace.Validate(owner,(ThingDef)buildable,center,rotation);

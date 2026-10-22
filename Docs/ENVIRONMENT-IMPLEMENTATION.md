@@ -80,6 +80,17 @@
 
 地下 Mineable 不另登记成重复深钻资源。统计记录预算、实际矿簇数、矿石格数、预计产出与价值；权重不是产量倍数。
 
+## 深钻与地质扫描仪按层隔离
+
+`map.deepResourceGrid` 是一张按存储格索引的扁平网格。原版辅助方法只知道 `Map.Size`，在扩容地图上会跨存储带取样，因此由 `Compatibility/DeepResourceScope` 补齐四处的层语义：
+
+- **放置**：深钻与地面穿透扫描仪只允许建在地表层和已开挖的地下层；上层（含飞船甲板）返回 `RL_DeepResourceGroundOnly`。校验接在 `StructuralSupport.Validate`，因此蓝图、框架完工、安装和直接生成走同一条路径。
+- **扫描目标区**：`CompDeepScanner.DoFind` 被替换为按层版本，候选矩形是该扫描仪所在带经 `ContractedBy(10)` 的结果，矿簇中心与形状都限定在该带内；矿种权重、簇大小、信件与校验规则与原版一致。
+- **钻探取样**：`DeepDrillUtility.GetNextResource` 的 21 格径向取样投影到钻机自己那一层，不会在隔离带只有 1 格宽时读到上一层或下一层。
+- **覆盖层**：深钻资源覆盖网格改用按查看层过滤的自有 `CellBoolDrawer`；原版整图网格会把地下矿画到上层楼板上。
+
+屋顶规则只在地表层保持：地面穿透扫描仪仍需露天，地下层天然带厚岩顶，因此在那里放开 `CannotUseScannerRoofed`，`Alert_CannotBeUsedRoofed` 同步过滤。无基岩生物群系（冰盖、海冰、太空）仍按原版拒绝。非 RimLayers 地图完全沿用原版行为。
+
 ## 熔岩与虫巢
 
 普通地区默认 B6、火山地区 B3 起，覆盖率从 0.5% 起逐层翻倍，封顶 4%；局部核心目标 24–96 格，配冷却岸与承顶岩柱。出口及必要施工列保留至少 8 格保护距离。天然深熔岩持续存在，不自行启动全图熔岩流。
@@ -108,6 +119,7 @@
 - Core 地质与参数边界：`Tests/Artifacts/v1-environment-geology-20261022-014025`，242 项通过，包括未知矿物中性权重、禁用矿物、单矿种全零、价值上限、0／0.5／2× 矿簇与熔岩开关、入口保护、无 Odyssey 原生冷却。
 - Core 环境：`Tests/Artifacts/v1-environment-20261022-014228`，生成 133、重载 13、旧档模拟 13 项通过，包含龙卷风精确位置与原生消散计时。
 - 全 DLC 地质：`Tests/Artifacts/v1-environment-geology-20261022-013325`，229 项通过；矿石实际实体计数与生成统计一致，B6 起熔岩、覆盖率及掩码正确。
+- 深钻与地质扫描仪按层隔离：Core `Tests/Artifacts/v1-deep-resources-20261023-025450`（生成 51、重载 12 项）与全 DLC `Tests/Artifacts/v1-deep-resources-20261023-025849`（生成 51、重载 12 项）均通过。覆盖三层图（地表／上层／B1）的上层拒绝、地面露天规则回归、地下层放置与 `CanUseNow`、地表与地下各自的扫描矩形不重叠、98 格实际写入全在扫描仪所在带、上层矿格数不变、原生 `DoFind` 路由、钻井 21 格取样不越带、地表与地下钻机各自消耗本层储量且互不影响、覆盖层随查看层切换，以及读档后上述状态与可用性保持。
 - 默认性能：`Tests/Artifacts/v1-environment-perf-20261022-013445/environment-performance.json`。250×250 五层、20 名原生殖民者，600 tick 预热，ABBA 四组各 1200 tick。关闭／启用均值 **0.9390／0.7894 ms/tick**，此批次未测出超过 5% 的回退。该测量为晴天模拟 CPU，不含生成与渲染，不表示所有事件负载均更快。
 
 完整可分发结果： [原生环境与存读档](Validation/Environment/alldlc-generate.json)、[矿物完整批次](Validation/Environment/mineral-distribution-alldlc.json)、[原始 tick 样本](Validation/Environment/tick-performance.json)。原始隔离存档与日志仍保留在对应 Tests/Artifacts 运行目录。

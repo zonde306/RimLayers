@@ -42,7 +42,7 @@ internal static class GenerateMapPatch
     {
         GenCommandLine.TryGetCommandLineArg("rimlayerscase",out string scenario);
         if(scenario=="vehicle-ground"&&GenCommandLine.CommandLineArgPassed("rimlayersvehicleflat"))return false;
-        return !scenario.StartsWith("environment")&&scenario is not ("stairs-bootstrap" or "incremental" or "mountains" or "underground" or "shaft-extension");
+        return !scenario.StartsWith("environment")&&scenario is not ("stairs-bootstrap" or "incremental" or "mountains" or "underground" or "shaft-extension" or "deep-resources");
     }
 
     static Exception? Finalizer(Exception? __exception, GenerationScope? __state)
