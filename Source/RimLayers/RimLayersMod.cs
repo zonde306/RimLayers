@@ -20,6 +20,9 @@ public sealed class RimLayersMod : Mod
         Settings=GetSettings<RimLayersSettings>();
         LongEventHandler.ExecuteWhenFinished(SettingsDefinitions.Apply);
         var harmony = new Harmony(HarmonyId);
+        // Optional-adapter registration must run before the patch loop: their Prepare() gates
+        // depend on the detected state this sets up.
+        Compatibility.VVRaceCompatibility.Install();
         int patchClasses=0;
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())
             if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length != 0)

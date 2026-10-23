@@ -79,14 +79,26 @@ internal static partial class V1Integration
         map.snowGrid.SetDepth(expansionSample,.3f);if(map.sandGrid!=null)map.sandGrid.SetDepth(expansionSample,.4f);
         map.gasGrid.AddGas(expansionSample,GasType.BlindSmoke,110);if(ModsConfig.BiotechActive)map.pollutionGrid.SetPolluted(expansionSample,true);
         map.deepResourceGrid.SetAt(expansionSample,ThingDefOf.Steel,912);
+        // If VVRace is active, give the ground band real mana before the map grows, so the prefix
+        // checks below can prove the values moved with the map instead of being re-created empty.
+        var mana=ManaBuffers();
+        if(mana!=null)
+        {
+            var type=mana.Value.Component.GetType();
+            var change=AccessTools.Method(type,"ChangeEnvironmentMana",new[]{typeof(IntVec3),typeof(float)})!;
+            var apply=AccessTools.Method(type,"ApplyDirtyReservedMana")!;
+            change.Invoke(mana.Value.Component,new object[]{new IntVec3(33,0,30),250f});
+            change.Invoke(mana.Value.Component,new object[]{new IntVec3(64,0,24),120f});
+            apply.Invoke(mana.Value.Component,null);
+            Check("vvrace-fixture-seeded-real-ground-mana",ReadNativeFloats(mana.Value.Buffers[1]).Any(v=>v>0f));
+        }
         map.fogGrid.Refog(new CellRect(4,4,3,3));
         expansionJob=JobMaker.MakeJob(JobDefOf.Goto,expansionGoal);pawn.jobs.TryTakeOrderedJob(expansionJob);
         Check("fixture-has-a-real-active-job-and-reservation",pawn.CurJob==expansionJob&&pawn.Reserve(expansionStack,expansionJob));
         expansionPhase=0;stage=340;ticks=0;
     }
 
-    private static List<GridPrefix> ExpansionPrefixes()
-    {
+    private static List<GridPrefix> ExpansionPrefixes()    {
         var fields=new List<GridPrefix>();
         foreach(var (obj,names) in new (object,string[])[]{(map.terrainGrid,new[]{"topGrid","underGrid","tempGrid","foundationGrid","colorGrid"}),
             (map.roofGrid,new[]{"roofGrid"}),(map.gasGrid,new[]{"gasDensity"}),(map.deepResourceGrid,new[]{"countGrid","defGrid"}),
@@ -101,6 +113,50 @@ internal static partial class V1Integration
         int height=p.Values.Length/a.GetLength(0); // Native groupGrid is x/y/z; height expansion changes its stride.
         return Enumerable.Range(0,a.GetLength(0)).All(x=>Enumerable.Range(0,height).All(z=>Equals(a.GetValue(x,0,z),p.Values[x*height+z])));
     });
+    // VVRace keeps three private NativeArray<float> per-cell buffers (reserve, authoritative, scratch).
+    // Reading them as prefix snapshots lets the expansion checks prove the ground band survived and
+    // the appended storage bands came up empty, without depending on VVRace's own field names elsewhere.
+    private static (object Component, object[] Buffers)? ManaBuffers()
+    {
+        if(!RimLayers.Compatibility.VVRaceCompatibility.Active)return null;
+        var type=AccessTools.TypeByName("VVRace.ManaMapComponent");
+        if(type==null||map.GetComponent(type) is not {} component)return null;
+        var buffers=new string[]{"_manaReserveGrid","_manaGrid","_tmpGrid"}
+            .Select(name=>AccessTools.Field(type,name)!.GetValue(component)!).ToArray();
+        return (component,buffers);
+    }
+    private static float[] ReadNativeFloats(object buffer)
+    {
+        int length=(int)buffer.GetType().GetProperty("Length",typeof(int))!.GetValue(buffer)!;
+        var indexer=buffer.GetType().GetProperty("Item",new[]{typeof(int)})!;
+        var values=new float[length];
+        for(int i=0;i<length;i++)values[i]=(float)indexer.GetValue(buffer,new object[]{i})!;
+        return values;
+    }
+    private static void CheckManaBuffersAfterExpansion((object Component,object[] Buffers)? before,int oldCount,float[] manaBaseline)
+    {
+        if(before==null)return;
+        var after=ManaBuffers();
+        Check("vvrace-mana-buffers-follow-expansion",after!=null&&after.Value.Component==before.Value.Component&&
+            after.Value.Buffers.Length==3&&after.Value.Buffers.All(b=>ReadNativeFloats(b).Length==map.cellIndices.NumGridCells),
+            $"cells={map.cellIndices.NumGridCells}, old={oldCount}");
+        if(after==null)return;
+        // Settle folds reserve mana into the authoritative grid, so the baseline must be taken after
+        // that step: what has to survive the move is the settled authoritative content, not the raw
+        // pre-settle values.
+        var reserveAfter=ReadNativeFloats(after.Value.Buffers[0]);
+        var manaAfter=ReadNativeFloats(after.Value.Buffers[1]);
+        Check("vvrace-mana-reserve-is-settled-and-empty",reserveAfter.All(v=>v==0f));
+        Check("vvrace-mana-authoritative-prefix-is-preserved",
+            manaBaseline.Length>=oldCount&&Enumerable.Range(0,oldCount).All(i=>manaAfter[i]==manaBaseline[i]),
+            $"baselineLen={manaBaseline.Length}, old={oldCount}, baselineSum={manaBaseline.Sum()}");
+        Check("vvrace-mana-appended-bands-start-empty",
+            !Enumerable.Range(oldCount,reserveAfter.Length-oldCount).Any(i=>reserveAfter[i]!=0f||manaAfter[i]!=0f));
+        var isolation=map.GetComponent<LayerMapComponent>()!.Layout!;
+        Check("vvrace-isolation-rows-never-draw-mana",
+            Enumerable.Range(0,isolation.StorageHeight).Where(z=>z%isolation.Stride>=isolation.Height)
+                .All(z=>Enumerable.Range(0,isolation.Width).All(x=>manaAfter[z*isolation.Width+x]==0f)));
+    }
     private static void ExpansionStep()
     {
         if(expansionPhase==0)
@@ -108,6 +164,7 @@ internal static partial class V1Integration
             if(ticks<10)return;
             var originalMap=map;var oldThings=map.listerThings.AllThings.ToArray();var counts=oldThings.ToDictionary(t=>t,t=>t.stackCount);
             var prefix=ExpansionPrefixes();int count=map.cellIndices.NumGridCells;
+            var manaBefore=ManaBuffers();
             var fog=Enumerable.Range(0,count).Select(map.fogGrid.IsFogged).ToArray();
             var snow=Enumerable.Range(0,count).Select(i=>map.snowGrid.GetDepth(map.cellIndices.IndexToCell(i))).ToArray();
             var sand=Enumerable.Range(0,count).Select(i=>map.sandGrid?.GetDepth(map.cellIndices.IndexToCell(i))??0).ToArray();
@@ -121,6 +178,9 @@ internal static partial class V1Integration
             Check("rollback-preserves-active-job-driver-path-and-reservation",pawn.CurJob==expansionJob&&pawn.jobs.curDriver==originalDriver&&pawn.pather.Moving&&pawn.pather.Destination==target&&map.reservationManager.ReservedBy(expansionStack,pawn,expansionJob));
             var result=LiveMapExpansion.EnsureLayerCount(map,2);owner=LayerMapComponent.For(map)??throw new InvalidOperationException("Expanded map has no layer layout.");
             Check("first-append-allocates-only-second-floor",owner.Layout!.LayerCount==2);
+            // Settle already ran inside that transaction, so this is the settled authoritative content
+            // that the two later appends must carry forward unchanged.
+            var manaSettled=ManaBuffers() is {} m?ReadNativeFloats(m.Buffers[1]):Array.Empty<float>();
             var originalLayout=owner.Layout;var twoSize=map.Size;
             var sample=At(1,26,26);map.roofGrid.SetRoof(new IntVec3(26,0,26),RoofDefOf.RoofConstructed);
             map.terrainGrid.SetTerrain(sample,RimLayersDefOf.RL_StructuralFloor);
@@ -146,6 +206,7 @@ internal static partial class V1Integration
             var lit=map.glowGrid.VisualGlowAt(new IntVec3(65,0,25));map.glowGrid.DeregisterCustomGlower(expansionLight);map.glowGrid.GlowGridUpdate_First();
             var unlit=map.glowGrid.VisualGlowAt(new IntVec3(65,0,25));Check("custom-native-light-handle-remains-valid-after-resize",lit.b>unlit.b,$"before={lit},after={unlit}");
             Check("appended-space-and-isolation-are-unwalkable-with-valid-grid-capacity",!owner!.Structure.HasSurface(At(1,10,10))&&map.terrainGrid.TerrainAt(new IntVec3(10,0,expansionOldSize.z))==RimLayersDefOf.RL_Isolation);
+            CheckManaBuffersAfterExpansion(manaBefore,count,manaSettled);
             expansionPhase=1;ticks=0;return;
         }
         if(expansionPhase==1)

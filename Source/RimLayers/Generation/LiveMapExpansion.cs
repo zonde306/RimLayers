@@ -167,10 +167,18 @@ internal static class LiveMapExpansion
         for(int index=0;index<roots.Count;index++)
         {
             var root=roots[index];if(!seen.Add(root))continue;
+            // A registered third-party component must settle in-flight work (jobs, pending writes)
+            // while its current allocations are still the live ones.
+            RimLayers.Compatibility.LayerCellBufferCompatibility.Prepare(root);
             foreach(var f in AllFields(root.GetType()))
             {
                 if(p.Has(root,f))continue;
                 var value=f.GetValue(root);
+                // NativeArray<T> is a struct, so it must not be filtered out by a value-type test;
+                // TryGrow itself verifies the field is a declared NativeArray<T> of the exact size.
+                bool nativeDeclared=value!=null&&
+                    RimLayers.Compatibility.LayerCellBufferCompatibility.TryGrow(p,root,f,value,oldCount,newCount);
+                if(nativeDeclared)continue;
                 if(value is Array array&&array.Rank==1&&array.Length==oldCount)p.GrowArray(root,f,array,newCount);
                 else if(value is CellIndices ci&&ci.SizeX==oldSize.x&&ci.SizeZ==oldSize.z)p.Set(root,f,new CellIndices(full.x,full.z));
                 else if(value is BoolGrid or ByteGrid or IntGrid or CellGrid or CellBoolDrawer)roots.Add(value);

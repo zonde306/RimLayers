@@ -59,7 +59,9 @@ namespace RimLayers.Generation
                 {
                     foreach (FieldInfo f in t.GetFields(Inst | BindingFlags.DeclaredOnly))
                     {
-                        if (f.FieldType.IsValueType)
+                        // NativeArray<T> is a struct, so a blanket value-type skip would hide exactly the
+                        // per-cell buffers a mod can declare. Keep skipping plain scalars only.
+                        if (f.FieldType.IsValueType && !f.FieldType.IsGenericType)
                         {
                             continue;
                         }
@@ -86,6 +88,27 @@ namespace RimLayers.Generation
                             f.SetValue(root, full);
                             fixedCount++;
                             Log.Message($"resized {t.Name}.{f.Name} ({arr.GetType().Name}[{groundCells}]) to the full map");
+                        }
+                        // A NativeArray a mod declared through LayerCellBufferCompatibility (e.g. VVRace's mana
+                        // buffers): same prefix rule, but the element type is only known at runtime.
+                        else if (v != null &&
+                                 RimLayers.Compatibility.LayerCellBufferCompatibility.IsDeclared(root.GetType(), f, v, groundCells, out Type native))
+                        {
+                            f.SetValue(root, RimLayers.Compatibility.LayerCellBufferCompatibility.Reallocate(native, v, map.cellIndices.NumGridCells));
+                            if (v is IDisposable released) released.Dispose();
+                            fixedCount++;
+                            Log.Message($"resized {t.Name}.{f.Name} ({native.Name}[{groundCells}]) to the full map");
+                        }
+                        // Generation cannot roll back, so an unrecognised native per-cell buffer is reported
+                        // instead of silently staying ground-sized (which would be an unchecked out-of-range
+                        // write as soon as anything addresses an appended band).
+                        else if (v != null &&
+                                 v.GetType().Namespace?.StartsWith("Unity.Collections", StringComparison.Ordinal) == true &&
+                                 v.GetType().GetProperty("Length")?.GetValue(v) is int nativeLength &&
+                                 nativeLength >= groundCells && nativeLength <= groundCells + 63)
+                        {
+                            Log.Warning($"[RimLayers] Unresized native per-cell buffer {t.Name}.{f.Name} ({v.GetType().Name}, {nativeLength} cells). " +
+                                        "Declare it through LayerCellBufferCompatibility.RegisterNativeCellBuffer so it grows with the map.");
                         }
                     }
                 }

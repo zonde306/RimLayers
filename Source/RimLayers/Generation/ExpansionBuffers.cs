@@ -51,6 +51,19 @@ internal sealed class ExpansionBuffers
         NativeArray<T>.Copy(old,next,oldCount);Set(owner,field,next);
         releaseOld.Add(()=>old.Dispose());releaseNew.Add(()=>next.Dispose());
     }
+    /// <summary>
+    /// Registers a prepared native replacement for a declared per-cell buffer, so it joins the same
+    /// transaction as the native grids: the old allocation survives validation and is released on
+    /// commit, or the new one is released on rollback. Reallocation itself lives in
+    /// <see cref="RimLayers.Compatibility.LayerCellBufferCompatibility.Reallocate"/> and needs the
+    /// field to be declared first, because only the owning mod knows the index convention.
+    /// </summary>
+    internal void AdoptNative(object owner,FieldInfo field,object old,object next)
+    {
+        Set(owner,field,next);
+        if(old is IDisposable previous)releaseOld.Add(previous.Dispose);
+        if(next is IDisposable created)releaseNew.Add(created.Dispose);
+    }
     internal void GrowBits(object owner,string name,int oldCount,int newCount,bool unsafeBits=false)
     {
         var field=AccessTools.Field(owner.GetType(),name);

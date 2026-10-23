@@ -28,6 +28,7 @@ param(
     [switch]$Space,
     [switch]$ExistingMap,
     [switch]$Har,
+    [switch]$VVRace,
     [switch]$AllDlc,
     [int]$RaidSeed=17,
     [string]$RaidAuditSave,
@@ -65,6 +66,8 @@ if($GuiPerf){$active+='wowgag.guiperformancepatch'}
 if($Minimap){$active+='dubwise.dubsmintminimap'}
 if($FacialAnimation){$active+=@('nals.facialanimation','nals.facialanimationexperimentals')}
 if($Har){$active+='erdelf.humanoidalienraces'}
+# VVRace keeps per-cell NativeArray buffers; used to verify LayerCellBufferCompatibility.
+if($VVRace){$active+=@('gguake.race.vivi','gguake.apparelbodyresolver')}
 if($Nanami){$active += 'shimakaze.nanami.startrail'}
 if($PlayerMods){
     [xml]$playerConfig = Get-Content -LiteralPath 'C:/Users/zonre/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Config/ModsConfig.xml' -Raw

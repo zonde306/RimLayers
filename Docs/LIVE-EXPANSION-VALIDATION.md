@@ -48,7 +48,23 @@
 
 太空航行验证了真实核心、上层 Pawn/物品/墙灯、容器衣物、工作台 Bills、区域及楼梯，原有目的地物品/资源/MapID 不丢失；密闭上层舱室在原版恢复提交点的温度和真空数值与装船记录一致。之后正常模拟造成的温度变化不当作搬运损坏。太空显示沿用原版轨道背景，不绘制地表薄雾。
 
-扩容调用的原始耗时与字段清单分别在各自的 `expansion-buffers.json`。250×267 太空样本为 1288.1 ms；这是一次扩容调用耗时，不是帧率或持续 TPS。长期大规模任务及第三方自定义原生网格仍需针对性验证。
+扩容调用的原始耗时与字段清单分别在各自的 `expansion-buffers.json`。250×267 太空样本为 1288.1 ms；这是一次扩容调用耗时，不是帧率或持续 TPS。长期大规模任务仍需针对性验证。
+
+## 第三方自定义原生网格（VVRace）
+
+原实现遇到未登记的 `NativeArray` 逐格缓冲会抛 `NotSupportedException` 并整体回滚，因此任何在 `MapComponent` 里持有原生逐格数组的 mod 都会让楼梯扩容失败。VVRace（`gguake.race.vivi`）的 `ManaMapComponent._manaReserveGrid` / `_manaGrid` / `_tmpGrid` 就是这种情况。
+
+登记入口是 `Compatibility/LayerCellBufferCompatibility`：
+
+- `RegisterNativeCellBuffer(type, modName, params string[] fields)` 声明哪些 `NativeArray<T>` 字段按 `CellIndices` 寻址（`index = z * width + x`）。扩容只追加坐标行，「地面部分是前缀」成立，所以复制前缀、新增行清零即可。
+- 索引约定无法靠反射判断：`(index = x * height + z)` 的 x-major 缓冲（如原生河流流场）不是前缀，必须由属主自行重映射。所以未登记的缓冲仍然安全拒绝，不猜测。
+- `RegisterBeforeResize(type, hook)` 在字段被替换前于主线程、事务内回调一次。VVRace 用它结束仍在读写旧分配的扩散 Job 并把预留魔素折算进主网格，保证移动无损。
+
+登记必须发生在其他 mod 程序集加载之后。`Mod` 构造函数里 `AccessTools.TypeByName` 看不到其它 mod 的类型，因此适配器由 `[StaticConstructorOnStartup]` 触发，而不是构造时。
+
+VVRace 自身按 `map.Size` 遍历整张存储区（含 RimLayers 的保留隔离行），因此适配器另外补了三处：扩散后清零隔离行（各层边界等同于原生地图边缘）、悬浮层只看当前查看层、拒绝向隔离行写入魔素。
+
+验证：`pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario expansion -AllDlc -River -VVRace`。`vvrace-*` 五项断言覆盖缓冲跟随扩容、预留折算清空、主网格前缀保持（含真实地表魔素 370）、新增层为空、隔离行无魔素；读档阶段 6 项通过且 `errors` 为空。该场景仍保留一个与本次改动无关的既有失败（`every-original-spawned-thing-keeps-identity-map-and-stack`）：在未改动的原始代码上同样失败。
 
 ## 已修复的失败记录
 
