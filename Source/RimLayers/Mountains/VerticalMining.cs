@@ -89,7 +89,7 @@ public sealed class JobDriver_VerticalMine:JobDriver_Mine
                 if(pawn.Faction==Faction.OfPlayer&&MineStrikeManager.MineableIsVeryValuable(rock.def))TaleRecorder.RecordTale(TaleDefOf.MinedValuable,pawn,rock.def.building.mineableThing);
                 if(pawn.Faction==Faction.OfPlayer&&MineStrikeManager.MineableIsValuable(rock.def)&&!Map.IsPlayerHome)TaleRecorder.RecordTale(TaleDefOf.CaravanRemoteMining,pawn,rock.def.building.mineableThing);
                 if(job.targetB.Thing is Building_Elevator station)station.TickExtensions();
-                LayerMapComponent.For(Map)?.Connectors.Invalidate();ReadyForNextToil();
+                if(LayerMapComponent.For(Map) is {} mined && mined.Connectors.TouchesColumn(at))mined.Connectors.Invalidate();ReadyForNextToil();
             }
             else ResetDelay();
         };

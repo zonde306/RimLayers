@@ -97,16 +97,30 @@ internal static class LayerCandidates
         Thing? best = null;
         float bestPriority = float.NegativeInfinity, bestCost = float.PositiveInfinity;
         var seen = new HashSet<Thing>();
+        // A container contributes one entry per held thing, all with the same parent position, so the
+        // same path was computed repeatedly. The leg cost depends only on the parent cell (fixed
+        // start, fixed end, fixed parms), so one lookup per distinct position is equivalent.
+        var legCost = new Dictionary<IntVec3, float>();
+        float limit = maxDistance * maxDistance;
+        float Cost(Thing parent)
+        {
+            IntVec3 at = parent.PositionHeld;
+            if (legCost.TryGetValue(at, out float cached)) return cached;
+            float cost;
+            using (var path = map.pathFinder.FindPathNow(root, parent, parms, null, mode))
+                cost = path.Found ? path.TotalCost : float.PositiveInfinity;
+            legCost[at] = cost;
+            return cost;
+        }
         void Consider(Thing thing, Thing parent)
         {
             if (!seen.Add(thing) || parent.MapHeld != map ||
-                QueryGeometry.DistanceSquared(owner, root, parent.PositionHeld) > maxDistance * maxDistance ||
+                QueryGeometry.DistanceSquared(owner, root, parent.PositionHeld) > limit ||
                 validator != null && !validator(thing)) return;
             float score = priority?.Invoke(thing) ?? 0;
             if (float.IsNaN(score) || score < bestPriority) return;
-            using var path = map.pathFinder.FindPathNow(root, parent, parms, null, mode);
-            if (!path.Found) return;
-            float cost = path.TotalCost;
+            float cost = Cost(parent);
+            if (!float.IsFinite(cost)) return;
             if (score > bestPriority || score == bestPriority && cost < bestCost)
             { best = thing; bestPriority = score; bestCost = cost; }
         }

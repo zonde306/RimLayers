@@ -14,6 +14,8 @@ public sealed class ShipStructureService
 {
     private readonly LayerMapComponent owner;
     private readonly Dictionary<Building_GravEngine,ShipStructure> ships=new();
+    // cell -> owning core, maintained alongside ships so OwnerAt is O(1) instead of a per-cell scan.
+    private readonly Dictionary<IntVec3,Building_GravEngine> cellOwners=new();
     private bool dirty=true,flushing;
     private static readonly Action<CompAffectedByFacilities> Relink=AccessTools.MethodDelegate<Action<CompAffectedByFacilities>>(AccessTools.Method(typeof(CompAffectedByFacilities),"RelinkAll"));
     public ShipStructureService(LayerMapComponent owner){this.owner=owner;owner.Changed+=(_,kind)=>{if((kind&LayerChangeKind.Structure)!=0)MarkDirty();};}
@@ -36,17 +38,24 @@ public sealed class ShipStructureService
     private void Refresh()
     {
         if(!dirty||!owner.Managed||!ModsConfig.OdysseyActive)return;
-        dirty=false;ships.Clear();
+        dirty=false;ships.Clear();cellOwners.Clear();
         var engines=Compatibility.VanillaGravshipCompatibility.Engines(owner.map).Where(Core).ToArray();
         if(engines.Length==0)return;
         var decks=new Dictionary<LayerCell,int>();var barriers=new HashSet<LayerCell>();
-        foreach(var c in owner.map.AllCells)
+        // Only above-ground bands can hold decks; scan per layer so the 17-row isolation padding and
+        // every underground floor are never visited. AllCells visited every storage cell instead.
+        var layout=owner.Layout!;
+        foreach(int layer in layout.OrderedLayers)
         {
-            if(!owner.TryDecode(c,out var stored)||owner.Elevation(stored.LayerId)<0)continue;
-            var l=new LayerCell(owner.Elevation(stored.LayerId),stored.X,stored.Z);
-            if(Deck(c))decks[l]=claims.GetValueOrDefault(c);
-            else if(owner.StructuralCells.Contains(c)||owner.Mountains.IsNaturalFloor(c)||
-                c.GetEdifice(owner.map)!=null)barriers.Add(l);
+            if(owner.Elevation(layer)<0)continue;
+            foreach(var c in owner.LayerRect(layer))
+            {
+                if(!owner.TryDecode(c,out var stored))continue;
+                var l=new LayerCell(owner.Elevation(stored.LayerId),stored.X,stored.Z);
+                if(Deck(c))decks[l]=claims.GetValueOrDefault(c);
+                else if(owner.StructuralCells.Contains(c)||owner.Mountains.IsNaturalFloor(c)||
+                    c.GetEdifice(owner.map)!=null)barriers.Add(l);
+            }
         }
         var seeds=new Dictionary<int,HashSet<LayerCell>>();
         foreach(var engine in engines)
@@ -71,14 +80,19 @@ public sealed class ShipStructureService
         {
             if(!result.Ships.TryGetValue(engine.thingIDNumber,out var logical)||logical.Count==0)continue;
             var cells=logical.Select(c=>owner.AtElevation(c.LayerId,c.X,c.Z)).ToHashSet();
-            ships[engine]=new(engine,cells,result.Conflicts.Contains(engine.thingIDNumber)||coreConflicts.Contains(engine.thingIDNumber),logical.Min(c=>c.LayerId),logical.Max(c=>c.LayerId));
+            bool ambiguous=result.Conflicts.Contains(engine.thingIDNumber)||coreConflicts.Contains(engine.thingIDNumber);
+            ships[engine]=new(engine,cells,ambiguous,logical.Min(c=>c.LayerId),logical.Max(c=>c.LayerId));
+            // Reverse index: OwnerAt ran a LINQ scan over every ship for every cell, and it is called
+            // per cell while roof surfaces are rebuilt. Ambiguous ships are not addressable.
+            if(ambiguous)continue;
+            foreach(var cell in cells)cellOwners[cell]=engine;
         }
     }
     public ShipStructure? Get(Building_GravEngine engine){Refresh();return ships.GetValueOrDefault(engine);}
     public Building_GravEngine? OwnerAt(IntVec3 cell)
     {
         Refresh();
-        return ships.Values.Where(s=>!s.Ambiguous&&s.Cells.Contains(cell)).Select(s=>s.Engine).SingleOrDefault();
+        return cellOwners.GetValueOrDefault(cell);
     }
     public Building_GravEngine? BuildOwner(IntVec3 cell)
     {

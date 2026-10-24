@@ -48,6 +48,9 @@ public sealed class LayerEnvironment
     private List<(AirVolume A,AirVolume B,float Area)> edges=new();
     private long revision=-1;
     private long connectors=-1;
+    private bool topologyBuilt;
+    /// <summary>Room-topology rebuilds (the metric the perf test asserts on).</summary>
+    public long TopologyBuilds { get; private set; }
     private string? savedAir;
     private Dictionary<IntVec3,float[]>? pendingAir;
     private bool[] sources=new bool[6];
@@ -108,7 +111,7 @@ public sealed class LayerEnvironment
         rocks=snapshot.Rocks;pendingAir=snapshot.Air;volumes=new();byRoom=new();edges=new();
         fogAccuracy=snapshot.FogAccuracy;fogMove=snapshot.FogMove;fogRange=snapshot.FogRange;Invalidate();
     }
-    public void Invalidate(){revision=-1;sourceTick=-1;residualTick=-1;}
+    public void Invalidate(){revision=-1;sourceTick=-1;residualTick=-1;topologyBuilt=false;}
     private bool[] Sources()
     {
         if(sourceTick==Find.TickManager.TicksGame)return sources;
@@ -141,6 +144,9 @@ public sealed class LayerEnvironment
     public void Tick()
     {
         if(!Enabled)return;
+        // One fixed-point topology rebuild per tick, before any consumer reads concentrations.
+        // Concentration() itself no longer rebuilds, so stat getters cannot pay for this.
+        EnsureTopology();
         if(Find.TickManager.TicksGame%3451==0&&!LayerEventPolicy.Sources(owner.map)[(int)Atmosphere.Toxic])
             foreach(var pawn in owner.map.mapPawns.AllPawnsSpawned)
                 if(!pawn.kindDef.immuneToGameConditionEffects&&Concentration(pawn.Position,Atmosphere.Toxic)>0)
@@ -162,7 +168,6 @@ public sealed class LayerEnvironment
         bool any=active.Any(x=>x)||volumes.Any(v=>v.Values.Any(x=>x>.0001f))||pendingAir?.Count>0;
         sources=active;
         if(!any)return;
-        EnsureTopology();
         // Snapshot all concentrations before applying any pair; room order cannot duplicate flux.
         var changes=volumes.ToDictionary(v=>v,v=>new float[6]);
         var indices=volumes.Select((v,i)=>(v,i)).ToDictionary(x=>x.v,x=>x.i);
@@ -198,7 +203,11 @@ public sealed class LayerEnvironment
         // Directly exposed cells receive the active ambient condition immediately.
         var active=Sources();
         if(Sky(cell)&&active[i])return 1;
-        EnsureTopology();
+        // This runs from per-plant/per-pawn stat getters (NoxiousHaze, Plant growth, Aurora thoughts).
+        // Rebuilding the room topology here made one door toggle do a whole-map walk in the middle of
+        // a stat query. The rebuild is now owned by Tick(), which runs once per tick at a fixed point.
+        // Only the very first use still builds eagerly so a fresh map has an answer.
+        if(!topologyBuilt)EnsureTopology();
         Room room=cell.GetRoom(owner.map);
         return room!=null&&byRoom.TryGetValue(room,out var v)?v.Values[i]:0;
     }
@@ -231,6 +240,8 @@ public sealed class LayerEnvironment
     private void EnsureTopology()
     {
         if(revision==owner.Revision&&connectors==owner.Connectors.Version)return;
+        TopologyBuilds++;
+        topologyBuilt=true;
         var previous=pendingAir??volumes.SelectMany(v=>v.Cells.Select(c=>(c,v.Values))).ToDictionary(x=>x.c,x=>(float[])x.Values.Clone());
         pendingAir=null;volumes=new();byRoom=new();edges=new();
         foreach(Room room in owner.map.regionGrid.AllRooms)

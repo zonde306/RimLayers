@@ -11,15 +11,26 @@ public sealed class LayerLayout
     public const int MinElevation = -9;
     public const int MaxElevation = 9;
     private readonly int[] elevations;
+    // A layout is immutable, so the elevation-derived tables are computed once. These used to be
+    // LINQ projections rebuilt (with a sort and allocations) on every access, including per-cell
+    // paths such as HasSurface, OpenLaunchColumn and SkyExposure.IsExposed.
+    private readonly int[] ordered;
+    private readonly int[][] above;
+    private readonly int[][] below;
+    private readonly IReadOnlyList<int> elevationView;
+    private readonly IReadOnlyList<int> orderedView;
+    private readonly int lowest;
+    private readonly int highest;
     public int Width { get; }
     public int Height { get; }
     public int LayerCount => elevations.Length;
     public int Stride { get; }
     public int StorageHeight => checked(Stride * LayerCount);
-    public IReadOnlyList<int> Elevations => Array.AsReadOnly(elevations);
-    public IEnumerable<int> OrderedLayers => Enumerable.Range(0, LayerCount).OrderBy(ElevationOf);
-    public int LowestElevation => elevations.Min();
-    public int HighestElevation => elevations.Max();
+    public IReadOnlyList<int> Elevations => elevationView;
+    /// <summary>Layer ids in ascending physical elevation.</summary>
+    public IReadOnlyList<int> OrderedLayers => orderedView;
+    public int LowestElevation => lowest;
+    public int HighestElevation => highest;
 
     // Existing callers create the same surface/upper layout as before.
     public LayerLayout(int width, int height, int layers, int stride)
@@ -34,6 +45,22 @@ public sealed class LayerLayout
             throw new ArgumentOutOfRangeException(nameof(levels), "Invalid or unsupported layer layout.");
         _ = checked(width * checked(stride * levels.Count));
         Width = width; Height = height; Stride = stride; elevations = levels.ToArray();
+        lowest = elevations.Min(); highest = elevations.Max();
+        ordered = Enumerable.Range(0, elevations.Length).OrderBy(id => elevations[id]).ToArray();
+        // Array.AsReadOnly allocates a wrapper per call; these views are stable for an immutable layout.
+        elevationView = Array.AsReadOnly(elevations);
+        orderedView = Array.AsReadOnly(ordered);
+        // above[id] is the ascending-elevation suffix of `ordered`, below[id] the descending prefix.
+        // These used to be LINQ projections rebuilt with a sort on every access, including per-cell
+        // paths (HasSurface, OpenLaunchColumn, SkyExposure.IsExposed).
+        above = new int[elevations.Length][];
+        below = new int[elevations.Length][];
+        for (int position = 0; position < ordered.Length; position++)
+        {
+            int id = ordered[position];
+            above[id] = ordered.Skip(position + 1).ToArray();
+            below[id] = ordered.Take(position).Reverse().ToArray();
+        }
     }
 
     public int ElevationOf(int layerId) => elevations[layerId];
@@ -43,8 +70,10 @@ public sealed class LayerLayout
         throw new ArgumentOutOfRangeException(nameof(elevation), "Elevation is not allocated.");
     public bool TryGetAdjacentLayer(int layerId, int direction, out int result) =>
         TryGetLayerAtElevation(ElevationOf(layerId) + direction, out result);
-    public IEnumerable<int> Above(int layerId) => OrderedLayers.Where(id => ElevationOf(id) > ElevationOf(layerId));
-    public IEnumerable<int> Below(int layerId) => OrderedLayers.Reverse().Where(id => ElevationOf(id) < ElevationOf(layerId));
+    /// <summary>Layers strictly above the given layer, in ascending elevation.</summary>
+    public IReadOnlyList<int> Above(int layerId) => above[layerId];
+    /// <summary>Layers strictly below the given layer, in descending elevation (nearest first).</summary>
+    public IReadOnlyList<int> Below(int layerId) => below[layerId];
     // Read-only ship previews may address upper bands that will be appended on confirmation.
     public int LayerOrFuture(int elevation) => TryGetLayerAtElevation(elevation,out int id)?id:LayerCount+elevation-HighestElevation-1;
     public int ElevationOrFuture(int id) => id<LayerCount?ElevationOf(id):HighestElevation+1+id-LayerCount;

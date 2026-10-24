@@ -24,6 +24,8 @@ internal static class StorageCellQueryPatch
             if(port==null)return false;
             start=port.Position;
         }
+        // TraverseParms.For rebuilds the full parms struct; it is invariant across the cell loop.
+        var parms = carrier != null ? TraverseParms.For(carrier) : default;
         foreach (var cell in slotGroup.CellsList)
         {
             if (!owner.Structure.HasSurface(cell) || !StoreUtility.IsGoodStoreCell(cell, map, t, carrier, faction)) continue;
@@ -31,7 +33,7 @@ internal static class StorageCellQueryPatch
             if (carrier == null) cost = QueryGeometry.DistanceSquared(owner, start, cell);
             else
             {
-                using var path = map.pathFinder.FindPathNow(start, cell, TraverseParms.For(carrier), null, PathEndMode.ClosestTouch);
+                using var path = map.pathFinder.FindPathNow(start, cell, parms, null, PathEndMode.ClosestTouch);
                 if (!path.Found) continue;
                 cost = path.TotalCost;
             }

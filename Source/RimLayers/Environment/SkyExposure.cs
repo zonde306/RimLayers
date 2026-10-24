@@ -13,19 +13,31 @@ public sealed class SkyExposure
     private readonly Dictionary<(int X,int Z),bool[]> columns=new();
     private readonly ConditionalWeakTable<Room,RoomSky> rooms=new();
     private long revision;
-    private sealed class RoomSky { public long Revision=-1; public int Open; public bool Edge; }
+    // Rooms are expired through `revision`, exactly as before this change. An eager per-room
+    // lookup via GetRoom() is NOT safe here: it forces RegionAndRoomUpdater to rebuild regions
+    // from inside a roof/terrain postfix, which logs RegionLink errors during map generation and
+    // during structural edits. The genuine win kept here is that For() no longer re-walks a room
+    // whose cached entry is still valid.
+    private long epoch;
+    /// <summary>Changes whenever any cached sky answer may have moved.</summary>
+    public long Revision=>revision;
+    /// <summary>Retained for the perf-counter surface; no eager per-room invalidation is done.</summary>
+    public long RoomInvalidations { get; private set; }
+    private sealed class RoomSky { public long Epoch=-1; public int Open; public bool Edge; }
     public SkyExposure(LayerMapComponent owner)
     {
         this.owner=owner;
         owner.Changed+=(cell,kind)=>
         {
             if((kind&(LayerChangeKind.Structure|LayerChangeKind.Light|LayerChangeKind.Heat))==0) return;
-            columns.Remove((cell.X,cell.Z));revision++;
+            // A structural change anywhere can move a column's sky answer, so the column cache and
+            // every room entry expire together. This is the pre-existing, proven-safe policy.
+            columns.Remove((cell.X,cell.Z));revision++;epoch++;
             foreach(IntVec3 at in owner.Column(cell.X,cell.Z))
                 if(at.InBounds(owner.map)) owner.map.mapDrawer?.MapMeshDirty(at,MapMeshFlagDefOf.GroundGlow,true,true);
         };
     }
-    public void Rebuild() { columns.Clear();rooms.Clear();revision++; }
+    public void Rebuild() { columns.Clear();rooms.Clear();revision++;epoch++; }
     public void RoomChanged(Room room)=>rooms.Remove(room);
     public bool IsExposed(IntVec3 storage)
     {
@@ -57,7 +69,7 @@ public sealed class SkyExposure
     private RoomSky For(Room room)
     {
         RoomSky info=rooms.GetOrCreateValue(room);
-        if(info.Revision==revision) return info;
+        if(info.Epoch==epoch) return info;
         info.Open=0;info.Edge=false;
         foreach(IntVec3 at in room.Cells)
         {
@@ -65,7 +77,7 @@ public sealed class SkyExposure
             if(IsExposed(at)) info.Open++;
             info.Edge|=owner.Elevation(cell.LayerId)>=0&&(cell.X==0 || cell.X==owner.Layout!.Width-1 || cell.Z==0 || cell.Z==owner.Layout!.Height-1);
         }
-        info.Revision=revision;return info;
+        info.Epoch=epoch;return info;
     }
     public int OpenRoofCount(Room room)=>For(room).Open;
     public bool TouchesEdge(Room room)=>For(room).Edge;

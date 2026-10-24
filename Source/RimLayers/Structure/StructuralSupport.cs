@@ -142,7 +142,9 @@ public sealed class StructuralSupport
             owner.map.pathing.RecalculatePerceivedPathCostAt(cell);
             RoofChanged(cell);
         }
-        owner.Connectors.Invalidate();
+        // Connector edges read only their own columns; unrelated terrain writes must not
+        // invalidate the graph, which would rebuild heat/air/environment topology wholesale.
+        if(owner.Connectors.TouchesColumn(cell)) owner.Connectors.Invalidate();
         if(RimLayersMod.Settings.AutoRecovery)
             foreach(var thing in cell.GetThingList(owner.map).ToArray())RimLayers.Recovery.EntityRecoveryService.Current?.Notice(thing,owner.map,"Structure");
     }
@@ -151,15 +153,17 @@ public sealed class StructuralSupport
     {
         if (!owner.TryDecode(cell, out var logical)) return;
         // Invalidation is immediate; destructive cascade processing is an explicit simulation operation.
+        bool affected=false;
         foreach (int layer in owner.Layout!.Above(logical.LayerId))
         {
             var upper = owner.ToStorage(new LayerCell(layer, logical.X, logical.Z));
             if (owner.StructuralCells.Contains(upper))
             {
+                affected=true;
                 if (!HasRequiredRoof(upper)) owner.PendingCollapse.Add(upper);
                 owner.map.pathing.RecalculatePerceivedPathCostAt(upper);
             }
         }
-        owner.Connectors.Invalidate();
+        if(affected||owner.Connectors.TouchesColumn(cell)) owner.Connectors.Invalidate();
     }
 }

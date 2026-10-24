@@ -77,6 +77,7 @@ public sealed class LayerMapComponent : MapComponent
         dataVersion = LayerLayout.CurrentVersion;
         width = layout.Width; height = layout.Height; layers = layout.LayerCount; stride = layout.Stride;
         Layout = layout; elevations = layout.Elevations.ToList();
+        ClearForCache();
     }
 
     internal void ReplaceLayout(LayerLayout? expected, LayerLayout? next)
@@ -89,6 +90,7 @@ public sealed class LayerMapComponent : MapComponent
         dataVersion=next==null?0:LayerLayout.CurrentVersion;
         width=next?.Width??0;height=next?.Height??0;layers=next?.LayerCount??0;stride=next?.Stride??0;
         Connectors.Invalidate();Environment.Invalidate();
+        ClearForCache();
     }
 
     public bool TryDecode(IntVec3 cell, out LayerCell logical)
@@ -167,6 +169,15 @@ public sealed class LayerMapComponent : MapComponent
             throw new InvalidOperationException($"[RimLayers] Layout/storage mismatch on map {map.uniqueID}.");
         Layout = layout;
         viewedLayer = Math.Clamp(viewedLayer, 0, layout.LayerCount - 1);
+        // For() may already have memoised "this map is unmanaged" while loading, before ExposeData
+        // restored the layout. Drop that negative result or the map stays invisible after a load.
+        ClearForCache();
+    }
+
+    /// <summary>Drops the For() memo. Must run on every unmanaged&lt;-&gt;managed transition.</summary>
+    private static void ClearForCache()
+    {
+        cachedMap = null; cachedComponent = null;
     }
 
     public override void FinalizeInit()
@@ -202,9 +213,26 @@ public sealed class LayerMapComponent : MapComponent
         if (Managed && map == Find.CurrentMap) { LayerView.DrawControls(this); LandingMarkers.OnGUI(this); }
     }
 
+    // Map.GetComponent<T>() scans Map.components linearly and this lookup sits on per-cell paths
+    // (GenSight.LineOfSight, GasCanMoveTo, SkyQueries.Roofed) and per-frame UI paths. Callers repeat
+    // it for the same map, so a single-entry memo removes the scan. Configure() is the only
+    // unmanaged->managed transition and clears the memo.
+    [ThreadStatic] private static Map? cachedMap;
+    [ThreadStatic] private static LayerMapComponent? cachedComponent;
+    public static long ForCalls { get; private set; }
+    public static long ForScans { get; private set; }
+    public static void ResetForStatistics() { ForCalls = 0; ForScans = 0; }
+
     public static LayerMapComponent? For(Map? map)
     {
-        LayerMapComponent? component = map?.GetComponent<LayerMapComponent>();
-        return component?.Managed == true ? component : null;
+        if (map == null) return null;
+        ForCalls++;
+        if (ReferenceEquals(map, cachedMap)) return cachedComponent;
+        ForScans++;
+        LayerMapComponent? component = map.GetComponent<LayerMapComponent>();
+        component = component?.Managed == true ? component : null;
+        cachedMap = map;
+        cachedComponent = component;
+        return component;
     }
 }
