@@ -10,6 +10,7 @@
   <RL_EnvironmentMinerals>Minerals</RL_EnvironmentMinerals>
   <RL_EnvironmentLava>Magma</RL_EnvironmentLava>
   <RL_EnvironmentInsects>Insect ecology</RL_EnvironmentInsects>
+  <RL_EnvironmentEcology>Ecology</RL_EnvironmentEcology>
   <RL_EnvironmentAdvanced>Advanced</RL_EnvironmentAdvanced>
   <RL_EnvironmentDefault>default</RL_EnvironmentDefault>
   <RL_EnvironmentNewLayers>new layers</RL_EnvironmentNewLayers>
@@ -53,5 +54,9 @@
   <RL_EnvironmentInsectHot>Ordinary infestation: upper temperature</RL_EnvironmentInsectHot>
   <RL_EnvironmentInsectSpawnSpeed>Continuous-hive insect spawning speed</RL_EnvironmentInsectSpawnSpeed>
   <RL_EnvironmentHiveReproductionSpeed>Continuous-hive reproduction speed</RL_EnvironmentHiveReproductionSpeed>
-<RL_EnvironmentClusterBudgetOnly>cluster budget only; yield per cell is unchanged</RL_EnvironmentClusterBudgetOnly>
+  <RL_EnvironmentEcologyEnabled>Seed gravel soil, steam geysers and cave flora in newly generated layers</RL_EnvironmentEcologyEnabled>
+  <RL_EnvironmentEcologySoil>Plantable gravel coverage (cave floor only)</RL_EnvironmentEcologySoil>
+  <RL_EnvironmentEcologyGeysers>Steam geysers per 10k cells</RL_EnvironmentEcologyGeysers>
+  <RL_EnvironmentEcologyPlants>Underground flora density</RL_EnvironmentEcologyPlants>
+  <RL_EnvironmentClusterBudgetOnly>cluster budget only; yield per cell is unchanged</RL_EnvironmentClusterBudgetOnly>
 </LanguageData>

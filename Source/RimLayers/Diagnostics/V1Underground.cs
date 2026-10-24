@@ -67,6 +67,21 @@ internal static partial class V1Integration
         Check("generation-preserves-surface-pawn-and-terrain",pawn.Position==originalPawn&&pawn.ThingID==originalId&&new IntVec3(55,0,55).GetTerrain(map)==TerrainDefOf.Soil);
         Check("B1-has-natural-floor-roof-caves-and-minerals",owner.LayerRect(1).All(c=>owner.Mountains.IsNaturalFloor(c)&&map.roofGrid.RoofAt(c)==RoofDefOf.RoofRockThick)&&owner.LayerRect(1).Any(c=>c.GetEdifice(map)==null)&&map.listerThings.AllThings.OfType<Mineable>().Any(t=>owner.TryDecode(t.Position,out var q)&&q.LayerId==1&&t.def.building.isResourceRock));
         Check("B1-remains-fogged-and-not-exposed-to-sky",owner.LayerRect(1).Count(c=>c.Fogged(map))>owner.Layout.Width*owner.Layout.Height/2&&!owner.Sky.IsExposed(UndergroundAt(-1,60,60)));
+        var ecology=owner.Underground.EcologyRecords.LastOrDefault(r=>r.Layer==1);
+        var b1Gravel=owner.LayerRect(1).Where(c=>c.GetTerrain(map)==TerrainDefOf.Gravel).ToList();
+        var b1Plants=map.listerThings.AllThings.OfType<Plant>().Where(p=>owner.TryDecode(p.Position,out var q)&&q.LayerId==1).ToList();
+        Check("B1-ecology-record-matches-real-soil-and-flora",ecology!=null&&ecology.SoilCells>0&&ecology.Flora>0&&
+            ecology.SoilCells==b1Gravel.Count&&ecology.Flora==b1Plants.Count,
+            "record soil="+(ecology?.SoilCells??-1)+" flora="+(ecology?.Flora??-1)+" geysers="+(ecology?.Geysers??-1)+"; gravel="+b1Gravel.Count+"; plants="+b1Plants.Count);
+        Check("B1-cave-flora-stands-on-plantable-gravel",b1Plants.Count>0&&b1Plants.All(p=>p.Position.GetTerrain(map)==TerrainDefOf.Gravel&&
+            map.fertilityGrid.FertilityAt(p.Position)>=p.def.plant.fertilityMin&&(p.def.plant.cavePlant||p.def.plant.diesToLight)),
+            "plants="+b1Plants.Count+" off-gravel="+b1Plants.Count(p=>p.Position.GetTerrain(map)!=TerrainDefOf.Gravel)+
+            " starved="+b1Plants.Count(p=>map.fertilityGrid.FertilityAt(p.Position)<p.def.plant.fertilityMin));
+        Check("B1-soil-only-covers-cave-floor",b1Gravel.All(c=>c.GetEdifice(map) is not Mineable),
+            "soil-on-rock="+b1Gravel.Count(c=>c.GetEdifice(map) is Mineable));
+        Check("B1-has-a-steam-geyser",ecology!=null&&ecology.Geysers>=1&&
+            map.listerThings.ThingsOfDef(ThingDefOf.SteamGeyser).Any(g=>owner.TryDecode(g.Position,out var q)&&q.LayerId==1),
+            "geysers="+map.listerThings.ThingsOfDef(ThingDefOf.SteamGeyser).Count);
         int oldThings=map.listerThings.AllThings.Count;int oldLords=map.lordManager.lords.Count;var oldSize=map.Size;
         bool fault=false;
         try{LiveMapExpansion.EnsureElevation(map,-2,()=>throw new InvalidOperationException("underground-test-fault"));}
@@ -260,7 +275,7 @@ internal static partial class V1Integration
         try
         {
             Find.Storyteller.difficulty.allowCaveHives=false;
-            AccessTools.Method(typeof(UndergroundService),"SpawnCaveHives").Invoke(owner.Underground,new object?[]{b2,new List<IntVec3>(),null});
+            AccessTools.Method(typeof(UndergroundService),"SpawnCaveHives").Invoke(owner.Underground,new object?[]{b2,new List<IntVec3>(),new List<IntVec3>(),new HashSet<IntVec3>()});
             Check("difficulty-disabled-cave-hives-spawn-nothing",beforeHives==map.listerThings.ThingsOfDef(ThingDefOf.Hive).Count);
         }
         finally{Find.Storyteller.difficulty.allowCaveHives=oldAllow;}

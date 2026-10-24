@@ -228,6 +228,13 @@ public sealed class MountainService
     {
         // These are transaction-owned rocks in a discarded band. Ordinary removal floods fog
         // and schedules roof-collapse work after every rock; WillReplace suppresses both.
-        foreach(var t in spawned.AsEnumerable().Reverse())if(t.Spawned)t.Destroy(t is Mineable?DestroyMode.WillReplace:DestroyMode.Vanish);
+        // A destroyed geyser would scream: SteamGeyser is not destroyable, and the rollback
+        // still has to take it out of the discarded band.
+        foreach(var t in spawned.AsEnumerable().Reverse())
+            if(t.Spawned)
+            {
+                if(!t.def.destroyable){t.DeSpawn(DestroyMode.Vanish);continue;}
+                t.Destroy(t is Mineable?DestroyMode.WillReplace:DestroyMode.Vanish);
+            }
     }
 }

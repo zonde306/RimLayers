@@ -2,6 +2,7 @@ using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
 using RimLayers.Generation;
+using RimLayers.Environment;
 using RimLayers.Structure;
 using RimLayers.Layout;
 using RimWorld;
@@ -16,15 +17,17 @@ public sealed class UndergroundState : IExposable
     public HashSet<IntVec3> Floors = new();
     public HashSet<int> Generated = new();
     public List<MineralGenerationRecord> Records = new();
+    public List<EcologyGenerationRecord> Ecology = new();
     internal HashSet<IntVec3> CoolingPending = new(); // Committed to the native queue only after expansion succeeds.
     public void ExposeData()
     {
         Scribe_Collections.Look(ref Floors,"floors",LookMode.Value);
         Scribe_Collections.Look(ref Generated,"generated",LookMode.Value);
         Scribe_Collections.Look(ref Records,"generationRecords",LookMode.Deep);
-        if(Scribe.mode==LoadSaveMode.PostLoadInit){Floors??=new();Generated??=new();Records??=new();}
+        Scribe_Collections.Look(ref Ecology,"ecologyRecords",LookMode.Deep);
+        if(Scribe.mode==LoadSaveMode.PostLoadInit){Floors??=new();Generated??=new();Records??=new();Ecology??=new();}
     }
-    internal UndergroundState Copy()=>new(){Floors=new(Floors),Generated=new(Generated),Records=new(Records),CoolingPending=new(CoolingPending)};
+    internal UndergroundState Copy()=>new(){Floors=new(Floors),Generated=new(Generated),Records=new(Records),Ecology=Ecology.Select(r=>r.Copy()).ToList(),CoolingPending=new(CoolingPending)};
 }
 
 /// <summary>Native geology algorithms, bounded to an append-only underground band.</summary>
@@ -35,6 +38,7 @@ public sealed class UndergroundService
     public UndergroundService(LayerMapComponent owner)=>this.owner=owner;
     public bool IsNaturalFloor(IntVec3 cell)=>state.Floors.Contains(cell);
     public IReadOnlyList<MineralGenerationRecord> GenerationRecords=>state.Records;
+    public IReadOnlyList<EcologyGenerationRecord> EcologyRecords=>state.Ecology;
     public bool Generated(int layer)=>state.Generated.Contains(layer);
     internal UndergroundState Snapshot()=>state.Copy();
     internal void Restore(UndergroundState previous)=>state=previous;
@@ -158,8 +162,32 @@ public sealed class UndergroundService
                 map.fogGrid.Refog(CellRect.SingleCell(cell));
             }
             var caveCells=group.Where(c=>(caves[c]>0||geology?.Shore.Contains(c)==true)&&geology?.Lava.Contains(c)!=true&&geology?.Pillars.Contains(c)!=true).ToList();
+            // Underground ecology: gravel patches first, then geysers, then flora once regions exist.
+            var settings=RimLayersMod.Settings.Environment;
+            var ecology=new EcologyGenerationRecord{Layer=id,Seed=Gen.HashCombineInt(map.ConstantRandSeed,owner.Elevation(id))};
+            var soil=new HashSet<IntVec3>();
+            int soilSeed=0;
+            if(settings.EcologyEnabled)soil=UndergroundEcology.PlanSoil(owner,id,group,caves,geology,settings.EcologySoil,out soilSeed);
+            var gravel=soil.Count>0?TerrainDefOf.Gravel:null;
+            if(gravel!=null)foreach(var cell in soil)map.terrainGrid.SetTerrain(cell,gravel);
+            var caveSet=new HashSet<IntVec3>(caveCells.Where(c=>!soil.Contains(c)));
+            var geyserCells=new List<IntVec3>();
+            if(settings.EcologyEnabled)geyserCells=UndergroundEcology.SpawnGeysers(owner,id,caveSet,soilSeed,settings.EcologyGeysers,out _);
+            ecology.Geysers=CountGeysers(geyserCells);
+            var geyserBlock=new HashSet<IntVec3>();
+            foreach(var cell in geyserCells)foreach(var near in GenRadial.RadialCellsAround(cell,2,true))if(near.InBounds(map))geyserBlock.Add(near);
+            int floraSeed=Rand.Int;
+            int floraTarget=settings.EcologyEnabled?EnvironmentMath.PlantCount(soil.Count,settings.EcologyPlants):0;
+            // Hives run first: Odyssey hives paint 30 cells of fertility-0 InsectSludge, which
+            // would uproot plants placed before them. Flora then only takes surviving gravel.
             int hiveSeed=Rand.Int;
-            afterRegions.Add(()=>{Rand.PushState(hiveSeed);try{SpawnCaveHives(id,group,caveCells);}finally{Rand.PopState();}});
+            afterRegions.Add(()=>{Rand.PushState(hiveSeed);try{SpawnCaveHives(id,group,caveCells,geyserBlock);}finally{Rand.PopState();}});
+            afterRegions.Add(()=>{Rand.PushState(floraSeed);try{
+                if(gravel!=null)ecology.Plants=UndergroundEcology.SpawnFlora(owner,id,soil,floraSeed,settings,floraTarget,gravel);
+                // Report what the layer really holds, so a save stays auditable after hive sludge.
+                ecology.SoilCells=gravel==null?0:owner.LayerRect(id).Count(c=>c.GetTerrain(map)==gravel);
+                ecology.Flora=owner.LayerRect(id).Count(c=>c.GetPlant(map)!=null);}finally{Rand.PopState();}});
+            state.Ecology.Add(ecology);
             state.Generated.Add(id);
             Log.Message($"[RimLayers] Underground {owner.Elevation(id)} generated: {rect.Area} cells, {visited.Count} cave cells, {ore.Count} mineral cells.");
         }
@@ -171,7 +199,8 @@ public sealed class UndergroundService
             Rand.PopState();
         }
     }
-    private void SpawnCaveHives(int id,List<IntVec3> cells,List<IntVec3> caveCells)
+    private static int CountGeysers(List<IntVec3> cells)=>cells.Count/4; // SteamGeyser is 2x2.
+    private void SpawnCaveHives(int id,List<IntVec3> cells,List<IntVec3> caveCells,HashSet<IntVec3> geyserBlock)
     {
         if(!RimLayersMod.Settings.CaveHives||!Find.Storyteller.difficulty.allowCaveHives||Faction.OfInsects==null||
             Find.Scenario.AllParts.Any(p=>p.def.genStep?.defName=="CaveHives"))return;
@@ -184,6 +213,7 @@ public sealed class UndergroundService
         var excluded=cells.Where(c=>c.GetThingList(owner.map).Any(t=>t.Faction!=null)).ToList();
         GenMorphology.Dilate(excluded,50,owner.map);
         candidates.RemoveAll(excluded.Contains);
+        candidates.RemoveAll(c=>geyserBlock.Contains(c));
         AccessTools.Field(typeof(GenStep_CaveHives),"possibleSpawnCells").SetValue(step,candidates);
         var spawn=AccessTools.Method(typeof(GenStep_CaveHives),"TrySpawnHive");
         int count=GenMath.RoundRandom((owner.Environment.Enabled?candidates.Count:caveCells.Count)/1000f*

@@ -19,6 +19,32 @@ Near(EnvironmentMath.TemperatureScore(-17,-17,60),0,"native lower boundary");
 Near(EnvironmentMath.TemperatureScore(60,-17,60),0,"upper boundary");
 Near(EnvironmentMath.TemperatureScore(55,-17,60),.5f,"hot ramp");
 Near(EnvironmentMath.Wind(9,0),1,"zero enhancement");
+// Underground ecology planning: numbers only, no Verse types.
+Near(EnvironmentMath.SoilCells(1000,0),0,"no soil at zero coverage");
+Near(EnvironmentMath.SoilCells(1000,1),1000,"full coverage keeps every candidate");
+Near(EnvironmentMath.SoilCells(1000,.35f),350,"35 percent of candidates");
+Near(EnvironmentMath.SoilCells(0,.35f),0,"no candidates means no soil");
+Near(EnvironmentMath.SoilCells(7,.5f),4,"half rounds away from zero");
+Near(EnvironmentMath.GeyserCount(14400,.85f),1,"120x120 layer yields one geyser at default");
+Near(EnvironmentMath.GeyserCount(14400,0),0,"geysers can be switched off");
+Near(EnvironmentMath.GeyserCount(0,.85f),0,"empty layer yields no geyser");
+Near(EnvironmentMath.PlantCount(350,1),21,"flora count follows soil cells");
+Near(EnvironmentMath.PlantCount(350,0),0,"flora can be switched off");
+Near(EnvironmentMath.PlantCount(350,3),63,"flora density is linear");
+Near(EnvironmentMath.PlantCount(1,1),0,"one soil cell is too few for a plant");
+Check(EnvironmentMath.QuantileThreshold(new(),.35f)==double.MaxValue,"empty candidate list keeps nothing");
+Check(EnvironmentMath.QuantileThreshold(new(){1,2,3},0)==double.MaxValue,"zero coverage keeps nothing");
+Check(EnvironmentMath.QuantileThreshold(new(){1,2,3},1)==double.MinValue,"full coverage keeps everything");
+var ecoRnd=new Random(731);
+for(int n=0;n<200;n++)
+{
+    var values=Enumerable.Range(0,ecoRnd.Next(1,200)).Select(i=>ecoRnd.NextDouble()).ToList();
+    float coverage=(float)ecoRnd.NextDouble();
+    double threshold=EnvironmentMath.QuantileThreshold(values,coverage);
+    int kept=values.Count(v=>v>=threshold);
+    int expected=Math.Clamp((int)Math.Round(values.Count*(double)coverage,MidpointRounding.AwayFromZero),1,values.Count);
+    Check(kept>=expected&&kept<=Math.Min(values.Count,expected+1),$"quantile keeps the top {coverage:P0} of {values.Count} cells (kept {kept})");
+}
 for(int depth=1;depth<=9;depth++)
 {
     float after=EnvironmentMath.Follow(20,40,120,3,depth);

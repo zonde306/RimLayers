@@ -11,6 +11,11 @@
   <RL_EnvironmentLava>熔岩</RL_EnvironmentLava>
   <RL_EnvironmentInsects>虫灾</RL_EnvironmentInsects>
   <RL_EnvironmentAdvanced>高级参数</RL_EnvironmentAdvanced>
+  <RL_EnvironmentEcology>生态</RL_EnvironmentEcology>
+  <RL_EnvironmentEcologyEnabled>在新生成的地下城布置砾石土壤、蒸汽间歇泉与洞穴植物</RL_EnvironmentEcologyEnabled>
+  <RL_EnvironmentEcologySoil>可种植砾石覆盖（仅洞穴地面）</RL_EnvironmentEcologySoil>
+  <RL_EnvironmentEcologyGeysers>每万格蒸汽间歇泉</RL_EnvironmentEcologyGeysers>
+  <RL_EnvironmentEcologyPlants>洞穴植物密度</RL_EnvironmentEcologyPlants>
   <RL_EnvironmentDefault>默认</RL_EnvironmentDefault>
   <RL_EnvironmentNewLayers>新层生效</RL_EnvironmentNewLayers>
   <RL_EnvironmentNextUpdate>下次更新</RL_EnvironmentNextUpdate>

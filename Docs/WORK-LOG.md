@@ -849,3 +849,13 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 两处 Harmony 陷阱：静态目标上 `__instance` 绑定 null 实例（改位置绑定 `__0`）；同一补丁类内的两个重载参数名不同会抛 `Parameter "cell" not found`，且因发生在 `RimLayersMod` 构造函数里连带整个 mod 实例化失败，必须拆成独立补丁类。
 
 新增 Diagnostics/V1Minimap.cs 与 `Run-V1.ps1 -Scenario minimap -Minimap`。最终 v1-minimap-20261023-053834 为 16 项断言通过、failures=0、errors=[]；截图确认 120×120 正方形小地图、暗色中性空域、相机框居中跟随当前层。回归 `-Scenario navigation` generate 12 / load 4 通过，确认未装 minimap 时兼容层完全惰性。Release 0 警告 / 0 错误。详细证据与限制见 [MINIMAP-COMPATIBILITY.md](MINIMAP-COMPATIBILITY.md)。
+
+## 2026-10-24：地下生态（砾石土壤、蒸汽间歇泉、洞穴植物）
+
+在原地下生成器上补出类似微光丛林的地下生态，全部复用原版 Def，不新增也不 patch 任何 XML（用户硬约束：def 按原版规则、不补）。新增 `Source/RimLayers/Underground/UndergroundEcology.cs`：`PlanSoil` 只取洞穴地面格，用 `EnvironmentMath.Band` + `QuantileThreshold` 按覆盖率取前 35% 铺原版 `Gravel`（肥力 0.7、带 GrowSoil）；`SpawnGeysers` 用原版 `SteamGeyser`，按层面积换算 0.85/万格，要求 2×2 全在空旷洞穴地面、彼此 ≥20 格；`SpawnFlora` 走 `WildPlantSpawner.SpawnPlant`（public static，绕过 Fertility/WildPlantSpawner 的全部 gate），产物是正常可生长可收获的 Plant。植物池 Glowstool/Agarilux/Bryolux/Plant_Timbershroom + Odyssey 的 Plant_Psilocap/Boomshroom/Plant_Willowgill，缺 DLC 由 `GetNamedSilentFail` 静默剔除。
+
+首轮 `v1-underground-20261024-064444` 5 项失败，两个真根因：①`HiveUtility.SpawnExtras` 在 Odyssey 下会给每个虫巢铺约 30 格 `InsectSludge`（肥力 0），先种植物会被顶掉（记录 1491 砾石、实际剩 1464，另有 3 株草落在石面岩上）→ 改为 afterRegions 里虫巢先、植物后，并只接受仍是砾石的空格，记录在 flora 回调里重扫真实值；②`SteamGeyser.destroyable=false`，`MountainService.RemoveSpawned` 的事务回滚 `t.Destroy()` 报 `Tried to destroy non-destroyable thing` 且没移除 → 不可销毁实体改走 `DeSpawn(DestroyMode.Vanish)`。
+
+`v1-underground-20261024-070014` 生成 23/0、读档 28/0 通过，detail `record soil=1459 flora=89 geysers=1; gravel=1459; plants=89`。设置侧新增 Ecology 组（三参数 + 逐种植物权重，`EnvironmentSettings.EcologyEnabled/EcologySoil/EcologyGeysers/EcologyPlants/PlantWeights`）。`Tests/EnvironmentTests` 增至 222927 项，13 个离线套件全过，Release 0 警告/0 错误。细节见 [UNDERGROUND.md](UNDERGROUND.md) 与 [ENVIRONMENT-IMPLEMENTATION.md](ENVIRONMENT-IMPLEMENTATION.md)。
+
+同期修复设置 UI harness：`SettingsMenu` 改成六页 3×2 网格后，`Diagnostics/V1SettingsUi.cs` 仍按旧单行 `+42` 基准注入鼠标坐标，6 项原生控件断言假失败；改坐标表并加 Environment 页取证链，`v1-settings-ui-20261024-073823` 23/0 通过。另记一条并发教训：凡带 `Build failed`/`No runtime results` 的 V1 失败都不可信，跑前确认 `tasklist | grep -i rimworld` 为空。

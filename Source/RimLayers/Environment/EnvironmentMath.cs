@@ -19,6 +19,26 @@ public static class EnvironmentMath
     public static float TemperatureScore(float temperature,float cold,float hot)=>
         Math.Clamp((temperature-cold)/10,0,1)*Math.Clamp((hot-temperature)/10,0,1);
     public static float Wind(int elevation,float strength)=>(float)Math.Pow(1+Math.Max(0,elevation),.2*strength);
+    // Underground ecology counts. Kept here so batch tests can prove the shape without a Map.
+    public static int SoilCells(int candidates,float coverage)=>coverage<=0||candidates<=0?0:
+        Math.Min(candidates,(int)Math.Round(candidates*(double)Math.Min(1,coverage),MidpointRounding.AwayFromZero));
+    public static int GeyserCount(int area,float per10K)=>per10K<=0||area<=0?0:
+        (int)Math.Round((double)area/10000*per10K,MidpointRounding.AwayFromZero);
+    public static int PlantCount(int soilCells,float density)=>soilCells<=0||density<=0?0:
+        (int)Math.Round(soilCells*PerCellFloraDensity*(double)density,MidpointRounding.AwayFromZero);
+    public const float PerCellFloraDensity=.06f;
+    /// <summary>Cut-off that keeps exactly the top <paramref name="coverage"/> fraction of values.</summary>
+    public static double QuantileThreshold(List<double> values,float coverage)
+    {
+        if(values.Count==0)return double.MaxValue;
+        if(coverage<=0)return double.MaxValue;
+        if(coverage>=1)return double.MinValue;
+        var sorted=new List<double>(values);
+        sorted.Sort();
+        int keep=(int)Math.Round(sorted.Count*(double)Math.Min(1,coverage),MidpointRounding.AwayFromZero);
+        keep=Math.Clamp(keep,1,sorted.Count);
+        return sorted[^keep];
+    }
     // Smooth spatial bands, independently offset by resource, host and adjacent depth.
     // Depth changes the phase slowly; the cells are never copied from a preceding layer.
     public static double Band(int seed,int x,int z,int depth)

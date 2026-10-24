@@ -6,7 +6,13 @@
 
 2026-10-21，1.7.4984 rev1242：显示页拆分为“楼梯标记”和“返层按钮”，各自即时生效。旧 `landingMarkers` 值同时迁移到两项；新 `returnButtons` 显式保存，独立开关组合不会在读取时重新合并。
 
-Release 构建零警告／零错误，中英文设置键各 96 项一致。独立游戏 `v1-settings-ui-20261021-175047` 的 20 项检查通过，进程退出码 0，报告无运行错误；覆盖旧开／关迁移、四种组合原生 Scribe 保存读取、实际复选框点击互不干扰、恢复默认。Core + Harmony + RimLayers，中文 1280×720（原生实际 UI 缩放 0.9375）；已检查 [显示页截图](../Tests/Artifacts/v1-settings-ui-20261021-175047/settings-display.png)，两个标签与复选框独立可见，无重叠或裁切。其余页面与既有恢复列表随该入口渲染回归。未修改玩家配置／存档。
+Release 构建零警告／零错误，中英文设置键各 96 项一致。独立游戏 `v1-settings-ui-20261024-073823` 的 23 项检查通过，进程退出码 0，报告无运行错误；覆盖旧开／关迁移、四种组合原生 Scribe 保存读取、实际复选框点击互不干扰、恢复默认。Core + Harmony + RimLayers，中文 1280×720（原生实际 UI 缩放 0.9375）；已检查 [显示页截图](../Tests/Artifacts/v1-settings-ui-20261024-073823/settings-display.png)，两个标签与复选框独立可见，无重叠或裁切。其余页面与既有恢复列表随该入口渲染回归。未修改玩家配置／存档。
+
+## 后续修复：设置页签改网格后的注入坐标
+
+2026-10-24，1.7.4984 rev1242：`SettingsMenu` 从五页单行标签改为六页 3×2 网格（`tabWidth=(rect.width-8)/3`，第 2 行 `rect.y+36`，正文 `rect.y+78`），但 `Diagnostics/V1SettingsUi.cs` 的 `SettingsInputBegin` 仍按旧的单行 `+42` 基准注入鼠标坐标，注入点比真实控件高 36 px，导致 6 项原生控件断言稳定失败（`native-settings-checkbox-click-toggles-floor-panel`、`native-settings-tab-click-selects-gameplay`、`native-settings-slider-drag-updates-travel-multiplier` 及三项楼梯标记／返层按钮复选框）。失败与 Ecology 改动无关，`git diff --stat -- Source/RimLayers/SettingsMenu.cs` 为空。
+
+修正：局部坐标表改为 `158`（第一行页签下方的正文首行）、`5f/6f`（第 2 列页签 Gameplay）、`234`/`270`（恢复列表），并新增 Environment 页取证链——页首、页尾截图，`environment-page-draws-content`（由 `SettingsMenu.heights[5]` 断言页面真的画出了正文），以及反射把 `EnvironmentSettingsMenu.open` 加入 `Ecology` 后再断言 `heights[5]` 增长、`Ecology` 组 3 个参数全部标记为“新层生效”。`v1-settings-ui-20261024-072319` 起 21 → 23 项全部通过，滑块 detail 为 `actual=3.35; point=(941.2, 250)`。
 
 ## 后续修复：楼板施工误报
 
@@ -32,9 +38,9 @@ Release 构建零警告／零错误，中英文设置键各 96 项一致。独�
 | 六甲板飞船 | `v1-gravship-20261020-234510` | 56 / 28 / 11 通过：原版合法载重、在途保存、收紧设置后接收、旋转、对象身份、返回与原选层恢复 |
 | 旧档在途船/新目标地图 | `v1-gravship-20261021-000437` | 49 / 26 / 10 通过：仅在独立测试档中移除预留节点；旧档仍完成原承诺，额外高度重新受限 |
 | 起飞故障边界 | `v1-gravship-20261021-002230` | 58 / 28 / 11 通过：配额/太空拒绝早于扣燃料和拆离；未起飞异常释放预留，起飞后异常保留承诺；后续完整往返 |
-| 设置 UI | `v1-settings-ui-20261021-002027`、`...002724` | 各 10 通过；英语 1280×720（实际 UI 缩放 0.9375），中文 1920×1080/1.25；原版复选框、页签、滑块和确认恢复默认 |
+| 设置 UI | `v1-settings-ui-20261024-073823`（最新）、`v1-settings-ui-20261021-002027`、`...002724` | 最新 23 通过：六页 3×2 页签下的原生复选框、页签、滑块、确认恢复默认，另加 Environment 页正文高度与 Ecology 组展开；英语 1280×720（实际 UI 缩放 0.9375），中文 1920×1080/1.25 |
 
-五页设置、玩法滚动尾部、待恢复列表的完整视觉检查还见 `v1-settings-ui-20261020-225407` / `225622`。当前中文恢复页再次检查可读、无重叠；最终 11 层地图的上层背景、雾、地表实体与楼层控制实际渲染图见性能目录 `eleven-floor-upper-view.png`。实际画面遵守地表承托对地下的遮挡。
+六页设置、玩法滚动尾部、Environment 页、待恢复列表的完整视觉检查还见 `v1-settings-ui-20261024-073823` / `v1-settings-ui-20261020-225407` / `225622`。`settings-environment.png`、`settings-environment-bottom.png`、`settings-environment-ecology.png` 分别记录页首、页尾六个折叠组（Temperature & ventilation / Weather & disasters / Minerals / Magma / Insect ecology / Ecology）和 Ecology 展开后的状态。当前中文恢复页再次检查可读、无重叠；最终 11 层地图的上层背景、雾、地表实体与楼层控制实际渲染图见性能目录 `eleven-floor-upper-view.png`。实际画面遵守地表承托对地下的遮挡。
 
 ## 最终候选的巡检与恢复开销
 

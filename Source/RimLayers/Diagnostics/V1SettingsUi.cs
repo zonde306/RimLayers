@@ -14,6 +14,12 @@ internal static partial class V1Integration
     private static Window settingsUiWindow=null!;
     private static int settingsUiPage;
     private static bool settingsInputRequested,settingsInputDone,settingsInputBusy;
+    private static float settingsUiEcologyHeightBefore;
+    private static float EnvironmentPageHeight()
+    {
+        var heights=AccessTools.Field(typeof(SettingsMenu),"heights").GetValue(settingsUiMenu) as float[];
+        return heights==null?0:heights[5];
+    }
     private static int settingsInputPhase;
     private static EventType settingsInputKind;
     private static Vector2 settingsInputPoint,settingsInputLocal;
@@ -55,7 +61,42 @@ internal static partial class V1Integration
         }
         if(settingsUiPage==5)
         {
-            settingsUiPage++;settingsUiWindow.Close(false);
+            settingsUiPage++;AccessTools.Field(typeof(SettingsMenu),"page").SetValue(settingsUiMenu,5);
+            AccessTools.Field(typeof(SettingsMenu),"scroll").SetValue(settingsUiMenu,Vector2.zero);
+            SettingsUiPicture("environment");return;
+        }
+        if(settingsUiPage==6)
+        {
+            settingsUiPage++;AccessTools.Field(typeof(SettingsMenu),"page").SetValue(settingsUiMenu,5);
+            AccessTools.Field(typeof(SettingsMenu),"scroll").SetValue(settingsUiMenu,new Vector2(0,10000));
+            // heights[5] is written by the Environment page draw; it proves the page
+            // produced body rows instead of failing silently behind the tab grid.
+            float height=EnvironmentPageHeight();
+            Check("environment-page-draws-content",height>0,$"height={height}");
+            SettingsUiPicture("environment-bottom");return;
+        }
+        if(settingsUiPage==7)
+        {
+            settingsUiPage++;
+            var menuField=AccessTools.Field(typeof(SettingsMenu),"environmentMenu");
+            var ecologyMenu=menuField.GetValue(settingsUiMenu);
+            if(AccessTools.Field(typeof(EnvironmentSettingsMenu),"open").GetValue(ecologyMenu) is HashSet<string> open)
+                open.Add("Ecology");
+            settingsUiEcologyHeightBefore=EnvironmentPageHeight();
+            // Scroll to the expanded group so the screenshot shows its controls.
+            AccessTools.Field(typeof(SettingsMenu),"scroll").SetValue(settingsUiMenu,new Vector2(0,10000));
+            // The page redraws every frame; expanding the group needs one more draw
+            // before its extra rows are reflected in heights[5].
+            SettingsUiPicture("environment-ecology");return;
+        }
+        if(settingsUiPage==8)
+        {
+            settingsUiPage++;
+            float after=EnvironmentPageHeight();
+            var ecology=RimLayers.Environment.EnvironmentSettings.Parameters.Where(p=>p.Group=="Ecology").ToArray();
+            Check("ecology-group-expands-into-drawn-controls",after>settingsUiEcologyHeightBefore,$"before={settingsUiEcologyHeightBefore}; after={after}; controls={ecology.Length}");
+            Check("ecology-generation-parameters-are-marked-new-layers",ecology.Length==3&&ecology.All(p=>p.Generation),$"controls={ecology.Length}");
+            settingsUiWindow.Close(false);
             var item=ThingMaker.MakeThing(ThingDefOf.Silver);item.stackCount=43;
             RecoveryService.CaptureInvalidSpawn(item,map,new IntVec3(-100,0,99999),Rot4.North);
             var record=RecoveryService.Records.Single(r=>r.Thing==item);record.ManualOnly=true;
@@ -64,13 +105,13 @@ internal static partial class V1Integration
             Check("manual-recovery-list-holds-original-test-object",RecoveryService.GetDirectlyHeldThings().Contains(item));
             SettingsUiPicture("pending-selected");return;
         }
-        if(settingsUiPage==6)
+        if(settingsUiPage==9)
         {
-            settingsUiWindow.Close(false);RimLayersMod.Settings.Reset();
+            settingsUiPage++;settingsUiWindow.Close(false);RimLayersMod.Settings.Reset();
             AccessTools.Field(typeof(SettingsMenu),"page").SetValue(settingsUiMenu,0);
             AccessTools.Field(typeof(SettingsMenu),"scroll").SetValue(settingsUiMenu,Vector2.zero);
             settingsUiWindow=new Dialog_ModSettings(LoadedModManager.GetMod<RimLayersMod>());Find.WindowStack.Add(settingsUiWindow);
-            settingsInputRequested=true;InstallSettingsInput();settingsUiPage=7;return;
+            settingsInputRequested=true;InstallSettingsInput();return;
         }
         if(!settingsInputDone)return;
         settingsInputHooks?.UnpatchAll(settingsInputHooks.Id);settingsInputHooks=null;
@@ -136,11 +177,14 @@ internal static partial class V1Integration
         __state=Event.current;settingsInputOutsideClip=false;settingsInputBusy=true;
         Vector2 local=settingsInputPhase switch
         {
-            0 or 1=>new(rect.x+rect.width*.5f,rect.y+122),
-            2 or 3=>new(rect.x+rect.width*.5f,rect.y+16),
-            4 or 5 or 6=>new(rect.x+rect.width*.8f,rect.y+122),
-            9 or 10 or 13 or 14=>new(rect.x+rect.width*.5f,rect.y+198),
-            11 or 12=>new(rect.x+rect.width*.5f,rect.y+234),
+            // Body rows start at rect.y+78 (two tab rows); 122/198/234 were the
+            // single-row (rect.y+42) offsets and must carry the same +36.
+            0 or 1=>new(rect.x+rect.width*.5f,rect.y+158),
+            // Six pages are laid out 3*2, so column 2 (Gameplay) is at 5/6 width.
+            2 or 3=>new(rect.x+rect.width*(5f/6f),rect.y+16),
+            4 or 5 or 6=>new(rect.x+rect.width*.8f,rect.y+158),
+            9 or 10 or 13 or 14=>new(rect.x+rect.width*.5f,rect.y+234),
+            11 or 12=>new(rect.x+rect.width*.5f,rect.y+270),
             _=>new(rect.x+90,rect.yMax-19)
         };
         settingsInputLocal=local;

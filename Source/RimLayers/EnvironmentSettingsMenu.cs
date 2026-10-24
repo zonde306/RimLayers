@@ -24,7 +24,7 @@ internal sealed class EnvironmentSettingsMenu
         }
         else body.Label(T("LoadSave"));
         body.Label(T("TimingHelp"));
-        foreach(string group in new[]{"Temperature","Disasters","Minerals","Lava","Insects"})
+        foreach(string group in new[]{"Temperature","Disasters","Minerals","Lava","Insects","Ecology"})
         {
             if(Widgets.ButtonText(body.Row(34),(open.Contains(group)?"− ":"+ ")+T(group)))
             {if(!open.Add(group))open.Remove(group);}
@@ -44,6 +44,7 @@ internal sealed class EnvironmentSettingsMenu
             }
             if(group=="Lava")Toggle(body,"LavaEnabled",ref settings.LavaEnabled);
             if(group=="Insects")Toggle(body,"InitialHiveEnabled",ref RimLayersMod.Settings.CaveHives);
+            if(group=="Ecology")Toggle(body,"EcologyEnabled",ref settings.EcologyEnabled);
             foreach(var p in EnvironmentSettings.Parameters.Where(p=>p.Group==group&&!p.Advanced))Parameter(body,p,settings);
             if(Widgets.ButtonText(body.Row(28),(advanced.Contains(group)?"− ":"+ ")+T("Advanced")))
             {if(!advanced.Add(group))advanced.Remove(group);}
@@ -56,6 +57,13 @@ internal sealed class EnvironmentSettingsMenu
                         float weight=settings.Weight(def.defName);
                         Number(body,"ore:"+def.defName,def.LabelCap,ref weight,0,5,"×",1,true);
                         if(weight==1)settings.MineralWeights.Remove(def.defName);else settings.MineralWeights[def.defName]=weight;
+                    }
+                if(group=="Ecology")
+                    foreach(var def in UndergroundEcology.PlantPool())
+                    {
+                        float weight=settings.PlantWeight(def.defName);
+                        Number(body,"plant:"+def.defName,def.LabelCap,ref weight,0,5,"×",1,true);
+                        if(weight==1)settings.PlantWeights.Remove(def.defName);else settings.PlantWeights[def.defName]=weight;
                     }
             }
             if(Widgets.ButtonText(body.Row(28),T("ResetGroup")))

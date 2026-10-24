@@ -46,6 +46,18 @@ F7/F8 和面板按真实高度切层。地下层显示 B1、B2……（中文为
 
 地下不受日照和雨雪影响，初始室温为 15°C；之后沿用房间温度及已有连接器交换规则。电力、空气、热、声音和火焰按真实相邻层连通；地下边缘不是世界出口，天空投送不能落到地下。
 
+## 地下生态
+
+新生成的地下城会额外布置砾石土壤、蒸汽间歇泉与洞穴植物。全部复用原版定义，不新增也不修改任何 XML Def；缺少对应 DLC 时该植物自动从池中消失。
+
+土壤取原版 Gravel（肥力 0.7，带 GrowSoil 与 Diggable 标签），只铺在洞穴地面：实心岩保留可开采性，岩浆与冷却岸保持不变。洞穴地面原本是石面岩的 implied terrain，肥力硬编码为 0，这是原版 `WildPlantSpawner.CheckSpawnWildPlantAt` 拒绝一切植物的唯一硬门槛；铺上砾石后，原版自己的洞穴植物重播规则也随之生效，不需要额外的 Harmony 补丁。
+
+植物池由 defName 决定：Glowstool、Agarilux、Bryolux、Plant_Timbershroom，以及装了 Odyssey 时的 Plant_Psilocap、Boomshroom、Plant_Willowgill。初始布置走 `WildPlantSpawner.SpawnPlant`，因此每株都是正常的、可生长可收获的 Plant，和自然生成的没有区别。布置在 `afterRegions` 阶段执行，因为原版生成植物要求区域已建好；与虫巢共用该阶段，**虫巢先、植物后**。顺序不能反过来：Odyssey 的 `HiveUtility.SpawnExtras` 会在每个虫巢周围抹一片约 30 格的 `InsectSludge`（肥力 0），先种植物就会被这层烂泥顶掉，砾石格数也对不上。植物因此只落在虫巢之后仍然是砾石、且没有占用物的格子上。
+
+蒸汽间歇泉使用原版 SteamGeyser，按面积和每万格数量换算，要求 2×2 全落在空旷洞穴地面、彼此至少 20 格，并避开虫巢候选格。间歇泉带 `blockPlants` 且不再是可种植地面，因此其上不会长植物。
+
+所有计数由层种子与深度派生，同存档重放一致；每层的实际结果写入 `EcologyGenerationRecord`（土壤格数、间歇泉数、每种植物的株数），读档不需要重扫地图。
+
 ## 存档与接口
 
 布局版本升级为 2。LayerId 是稳定存储带 ID，Elevation 才是物理高度。地表一直是 ID 0；新带只追加，不平移旧 Pawn、建筑、区域、预订或坐标。
