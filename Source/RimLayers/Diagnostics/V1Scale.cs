@@ -229,7 +229,18 @@ internal static partial class V1Integration
             generationMs=mode=="generate"?(double?)scaleGenerationMs:null,loadMs=mode=="load"?(double?)scaleLoadMs:null,saveMs=mode=="generate"?(double?)scaleSaveMs:null,
             path=ScaleStats(scalePathMs),tick=ScaleStats(scaleTickMs),draw=scaleDrawMs.ToDictionary(p=>p.Key,p=>ScaleStats(p.Value)),
             memoryStart=scaleMemoryStart,memoryEnd=ScaleMemory(),
-            methodology="Native neutral NPC Lord cohort; four complete trips, then native defend AI. 120 warm-up ticks; direct DoSingleTick CPU timing excludes fixture/control/save IO. Native draw methods timed separately: CPU submission, not GPU or end-to-end frame time. Paths are complete ground-to-top queries with two excluded warm-ups. Process memory includes engine/assets/caches; no forced GC.",
+            // Counters prove the optimisations actually engaged rather than merely not crashing.
+            perf=new {
+                forCacheHitRatio=PerfCounters.ForCacheHitRatio(),
+                forCalls=Core.LayerMapComponent.ForCalls,forScans=Core.LayerMapComponent.ForScans,
+                routeRequests=Navigation.LayerRouter.Requests,routeLegPathfinds=Navigation.LayerRouter.LegPathfinds,
+                routeDirectShortCircuits=Navigation.LayerRouter.DirectShortCircuits,
+                heatExchanges=owner!.Heat.Exchanges,heatRebuilds=owner.Heat.Rebuilds,heatColumnEvaluations=owner.Heat.ColumnEvaluations,
+                skyRoomInvalidations=owner.Sky.RoomInvalidations,environmentTopologyBuilds=owner.Environment.TopologyBuilds,
+                connectorVersion=owner.Connectors.Version,
+                legPathfindsPerRequest=Navigation.LayerRouter.Requests==0?0d:(double)Navigation.LayerRouter.LegPathfinds/Navigation.LayerRouter.Requests
+            },
+            methodology="Native neutral NPC Lord cohort; four complete trips, then native defend AI. 120 warm-up ticks; direct DoSingleTick CPU timing excludes fixture/control/save IO. Native draw methods timed separately: CPU submission, not GPU or end-to-end frame time. Paths are complete ground-to-top queries with two excluded warm-ups. Process memory includes engine/assets/caches; no forced GC. Counter fields record cache hit ratios and rebuild counts for the performance work; legPathfindsPerRequest is the primary router metric.",
             rawPathMs=scalePathMs,rawTickMs=scaleTickMs,rawDrawMs=scaleDrawMs
         }));
     }

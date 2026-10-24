@@ -44,7 +44,21 @@ internal static partial class V1Integration
         Check("paired-room-heat-is-conservative",Math.Abs(HeatEnergy()-before)<0.0005,$"before={before}, after={HeatEnergy()}");
         var thin=AccessTools.Method(typeof(RoomTempTracker),"ThinRoofEqualizationTempChangePerInterval");
         Check("covered-lower-roof-does-not-also-lose-heat-outdoors",(float)thin.Invoke(rooms[0].TempTracker,null)! ==0 && (float)thin.Invoke(rooms[1].TempTracker,null)! ==0);
-        Check("top-ceiling-retains-native-outdoor-loss",Math.Abs((float)thin.Invoke(rooms[2].TempTracker,null)!-(map.mapTemperature.OutdoorTemp-rooms[2].Temperature)*0.006f)<0.00001);
+        float topActual=(float)thin.Invoke(rooms[2].TempTracker,null)!;
+        // The top ceiling keeps the native outdoor exchange, but "outdoors" for a layered map is
+        // LocalOutside(): mapTemperature.OutdoorTemp minus Elevation*AltitudeLapse. AltitudeLapse is
+        // a user-configurable feature setting (Environment settings, "°C/F"), so the lapse is
+        // expected behaviour, not drift. This expectation previously used the raw OutdoorTemp and
+        // therefore pinned the pre-2026-10-22 behaviour; see Docs/PERFORMANCE-2026-10.md.
+        float topOutside=owner.Environment.Enabled
+            ? owner.Environment.LocalOutside(rooms[2])
+            : map.mapTemperature.OutdoorTemp;
+        float topExpected=(topOutside-rooms[2].Temperature)*0.006f;
+        Check("top-ceiling-retains-native-outdoor-loss",Math.Abs(topActual-topExpected)<0.00001,
+            $"actual={topActual}, expected={topExpected}, coverage={owner.Heat.OutdoorCoverage(rooms[2],true)}, "+
+            $"enabled={owner.Environment.Enabled}, outdoor={map.mapTemperature.OutdoorTemp}, outside={topOutside}, "+
+            $"openRoof={rooms[2].OpenRoofCount}, edge={rooms[2].TouchesMapEdge}, roomTemp={rooms[2].Temperature}, "+
+            $"wind={owner.Environment.WindFactor(rooms[2].Cells.First())}, exposedFirst={owner.Sky.IsExposed(rooms[2].Cells.First())}");
         var stair=(Building_Stairs)GenSpawn.Spawn(RimLayersDefOf.RL_Stairs,At(0,56,56),map);
         var door=(Building_Door)GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Door,ThingDefOf.Steel),At(1,56,56),map);
         Check("closed-stair-door-keeps-only-slow-conduction",Math.Abs(owner.Heat.Conductance(stair.Position,stair.UpperCell)-0.006)<1e-9);

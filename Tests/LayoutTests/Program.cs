@@ -70,4 +70,36 @@ Assert(firstDown.LayerOrFuture(1)==2&&firstDown.ElevationOrFuture(2)==1,"Future 
 Reject(()=>new LayerLayout(120,120,new[]{0,-2},136));
 Reject(()=>new LayerLayout(120,120,new[]{0,-1,-1},136));
 Reject(()=>new LayerLayout(120,120,Enumerable.Range(0,11).ToArray(),136));
+
+// Above/Below are now precomputed tables. They must match the previous LINQ projection exactly:
+// Above ascending by elevation, Below descending (nearest first), for every allocation order.
+foreach(var levels in new[]{new[]{0,1,2},new[]{0,1},new[]{0,-1},new[]{0,-1,-2},new[]{0,-1,-2,1,2},
+    new[]{0,2,1,-1,-2},new[]{0,-3,-1,-2,1,3,2}})
+{
+    var layout=new LayerLayout(120,120,levels,136);
+    foreach(int id in Enumerable.Range(0,layout.LayerCount))
+    {
+        int here=layout.ElevationOf(id);
+        var expectedAbove=Enumerable.Range(0,layout.LayerCount)
+            .OrderBy(layout.ElevationOf).Where(x=>layout.ElevationOf(x)>here).ToArray();
+        var expectedBelow=Enumerable.Range(0,layout.LayerCount)
+            .OrderBy(layout.ElevationOf).Reverse().Where(x=>layout.ElevationOf(x)<here).ToArray();
+        Assert(layout.Above(id).SequenceEqual(expectedAbove),$"Above({id}) differs from the ordered projection.");
+        Assert(layout.Below(id).SequenceEqual(expectedBelow),$"Below({id}) differs from the reversed projection.");
+        Assert(layout.Above(id).All(x=>layout.ElevationOf(x)>here),"Above contained a non-upper layer.");
+        Assert(layout.Below(id).All(x=>layout.ElevationOf(x)<here),"Below contained a non-lower layer.");
+    }
+    // OrderedLayers must remain the ascending physical order and must not be reallocated per call.
+    Assert(layout.OrderedLayers.Select(layout.ElevationOf).SequenceEqual(
+        Enumerable.Range(0,layout.LayerCount).Select(layout.ElevationOf).OrderBy(x=>x)),"OrderedLayers order changed.");
+    Assert(ReferenceEquals(layout.OrderedLayers,layout.OrderedLayers),"OrderedLayers reallocated per access.");
+    Assert(ReferenceEquals(layout.Above(0),layout.Above(0))&&ReferenceEquals(layout.Below(0),layout.Below(0)),
+        "Above/Below reallocated per access.");
+}
+// Append must rebuild the tables for the extended layout, not share the old ones.
+var appended=new LayerLayout(120,120,new[]{0,-1},136).Append(1);
+Assert(appended.Above(appended.LayerAt(0)).Select(appended.ElevationOf).SequenceEqual(new[]{1}),
+    "Appended layout Above() was not recomputed.");
+Assert(appended.Below(appended.LayerAt(0)).Select(appended.ElevationOf).SequenceEqual(new[]{-1}),
+    "Appended layout Below() was not recomputed.");
 Console.WriteLine($"PASS: {checks} total layout checks, including mixed underground allocation.");

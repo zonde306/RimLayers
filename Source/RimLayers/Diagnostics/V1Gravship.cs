@@ -372,7 +372,13 @@ internal static partial class V1Integration
         foreach(var c in new CellRect(20,20,12,12))
         {
             foreach(var t in c.GetThingList(destination).ToList())if(t is not Pawn&&t.def.destroyable)t.Destroy(DestroyMode.Vanish);
-            destination.roofGrid.SetRoof(c,null);destination.terrainGrid.SetTerrain(c,TerrainDefOf.Concrete);
+            // An Encounter map is randomly generated and may carry an under terrain in this rect.
+            // The native foundation write during PlaceGravshipInMap then logs
+            // "there is an under terrain there", which fails no-runtime-errors even though every
+            // behavioural assertion passes. The sibling fixture at ~line 330 already clears it.
+            destination.roofGrid.SetRoof(c,null);
+            if(destination.terrainGrid.UnderTerrainAt(c)!=null)destination.terrainGrid.RemoveTopLayer(c,false);
+            destination.terrainGrid.SetTerrain(c,TerrainDefOf.Concrete);
         }
         var root=new IntVec3(25,0,25);single.Rotation=Rot4.North;
         Check("single-deck-landing-does-not-require-or-create-extra-floor",LayerMapComponent.For(destination)==null&&ShipLanding.Check(single,root,destination).Accepted);
