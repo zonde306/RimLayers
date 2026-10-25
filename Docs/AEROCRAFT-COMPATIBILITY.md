@@ -7,6 +7,9 @@
 
 ```powershell
 & './Mods/RimLayers/Tests/Run-V1.ps1' -Scenario aerocraft -Aerocraft -TimeoutSeconds 420
+# 整个工程暂时编译不过时（例如别的会话正在改别的文件），加 -SkipBuild 复用
+# Assemblies/RimLayers.dll，只跳过 `dotnet build` 那一步：
+& './Mods/RimLayers/Tests/Run-V1.ps1' -Scenario aerocraft -Aerocraft -SkipBuild -TimeoutSeconds 420
 ```
 
 `-Aerocraft` 只在这个独立测试 profile 里启用 `MYDE.AerocraftFramework`，不读取也不修改玩家配置。
