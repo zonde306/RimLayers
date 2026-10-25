@@ -30,6 +30,7 @@ param(
     [switch]$Har,
     [switch]$VVRace,
     [switch]$Aerocraft,
+    [switch]$SkipBuild,
     [switch]$AllDlc,
     [int]$RaidSeed=17,
     [string]$RaidAuditSave,
@@ -90,8 +91,13 @@ $activeXml = ($active | ForEach-Object { '<li>' + $_ + '</li>' }) -join ''
 $knownXml = ($expansions | ForEach-Object { '<li>' + $_ + '</li>' }) -join ''
 $config = '<?xml version="1.0" encoding="utf-8"?><ModsConfigData><version>' + $version + '</version><activeMods>' + $activeXml + '</activeMods><knownExpansions>' + $knownXml + '</knownExpansions></ModsConfigData>'
 [IO.File]::WriteAllText((Join-Path $configDir 'ModsConfig.xml'),$config,[Text.UTF8Encoding]::new($false))
-& dotnet build (Join-Path $modRoot 'Source/RimLayers/RimLayers.csproj') -c Release --nologo
-if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+# -SkipBuild reuses whatever Assemblies/RimLayers.dll is already on disk. Another session editing this
+# tree can leave the whole project unbuildable while an unrelated change still needs the in-game run.
+if ($SkipBuild) { Write-Host '[skip-build] reusing Assemblies/RimLayers.dll' }
+else {
+    & dotnet build (Join-Path $modRoot 'Source/RimLayers/RimLayers.csproj') -c Release --nologo
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+}
 if ($CheckPure) {
     foreach ($name in @('TransitionTests', 'LayoutTests', 'NavigationTests', 'CombatGeometryTests','GasExchangeTests','HeatExchangeTests','ShipTopologyTests')) {
         & dotnet run --project (Join-Path $PSScriptRoot ($name + '/' + $name + '.csproj')) -c Release
