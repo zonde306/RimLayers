@@ -19,11 +19,37 @@ internal static class VanillaGravshipCompatibility
     private static MethodInfo? executeLaunch, isJammed;
     [ThreadStatic] private static bool confirmedLaunch;
     internal static bool SelectingRitual=>Active&&ritualState?.GetValue(null)!=null;
-    internal static bool EngineDef(ThingDef def)=>def==ThingDefOf.GravEngine ||
-        Active && def.defName is "VGE_GravjumperEngine" or "VGE_GravhulkEngine";
-    internal static IEnumerable<Building_GravEngine> Engines(Map map)=>
-        Active?map.listerThings.AllThings.OfType<Building_GravEngine>().Where(e=>EngineDef(e.def)):
-        map.listerThings.ThingsOfDef(ThingDefOf.GravEngine).OfType<Building_GravEngine>();
+    // Player-usable engines are exactly the defs whose thingClass derives from Building_GravEngine.
+    // That is the same rule VGE itself uses (GravshipHelper.GravEngineDefs), so a renamed, cloned or
+    // newly added engine def is recognised without touching this file. Enemy and mechanoid engines
+    // derive from Building instead, and player ownership is still enforced separately by Core().
+    private static HashSet<ThingDef>? engineDefs;
+    private static int engineDefsDefCount=-1;
+    internal static void RefreshEngineDefs(){engineDefs=null;engineDefsDefCount=-1;}
+    internal static bool EngineDef(ThingDef? def)
+    {
+        if(def==null)return false;
+        var cache=EngineDefs();
+        return cache.Contains(def);
+    }
+    private static HashSet<ThingDef> EngineDefs()
+    {
+        // DefDatabase is empty during mod construction; retry until it is populated so callers that
+        // run before Install() (static fields, map components) never see a permanently empty cache.
+        if(engineDefs!=null&&engineDefsDefCount==DefDatabase<ThingDef>.DefCount)return engineDefs;
+        var set=new HashSet<ThingDef>();
+        foreach(var def in DefDatabase<ThingDef>.AllDefsListForReading)
+            if(def.thingClass!=null&&typeof(Building_GravEngine).IsAssignableFrom(def.thingClass))set.Add(def);
+        if(set.Count==0)return engineDefs??set;
+        engineDefs=set;engineDefsDefCount=DefDatabase<ThingDef>.DefCount;
+        return set;
+    }
+    internal static IEnumerable<Building_GravEngine> Engines(Map map)
+    {
+        foreach(var def in EngineDefs())
+            foreach(var thing in map.listerThings.ThingsOfDef(def))
+                if(thing is Building_GravEngine engine)yield return engine;
+    }
     internal static bool Scaffold(TerrainDef? def)=>Active&&def?.defName=="VGE_GravshipSubscaffold";
     internal static int SupportCost(Map map,IEnumerable<IntVec3> cells)=>!Active?cells.Count():cells.Count(c=>!Scaffold(map.terrainGrid.FoundationAt(c)));
 
@@ -31,6 +57,10 @@ internal static class VanillaGravshipCompatibility
     {
         Active=ModsConfig.IsActive("vanillaexpanded.gravship");
         Chapter2=Active&&ModsConfig.IsActive("vanillaexpanded.gravship2");
+        RefreshEngineDefs();
+        // PipeSystem (shipped inside VEF) is independent of VGE: astrofuel/oxygen pipes exist only
+        // with VEF, but the hook itself is harmless when the type is absent.
+        RimLayers.Environment.PipeLinks.Install(harmony);
         if(!Active)return;
         Type Required(string name)=>AccessTools.TypeByName("VanillaGravshipExpanded."+name) ??
             throw new InvalidOperationException("[RimLayers] VGE type not found: "+name);
@@ -50,13 +80,17 @@ internal static class VanillaGravshipCompatibility
         // VGE's 2D scaffold flood must not cross ownership or charge the wrong deck.
         harmony.Patch(Method("GravshipUtility_GetConnectedSubstructure_Patch","GetConnectedSubstructure"),
             prefix:Hook(nameof(ScaffoldAllowance)));
+        // VGE_GravFieldAmplifier / GravFieldExtender placement uses flat InHorDistOf, so an upper
+        // deck never sees the engine below it.
+        harmony.Patch(Method("PlaceWorker_InRangeOfGravSource","AllowsPlacing"),
+            prefix:Hook(nameof(GravSourcePlacement)));
         if(Chapter2)
         {
             var type=AccessTools.TypeByName("VanillaGravshipExpanded2.Designator_MoveGravship_IsValidCell_Patch")!;
             isJammed=AccessTools.Method(type,"IsCellJammed");
             harmony.Patch(isJammed,transpiler:Hook(nameof(JammerDistance)));
         }
-        Log.Message("[RimLayers] Optional VGE compatibility enabled (Chapter 2: "+Chapter2+"). VGE single-engine and resource rules retained.");
+        Log.Message("[RimLayers] Optional VGE compatibility enabled (Chapter 2: "+Chapter2+", layered pipes: "+RimLayers.Environment.PipeLinks.Active+"). VGE single-engine and resource rules retained.");
     }
     internal static void NormalizeRoofColors(Gravship ship,ShipCapture capture)
     {
@@ -93,6 +127,39 @@ internal static class VanillaGravshipCompatibility
         if(owner.Ships.Get(engine) is {} ship&&owner.TryDecode(engine.Position,out var core))
             maxCells+=ship.Cells.Count(c=>owner.TryDecode(c,out var p)&&p.LayerId==core.LayerId&&
                 Scaffold(engine.Map.terrainGrid.FoundationAt(c))&&(!requireInsideFootprint||owner.Ships.InField(engine,c)));
+        return false;
+    }
+    /// <summary>
+    /// VGE.PlaceWorker_InRangeOfGravSource.AllowsPlacing walks linkableBuildings and
+    /// VGE_GravFieldAmplifier with loc.InHorDistOf(...). On a layered map that distance spans the
+    /// storage stride, so extenders/amplifiers cannot be placed on another deck. Keep the radius
+    /// policy (footprint radius when present, otherwise maxDistance) and only replace the distance.
+    /// </summary>
+    private static bool GravSourcePlacement(BuildableDef checkingDef,IntVec3 loc,Map map,ref AcceptanceReport __result)
+    {
+        if(checkingDef is not ThingDef def||LayerMapComponent.For(map) is not {} owner)return true;
+        var props=def.GetCompProperties<CompProperties_Facility>();
+        if(props==null)return true;
+        bool near=false;
+        foreach(var linkable in props.linkableBuildings??Enumerable.Empty<ThingDef>())
+        {
+            near=Near(map,owner,loc,linkable);
+            if(near)break;
+        }
+        if(!near&&AccessTools.TypeByName("VanillaGravshipExpanded.VGEDefOf") is {} defs&&
+            AccessTools.Field(defs,"VGE_GravFieldAmplifier")?.GetValue(null) is ThingDef amplifier)
+            near=Near(map,owner,loc,amplifier);
+        __result=near?true:"VGE_MustBePlacedInRangeOfGravSource".Translate();
+        return false;
+    }
+    private static bool Near(Map map,LayerMapComponent owner,IntVec3 loc,ThingDef def)
+    {
+        foreach(var thing in map.listerThings.ThingsOfDef(def))
+        {
+            float radius=thing.TryGetComp<CompSubstructureFootprint>()?.Props.radius??
+                thing.TryGetComp<CompFacility>()?.Props.maxDistance??0f;
+            if(owner.Ships.Distance(thing.Position,loc)<=radius)return true;
+        }
         return false;
     }
     private static HashSet<IntVec3> PowerDecks(Building_GravEngine engine)=>

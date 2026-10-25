@@ -191,4 +191,7 @@ internal static class ShipDeckTerrain
         owner.StructuralCells.Add(cell);owner.Structure.RoofChanged(cell);
         owner.Invalidate(cell,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);
     }
+    /// <summary>All deck cells of a layered ship, or null when the engine has no layer structure.</summary>
+    internal static HashSet<IntVec3>? DeckCells(Building_GravEngine engine)=>
+        LayerMapComponent.For(engine.Map)?.Ships.Get(engine) is {Ambiguous:false} ship&&ship.Cells.Count>0?ship.Cells:null;
 }

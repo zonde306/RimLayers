@@ -8,14 +8,17 @@
 
 在普通结构平台上建原生逆重基架，再放对应引擎；上甲板仍用 RimLayers 飞船结构楼板。Gravjumper 使用 pilot cockpit，gravhulk 使用 pilot bridge，普通引擎使用 pilot console，适配不会解除 VGE 的驾驶设施型号匹配。
 
-燃料罐和推进器可随上层甲板运输、链接到其他层的本船引擎，但实际燃料管道仍需连通；楼层投影不会连接两根不同层的管道。多层船的着陆保持完整净空检查，不通过 VGE 撞毁障碍式降落清空殖民地楼板或建筑。
+燃料罐和推进器可随上层甲板运输、链接到其他层的本船引擎；相邻两层各建一个竖直接头（`RL_AstrofuelPipeRiser` / `RL_OxygenPipeRiser`）即可让宇航燃料/氧气管道跨甲板连通，同一层内的连接仍走 PipeSystem 原生逻辑，因此不同船或无关殖民地管网不会被焊接。多层船的着陆保持完整净空检查，不通过 VGE 撞毁障碍式降落清空殖民地楼板或建筑。
 
 ## 已确定规则
 
 - 按用户确认，VGE 下保留其全局单活动引擎规则；纯原生仍允许多船，船体归属不能合并。
-- 支持原生引擎及 VGE 的 gravjumper / gravhulk 引擎。敌方特殊引擎不自动视作玩家多层船。
+- 引擎口径为“thingClass 派生自 Building_GravEngine”的**所有**玩家可用引擎（与 VGE 自己的 `GravshipHelper.GravEngineDefs` 一致），不再是 defName 白名单；敌方/机械族引擎派生自 Building，天然排除，玩家归属另由 `Faction==OfPlayer` 把关。
+- 引擎设施不再只认 `CompGravshipFacility`：任何 `CompProperties_Facility`，只要其 `linkableBuildings` 含该引擎 def（例如 VGE 的 `VGE_GravshipStructuralBeam`）都按跨层处理；`mustBePlacedAdjacent*` 这类天然同层约束保留原生语义。
+- `engine.ValidSubstructure` / `ValidSubstructureNoRegen` 在本船返回**全甲板**格集（`ShipDeckTerrain.DeckCells`），因此 VGE 的热管理、热吸收器、船体遮罩与起飞前清树都覆盖上层甲板。
 - 保留燃料管网、推进器缺燃料、维护、研究、引力异常、Chapter 2 干扰与远程锁定。管网仍遵循 VGE 的实际连接，不凭楼层投影免费连通。
 - 普通楼板与飞船楼板继续按格独立归属；高层建造、起飞分离、跨界建筑确认拆除、停靠高度与全存档楼层配额沿用 RimLayers 现有规则。
+- 飞船结构楼板可正常拆除：地基用 `CanRemoveFoundationAt` 前缀接管（原生 `Removable` 等于 `layerable`，两种船板都是 `layerable=false`）；船板上的装修层走独立的“只拆装修、保留甲板”分支。占用格、上方屋顶/结构、无合法邻格仍拒绝。
 - VGE subscaffold 仍随船运输但不占承载容量；不能因适配而变成可放建筑的普通船板。
 - 真空屏障顶颜色按船内层坐标保存，旋转/高层降落后还原到对应楼层。
 - VGE 仪式直接起飞入口必须在扣燃料前完成分离确认与目标配额预留。
@@ -57,6 +60,14 @@ VGE 三种引擎逐一测试：本船跨两层 98 格、匹配驾驶设施跨层
 - 024844：生成 46 项通过，重载发现测试只保存临时 Game.Gravship 引用；改成原生世界对象持有后 025128 的 46/5 项通过。未改生产序列化来迁就测试。
 - 构建曾与自己的原生重载进程争用 DLL，等待该进程完整结束后构建成功，没有终止玩家进程。
 - 025425：补充 VGE 先选目的地再开仪式的可取消边界，47/5 项通过。
+- 20261025：管道方案从“同格自动跨层 + 手动重建网络”改为“显式竖直接头 + 原生注册”。旧方案的问题是把 PipeSystem 的网络生命周期当成了可以手动驱动的状态：`PipeNet.Destroy()` 和 `CompResource.PostDeSpawn` 都不清理各 comp 的 `PipeNet` 引用，逐 comp 的 unregister/register 会把已经合并的两层重新拆散（日志可见 `Network(s) number: 2`）。新方案只补纵向邻接，合并/拆分全交原生逻辑。
+- 20261025：`PatchOperationFindMod` 静默不匹配的坑（比显示名不比 packageId），改用 `PatchOperationConditional` 检查 `VGE_AstrofuelNet` 存在性。
+- 20261025：`Gravship..ctor` 的 `NullReferenceException` 最终定位为**测试夹具位置冲突**，不是产品缺陷。`VGE_PilotBridge` 是 5×3，占 `x78..82, z74..76`；测试把 filler 货和 `VGE_GravshipStructuralBeam` 分别 spawn 在 `(81,76)` 和 `(81,75)`，都在 bridge footprint 内，`GenSpawn` 把 bridge 挤掉后 VGE 的 `Gravship_AddThing_Patch` 就没有机会设置 `pilotConsole`，`DetermineLaunchDirection` 里 `pilotConsole.Rotation` 直接空引用。移到 `(81,77)` 和 `(77,74)` 后 NRE 消失。
+- 20261025：回归发现 `ValidSubstructure` 拓宽对原生多船路径是错的（`native-footprint-remains-core-deck-with-logical-cross-layer-ownership`），改为按 VGE 是否启用门控。教训：改了共享属性就应同时跑目标场景和一个反例场景，不要等全绿后才跑回归。
+- 20261025：`gravship -NativeShip` 的 `legal-rotated-ground-origin-accepted` 失败经 `git stash` 基线对比确认为**既有问题**，与本次 VGE 工作无关。
+
+最终验证（全部 0 失败）：VGE Chapter 1 generate 95 项 + load 5 项；Chapter 2 generate 98 项 + load 5 项（含 `chapter2-remote-lock-still-vetoes-launch`、`chapter2-ground-jammer-blocks-upper-deck-landing`、`chapter2-jammer-removal-restores-landing`）；`ship-structure` 55 项；`structure` generate 32 项 + load 16 项。产物目录 `Tests/Artifacts/v1-ship-vge-20261025-220928`（Ch2）、`v1-ship-structure-20261025-221712`、`v1-structure-20261025-223241`。
+- 夹具设计约束（后续改测试必读）：VGE 引擎把结构容量卡在 100 格，所以船体不能超过 7×7；而 `VGE_GravhulkEngine` 是 5×5，几乎占满 7×7 船体。因此燃料/管道夹具只能放在**船外地面**，靠同层管道与接头相连（同层连接不需要船归属）。`CompResource.RemovePipes()` 会销毁接头自己 footprint 上的管道，所以接头不能和管道同格。
 
 源码修改前副本：Tests/Artifacts/vge-before-20261020-193610。
 
@@ -64,8 +75,13 @@ VGE 三种引擎逐一测试：本船跨两层 98 格、匹配驾驶设施跨层
 
 ## 实现入口
 
-- Compatibility/VanillaGravshipCompatibility.cs：按 packageId 绑定反射接口，不引用 VGE/VEF DLL；引擎白名单、subscaffold 容量、全甲板发电负荷、颜色编码和 VGE 仪式扣费前确认；选址时的可取消仪式窗口不预占额度。
-- 两处原生设施筛选同时识别 VGE 引擎，保留其 linkableFacilities 与 CanLink；型号不匹配、尾焰阻塞和缺燃料照常拒绝。
+- Compatibility/VanillaGravshipCompatibility.cs：按 packageId 绑定反射接口，不引用 VGE/VEF DLL；引擎按类型派生识别、subscaffold 容量、全甲板发电负荷、颜色编码、`PlaceWorker_InRangeOfGravSource` 跨层选址和 VGE 仪式扣费前确认；选址时的可取消仪式窗口不预占额度。
+- 两处原生设施筛选同时识别 VGE 引擎与“普通 CompProperties_Facility 但 linkableBuildings 含引擎”的设施（`Ships/ShipFacilityPatches.cs` 的 `ShipFacilities` 谓词），保留其 linkableFacilities 与 CanLink；型号不匹配、尾焰阻塞和缺燃料照常拒绝。
+- `CompGravshipFacility.CompInspectStringExtra` 的“是否在引擎范围内”改为逻辑距离判定，跨层设施不再误报 `MessageMustBePlacedInRangeOfGravEngine`。
+- `ValidSubstructure`/`ValidSubstructureNoRegen` 在 **VGE 启用时**用 `ShipDeckTerrain.DeckCells` 覆盖全甲板，单点修复 VGE 热管理/遮罩/清树等直接消费者；未装 VGE 时保持原生单层语义，因为原生 `CanLaunch` 与多船路径依赖它（回归断言 `native-footprint-remains-core-deck-with-logical-cross-layer-ownership`）。
+- `Ships/ShipFoundationRemoval.cs` 用前缀接管船板地基可用性；`Structure/ConstructionPatches.cs` 的 `ShipDeckFinish` 负责“装修层可拆、甲板保留”。
+- `Environment/PipeLinks.cs`：PipeSystem（VEF 自带）可选绑定，只替换 `PipeNetManager.NeighbourThingsCardinal` 给**显式竖直接头**补上相邻层的同 (x,z) 邻居。网络合并/拆分全部交给原生 `RegisterConnector`/`UnregisterConnector`；RimLayers 不做手动 unregister/register（`PipeNet.Destroy()` 与 `PostDeSpawn` 都不保证状态一致，手动重建会让两层落进不同网）。跨层资格是“对面那层也有接头”，不看是否同属一艘船，因此船外地面同样可用。
+- `Patches/VGE_PipeRisers.xml`：用 `PatchOperationConditional` 检查 `VGE_AstrofuelNet` / `VGE_OxygenNet` 是否存在来注入两个接头 Def，避免硬依赖。**不能用 `PatchOperationFindMod`**：它比的是 `ModMetaData.Name`（显示名 `Vanilla Gravship Expanded - Chapter 1`），不是 packageId，写 packageId 会静默永不匹配。接头必须是 `PipeSystem.Building_Pipe` + PipeSystem 自己的 `CompProperties_Resource`，否则原生注册不会把它们当连接器。
 - VGE 的 subscaffold 2D 洪泛由本船归属与本层格替换；原生多层总容量按付费甲板数检查。
 - VEF 屋顶阴影 transpiler 先运行，RimLayers 再替换实际屋顶查询，避免互相找不到指令。
 - Chapter 2 干扰器只修正空间距离：同一逻辑 x/z 的不同层不会因存储带间距逃出干扰。供电、眩晕、范围与远程锁定继续由 VGE 判断。

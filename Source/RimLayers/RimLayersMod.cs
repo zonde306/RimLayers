@@ -24,16 +24,29 @@ public sealed class RimLayersMod : Mod
         // depend on the detected state this sets up.
         Compatibility.VVRaceCompatibility.Install();
         int patchClasses=0;
+        var failed=new List<string>();
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())
             if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length != 0)
             {
-                harmony.CreateClassProcessor(type).Patch();
-                patchClasses++;
+                // Harmony's class processor rethrows any transpiler/patch failure, and a throw here
+                // aborts the mod constructor: every later patch class (and the optional VGE adapter)
+                // silently disappears and the game looks inert. Isolate per class so one third-party
+                // conflict costs exactly one patch instead of the whole mod.
+                try
+                {
+                    harmony.CreateClassProcessor(type).Patch();
+                    patchClasses++;
+                }
+                catch (Exception exception)
+                {
+                    failed.Add(type.Name);
+                    Log.Error($"[RimLayers] Patch class {type.Name} failed and was skipped; the rest of the mod keeps working.\n{exception}");
+                }
             }
         Compatibility.VanillaGravshipCompatibility.Install(harmony);
         M1Integration.Configure();
         V1Integration.Configure();
-        Log.Message($"[RimLayers] 0.1.5 loaded ({patchClasses} patch classes). Global settings enabled; connector expansion preserves existing bands and coordinates.");
+        Log.Message($"[RimLayers] 0.1.5 loaded ({patchClasses} patch classes{(failed.Count==0?"":$", {failed.Count} skipped: {string.Join(", ", failed)}")}). Global settings enabled; connector expansion preserves existing bands and coordinates.");
     }
 }
 

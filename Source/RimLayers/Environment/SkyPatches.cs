@@ -28,6 +28,15 @@ internal static class SkyQueries
         if(owner!=null && owner.TryDecode(at,out var local))at=new IntVec3(local.X,0,local.Z);
         return noise.GetValue(at);
     }
+    /// <summary>
+    /// Redirects every call to <paramref name="original"/> inside one native method.
+    ///
+    /// A missing call site used to throw, and Harmony runs transpilers inside the mod constructor's
+    /// patch loop, so one incompatible third-party transpiler that already rewrote the same call took
+    /// the whole mod down (no patches at all, game looks inert). Another mod owning this call site is
+    /// a legitimate outcome, not a broken install: warn and leave the method untouched instead.
+    /// The warning keeps genuine RimWorld API drift visible in the log.
+    /// </summary>
     internal static IEnumerable<CodeInstruction> Replace(IEnumerable<CodeInstruction> instructions,MethodInfo original,MethodInfo replacement,int expected)
     {
         int count=0;
@@ -36,7 +45,9 @@ internal static class SkyQueries
             if(instruction.Calls(original)) { instruction.opcode=OpCodes.Call;instruction.operand=replacement;count++; }
             yield return instruction;
         }
-        if(count!=expected)throw new InvalidOperationException($"RimLayers sky hook {original.Name}: expected {expected} calls, found {count}");
+        if(count!=expected)
+            Log.Warning($"[RimLayers] Skipped layered sky hook {original.Name}: expected {expected} call site(s), found {count}. "+
+                "Another mod most likely patched the same method first; that method keeps its vanilla sky behaviour.");
     }
 }
 

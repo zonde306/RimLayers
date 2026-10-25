@@ -87,9 +87,23 @@ internal static class ShipLayers
     internal static ShipCapture? Prepare(Building_GravEngine engine,out AcceptanceReport report)
     {
         report=true;
-        if(!Eligible(engine) || LayerMapComponent.For(engine.Map) is not {} owner)return null;
-        if(!owner.TryDecode(engine.Position,out var origin))return null;
-        var structure=owner.Ships.Get(engine);if(structure==null)return null;
+        if(!Eligible(engine) || LayerMapComponent.For(engine.Map) is not {} owner)
+        {
+            report=$"not eligible: spawned={engine.Spawned},destroyed={engine.Destroyed},"+
+                $"engineDef={Compatibility.VanillaGravshipCompatibility.EngineDef(engine.def)},"+
+                $"player={engine.Faction==Faction.OfPlayer},managed={LayerMapComponent.For(engine.Map)!=null}";
+            return null;
+        }
+        if(!owner.TryDecode(engine.Position,out var origin)){report="undecodable engine position";return null;}
+        var structure=owner.Ships.Get(engine);
+        if(structure==null)
+        {
+            report="no ship structure; footprint="+string.Join(";",engine.OccupiedRect().Select(c=>
+                $"{c.x},{c.z}:sub={owner.map.terrainGrid.FoundationAt(c)?.IsSubstructure==true}:"+
+                $"surface={owner.Structure.HasSurface(c)}:top={owner.map.terrainGrid.TopTerrainAt(c)?.defName}:"+
+                $"claim={owner.Ships.ClaimAt(c)}"));
+            return null;
+        }
         report=owner.Ships.LaunchReport(engine);if(!report.Accepted)return null;
         var cells=new HashSet<IntVec3>(structure.Cells);
         var payload=new ShipLayerData{layerCount=structure.Top-structure.Bottom+1,engineDeckOffset=owner.Elevation(origin.LayerId)-structure.Bottom};

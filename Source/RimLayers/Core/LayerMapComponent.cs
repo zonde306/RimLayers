@@ -40,6 +40,7 @@ public sealed class LayerMapComponent : MapComponent
     public SkyfallService Skyfall { get; }
     public CombatService Combat { get; }
     public PowerLinks Power { get; }
+    public PipeLinks Pipes { get; }
     public AirLinks Air { get; }
     public SkyExposure Sky { get; }
     public HeatLinks Heat { get; }
@@ -62,6 +63,7 @@ public sealed class LayerMapComponent : MapComponent
         Skyfall = new SkyfallService(this);
         Combat = new CombatService(this);
         Power = new PowerLinks(this);
+        Pipes = new PipeLinks(this);
         Air = new AirLinks(this);
         Sky = new SkyExposure(this);
         Heat = new HeatLinks(this);

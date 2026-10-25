@@ -38,8 +38,6 @@ internal static class LayerShipCapture
             if(!report.Accepted)throw new InvalidOperationException("[RimLayers] Ship changed during separation: "+report.Reason);
         }
         ShipLayers.Capture=capture;
-        if(GenCommandLine.CommandLineArgPassed("rimlayersv1test"))
-            Log.Message("[RimLayers.CaptureTrace] core="+engine.ThingID+",cells="+capture?.Cells.Count+",consoles="+string.Join(";",engine.Map.listerThings.ThingsOfDef(ThingDefOf.PilotConsole).Select(t=>t.ThingID+"@"+t.Position+":"+engine.OnValidSubstructure(t))));
     }
     static void Postfix(Gravship __result)
     {
@@ -71,22 +69,93 @@ internal static class LayerShipCapture
             if(!capture.Owner.Underlays.ReleaseSupportRoof(roof,capture.Engine.thingIDNumber))map.roofGrid.SetRoof(roof,null);
         capture.Owner.Connectors.Invalidate();
     }
-    static Exception? Finalizer(Exception? __exception,ShipCapture? __state){ShipLayers.Capture=__state;return __exception;}
+    static Exception? Finalizer(Exception? __exception,ShipCapture? __state)
+    {
+        if(__exception!=null)
+            Log.Error("[RimLayers] GenerateGravship threw; layered payload rolled back.\n"+__exception);
+        ShipLayers.Capture=__state;
+        return __exception;
+    }
+}
+
+/// <summary>
+/// Native DetermineLaunchDirection dereferences the pilotConsole field, which CopyCellContents only
+/// fills for ThingDefOf.PilotConsole. VGE's pilot cockpit / pilot bridge are different defs, so a
+/// VGE ship threw NullReferenceException inside Gravship..ctor and could never launch. Resolve the
+/// console here, before the native read, from the engine's own Controls facility.
+/// </summary>
+[HarmonyPatch(typeof(Gravship),"DetermineLaunchDirection")]
+internal static class LayerShipPilotConsoleFallback
+{
+    /// <summary>
+    /// Native DetermineLaunchDirection dereferences pilotConsole, which CopyCellContents only fills for
+    /// ThingDefOf.PilotConsole. VGE fills it from its own AddThing postfix, but a third-party engine may
+    /// ship a Controls facility that neither path recognises, so resolve one here before the native
+    /// read. Candidates come from the ship payload first: by this point CopyCellContents has already
+    /// DESPAWNED the facilities into Gravship, so the map is no longer authoritative.
+    /// </summary>
+    static void Prefix(Gravship __instance)
+    {
+        if(__instance.PilotConsole!=null)return;
+        var engine=__instance.Engine;
+        if(engine==null)return;
+        IEnumerable<Thing> candidates=Enumerable.Empty<Thing>();
+        if(AccessTools.Field(typeof(Gravship),"things")?.GetValue(__instance) is System.Collections.IDictionary payload)
+            candidates=payload.Keys.Cast<Thing>().ToList();
+        if(engine.Spawned&&engine.Map!=null)candidates=candidates.Concat(engine.Map.listerThings.AllThings);
+        Building? best=null;float bestDistance=float.PositiveInfinity;
+        foreach(var thing in candidates)
+        {
+            if(thing is not Building building||building.Destroyed)continue;
+            var facilityDef=building.def.GetCompProperties<CompProperties_GravshipFacility>();
+            if(facilityDef?.componentTypeDef?.defName!="Controls"&&building.TryGetComp<CompPilotConsole>()==null)continue;
+            float distance=building.Position.DistanceToSquared(engine.Position);
+            if(distance<bestDistance){bestDistance=distance;best=building;}
+        }
+        if(best==null)return;
+        AccessTools.Field(typeof(Gravship),"pilotConsole").SetValue(__instance,best);
+    }
 }
 
 [HarmonyPatch(typeof(Gravship),MethodType.Constructor,new[]{typeof(Building_GravEngine)})]
 internal static class LayerShipNormalize
 {static void Postfix(Gravship __instance,Building_GravEngine engine)
-    {if(ShipLayers.Capture is {} c&&c.Engine==engine)ShipLayers.AttachAndNormalize(__instance,c);
-     else if(LayerMapComponent.For(engine.Map)==null)ShipLayers.AttachNativeSingle(__instance,engine);}}
+    {
+        try
+        {
+            if(ShipLayers.Capture is {} c&&c.Engine==engine)ShipLayers.AttachAndNormalize(__instance,c);
+            else if(LayerMapComponent.For(engine.Map)==null)ShipLayers.AttachNativeSingle(__instance,engine);
+        }
+        catch(Exception exception)
+        {
+            Log.Error("[RimLayers] Layered ship normalization failed: "+exception);
+            throw;
+        }
+    }}
 
+/// <summary>
+/// Diagnostics only: Gravship..ctor merges the whole constructor into one Harmony frame, so a null
+/// reference thrown after DetermineLaunchDirection cannot be attributed to a statement. These two
+/// markers bracket the remaining steps of the native constructor.
+/// </summary>
 [HarmonyPatch]
 internal static class LayerShipCaptureCells
 {
     static IEnumerable<MethodBase> TargetMethods()=>new[]{"TransferZones","CopyAreas","CopyCellContents"}.Select(n=>AccessTools.Method(typeof(Gravship),n));
     static void Prefix(Gravship __instance,ref HashSet<IntVec3> engineFloors)
-    {if(ShipLayers.Capture is {} c&&c.Engine==__instance.Engine)engineFloors=c.Cells;}
+    {
+        // Widen the native capture walk to every deck of the ship. Without this, CopyCellContents only
+        // visits the engine's own layer and every upper-deck thing (including VGE's pilot bridge) never
+        // reaches Gravship.AddThing.
+        if(ShipLayers.Capture is {} c&&c.Engine==__instance.Engine)engineFloors=c.Cells;
+    }
 }
+
+/// <summary>
+/// VGE sets Gravship.pilotConsole from its own AddThing postfix, but that only fires for things that
+/// CopyCellContents actually walks. On a multi-deck ship the bridge can sit on an upper deck, so record
+/// every Controls facility that passes through AddThing and pick one before DetermineLaunchDirection.
+/// </summary>
 [HarmonyPatch(typeof(Gravship),"CopyCellContents")]
 internal static class LayerShipPhysicalBounds
 {

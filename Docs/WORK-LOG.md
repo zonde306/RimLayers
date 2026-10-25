@@ -859,3 +859,19 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 `v1-underground-20261024-070014` 生成 23/0、读档 28/0 通过，detail `record soil=1459 flora=89 geysers=1; gravel=1459; plants=89`。设置侧新增 Ecology 组（三参数 + 逐种植物权重，`EnvironmentSettings.EcologyEnabled/EcologySoil/EcologyGeysers/EcologyPlants/PlantWeights`）。`Tests/EnvironmentTests` 增至 222927 项，13 个离线套件全过，Release 0 警告/0 错误。细节见 [UNDERGROUND.md](UNDERGROUND.md) 与 [ENVIRONMENT-IMPLEMENTATION.md](ENVIRONMENT-IMPLEMENTATION.md)。
 
 同期修复设置 UI harness：`SettingsMenu` 改成六页 3×2 网格后，`Diagnostics/V1SettingsUi.cs` 仍按旧单行 `+42` 基准注入鼠标坐标，6 项原生控件断言假失败；改坐标表并加 Environment 页取证链，`v1-settings-ui-20261024-073823` 23/0 通过。另记一条并发教训：凡带 `Build failed`/`No runtime results` 的 V1 失败都不可信，跑前确认 `tasklist | grep -i rimworld` 为空。
+
+## 2026-10-25：VGE 兼容收尾（管道改连接器方案 + 五个原始问题全绿）
+
+跑通 VGE 兼容的五个原始问题（控制台跨层误报、船板不可拆、管道不跨层、普通建筑跨层连不上引擎、全部引擎算引擎）后，唯一长期未收敛的是管道。原先的实现想手动驱动 PipeSystem 的网络生命周期：替换 `NeighbourThingsCardinal` 补纵向邻居，再按列 `unregister/register`。这条路走不通，原因是 `PipeNet.Destroy()` 和 `CompResource.PostDeSpawn` 都不清理各 comp 的 `PipeNet` 引用，逐 comp 重建会把已合并的两层重新拆散（`PipeSystemDebug` 日志里能直接看到 `Network(s) number: 2`）。
+
+改成显式连接器方案后一次成型：新增 `RL_AstrofuelPipeRiser` / `RL_OxygenPipeRiser`（`Patches/VGE_PipeRisers.xml`，用 `PatchOperationConditional` 检查 `VGE_AstrofuelNet` / `VGE_OxygenNet` 存在性来注入，因为 `PatchOperationFindMod` 比的是显示名而不是 packageId，写 packageId 会静默永不匹配）。接头是 `PipeSystem.Building_Pipe` + PipeSystem 自己的 `CompProperties_Resource`，所以合并/拆分全由原生 `RegisterConnector` 完成；`PipeLinks` 只负责给接头补相邻层同 (x,z) 邻居，跨层资格是“对面那层也有接头”，不看船归属，船外地面同样可用。同时删掉 `RepairColumn`、`Flush`、`SuppressRepair` 全部死代码。
+
+`Gravship..ctor` 那个从 run7 一直存在的 `NullReferenceException` 最终定位为**测试夹具位置冲突**：`VGE_PilotBridge` 是 5×3，占 `x78..82, z74..76`，而测试把 filler 货和 `VGE_GravshipStructuralBeam` 分别 spawn 在 `(81,76)`、`(81,75)`，都在 bridge footprint 内；`GenSpawn` 把 bridge 挤掉后 VGE 的 `Gravship_AddThing_Patch` 就没机会设置 `pilotConsole`，`DetermineLaunchDirection` 里 `pilotConsole.Rotation` 直接空引用。移到 `(81,77)` / `(77,74)` 后消失。
+
+回归抓到一处我引入的真回归：`ValidSubstructure` 拓宽对原生多船路径是错的（`native-footprint-remains-core-deck-with-logical-cross-layer-ownership` 要求它只含引擎所在层）。改为按 `VanillaGravshipCompatibility.Active` 门控——未装 VGE 时保持原生单层，装了才返回全甲板，因为该补丁的唯一消费者就是 VGE。教训：改了共享属性就应同时跑目标场景和一个反例场景。
+
+`gravship -NativeShip` 的 `legal-rotated-ground-origin-accepted` 失败用 `git stash` 做了基线对比，基线同样失败，确认为**既有问题**，与本次工作无关。
+
+最终验证全部 0 失败：VGE Ch1 generate 95 + load 5；Ch2 generate 98 + load 5（含三个 Chapter 2 专属断言）；`ship-structure` 55；`structure` generate 32 + load 16。产物目录 `v1-ship-vge-20261025-220928`、`v1-ship-structure-20261025-221712`、`v1-structure-20261025-223241`。Release 0 警告 / 0 错误。
+
+夹具设计约束（后续改这些测试必读）：VGE 引擎把结构容量卡在 100 格，船体不能超过 7×7；而 `VGE_GravhulkEngine` 是 5×5，几乎占满 7×7 船体。所以燃料/管道夹具只能放在**船外地面**，靠同层管道与接头相连。另：`CompResource.RemovePipes()` 会销毁接头自己 footprint 上的管道，接头不能和管道同格。

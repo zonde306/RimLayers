@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    Cross-deck pipe risers for VGE's Astrofuel and Oxygen networks.
+
+    Gated on the VGE pipe net defs themselves rather than on a mod name: PatchOperationFindMod
+    compares ModMetaData.Name (the display name, "Vanilla Gravship Expanded - Chapter 1"), not the
+    packageId, so a packageId there would silently never match. Testing the def is also independent of
+    the display name, translations, and local forks.
+
+    Each riser is a real PipeSystem connector (thingClass Building_Pipe + PipeSystem's own
+    CompProperties_Resource), which lets native RegisterConnector merge two decks without any manual
+    unregister/re-register.
+  -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VGE_AstrofuelNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_AstrofuelPipeRiser</defName>
+          <label>vertical astrofuel riser</label>
+          <description>A reinforced astrofuel junction that carries the pipe network between two decks. Build one on each deck at the same position; it links only the layers directly above and below it, and only within one ship.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <graphicData>
+            <texPath>Things/PipeNetworks/Astrofuel/AstrofuelPipes_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/PipeNetworks/Astrofuel/AstrofuelPipes_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VGE_AstrofuelNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VGE_Fuel</designationCategory>
+          <uiOrder>2050</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VGE_OxygenNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_OxygenPipeRiser</defName>
+          <label>vertical oxygen riser</label>
+          <description>A reinforced oxygen junction that carries the pipe network between two decks. Build one on each deck at the same position; it links only the layers directly above and below it, and only within one ship.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <graphicData>
+            <texPath>Things/PipeNetworks/Oxygen/OxygenPipes_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/PipeNetworks/Oxygen/OxygenPipes_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VGE_OxygenNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VGE_Fuel</designationCategory>
+          <uiOrder>2051</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+</Patch>

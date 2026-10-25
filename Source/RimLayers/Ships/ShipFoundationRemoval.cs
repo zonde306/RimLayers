@@ -4,12 +4,27 @@ using RimWorld;
 using Verse;
 namespace RimLayers.Ships;
 
+/// <summary>
+/// TerrainDef.Removable is literally `layerable`, and both RimLayers ship decks are
+/// isFoundation=true + layerable=false. Native CanRemoveFoundationAt therefore returns false and the
+/// old postfix (guarded by `__result &&`) could never run: the deck was permanently unremovable.
+/// This prefix owns the verdict for our own deck cells only; every native guard (no roof above, no
+/// pawn/building/item inside, a supported neighbour) still lives in CanDismantleSlab.
+/// </summary>
 [HarmonyPatch(typeof(TerrainGrid),nameof(TerrainGrid.CanRemoveFoundationAt))]
 internal static class ShipFoundationRemovalAvailability
 {
-    static void Postfix(IntVec3 c,Map ___map,ref bool __result)
-    {if(__result&&___map.terrainGrid.FoundationAt(c)?.IsSubstructure==true&&LayerMapComponent.For(___map)?.TryDecode(c,out var layer)==true&&layer.LayerId>0&&LayerMapComponent.For(___map) is {} o)__result=o.Structure.CanDismantleSlab(c);}
+    static bool Prefix(IntVec3 c,Map ___map,ref bool __result)
+    {
+        if(LayerMapComponent.For(___map) is not {} o)return true;
+        if(___map.terrainGrid.FoundationAt(c) is not {IsSubstructure:true} foundation)return true;
+        if(!o.TryDecode(c,out var layer)||layer.LayerId<=0)return true;
+        if(foundation!=ShipDeckTerrain.Def&&!o.StructuralCells.Contains(c))return true;
+        __result=o.Structure.CanDismantleSlab(c);
+        return false;
+    }
 }
+
 [HarmonyPatch(typeof(TerrainGrid),nameof(TerrainGrid.RemoveFoundation))]
 internal static class ShipFoundationRemovalCommit
 {

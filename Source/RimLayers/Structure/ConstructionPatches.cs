@@ -1,5 +1,6 @@
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Ships;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -106,7 +107,17 @@ internal static class StructuralFloorRemovalPatch
     static bool Prefix(IntVec3 c, TerrainGrid __instance, Map ___map, bool doLeavings)
     {
         var owner = LayerMapComponent.For(___map);
-        if (owner == null || !owner.Structure.IsBareSlab(c) || ___map.terrainGrid.FoundationAt(c)!=null) return true;
+        if (owner == null) return true;
+        // A finish layer (carpet, wood, ...) laid over a ship deck: native CanRemoveTopLayerAt demands
+        // underGrid != null, but SetFoundation refuses an under terrain, so the finish could never be
+        // removed and RemoveTopLayer would fall through to RemoveFoundation and delete the whole deck.
+        if (ShipDeckFinish.IsFinishOverDeck(owner, c))
+        {
+            if (!ShipDeckFinish.CanRemoveFinish(owner, c)) return false;
+            ShipDeckFinish.RemoveFinish(owner, c, doLeavings);
+            return false;
+        }
+        if (!owner.Structure.IsBareSlab(c) || ___map.terrainGrid.FoundationAt(c)!=null) return true;
         if (!owner.Structure.CanDismantleSlab(c)) return false;
         IntVec3 refundCell=GenAdj.AdjacentCells.Select(offset=>c+offset)
             .First(cell=>owner.Structure.HasSurface(cell) && cell.Standable(___map));
@@ -122,6 +133,35 @@ internal static class StructuralFloorRemovalPatch
                 owner.Returns.Place(material,refundCell);
             }
         return false;
+    }
+}
+
+/// <summary>
+/// Finish-layer handling for RimLayers ship decks. A deck is a foundation with no under terrain, so
+/// the native top-layer rules (which require an under terrain) never match.
+/// </summary>
+internal static class ShipDeckFinish
+{
+    internal static bool IsFinishOverDeck(LayerMapComponent owner, IntVec3 c) =>
+        owner.map.terrainGrid.FoundationAt(c)==ShipDeckTerrain.Def &&
+        owner.map.terrainGrid.UnderTerrainAt(c)==null &&
+        owner.map.terrainGrid.TempTerrainAt(c)==null &&
+        owner.map.terrainGrid.TopTerrainAt(c)!=ShipDeckTerrain.Def &&
+        owner.map.terrainGrid.TerrainAt(c)!=RimLayersDefOf.RL_OpenAir;
+
+    internal static bool CanRemoveFinish(LayerMapComponent owner, IntVec3 c) =>
+        IsFinishOverDeck(owner,c) && owner.map.terrainGrid.TerrainAt(c).Removable &&
+        !c.GetThingList(owner.map).Any(t=>t is Pawn || t is Building || t is Blueprint);
+
+    internal static void RemoveFinish(LayerMapComponent owner, IntVec3 c, bool doLeavings)
+    {
+        var grid=owner.map.terrainGrid;
+        var finish=grid.TerrainAt(c);
+        if (doLeavings) GenLeaving.DoLeavingsFor(finish, c, owner.map);
+        grid.SetTerrain(c, RimLayersDefOf.RL_OpenAir);
+        grid.SetTerrainColor(c, null);
+        owner.map.pathing.RecalculatePerceivedPathCostAt(c);
+        owner.Invalidate(c,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);
     }
 }
 
@@ -144,7 +184,9 @@ internal static class StructuralRemovalAvailabilityPatch
     static bool Prefix(IntVec3 c,Map ___map,ref bool __result)
     {
         var owner=LayerMapComponent.For(___map);
-        if (owner==null || !owner.Structure.IsBareSlab(c) || ___map.terrainGrid.FoundationAt(c)!=null) return true;
+        if (owner==null) return true;
+        if (ShipDeckFinish.IsFinishOverDeck(owner,c)) { __result=ShipDeckFinish.CanRemoveFinish(owner,c); return false; }
+        if (!owner.Structure.IsBareSlab(c) || ___map.terrainGrid.FoundationAt(c)!=null) return true;
         __result=owner.Structure.CanDismantleSlab(c);
         return false;
     }
@@ -165,6 +207,11 @@ internal static class StructuralRemovalWorkPatch
                     var owner=LayerMapComponent.For(pawn.Map);
                     var cell=pawn.CurJob.targetA.Cell;
                     if (owner!=null && owner.Structure.IsBareSlab(cell) && !owner.Structure.CanDismantleSlab(cell))
+                    {
+                        __instance.EndJobWith(JobCondition.Incompletable);
+                        return;
+                    }
+                    if (owner!=null && ShipDeckFinish.IsFinishOverDeck(owner,cell) && !ShipDeckFinish.CanRemoveFinish(owner,cell))
                     {
                         __instance.EndJobWith(JobCondition.Incompletable);
                         return;
