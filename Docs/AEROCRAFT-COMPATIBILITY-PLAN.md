@@ -9,8 +9,13 @@
 Aerocraft 1.7 只有 DLL、没有源码；下文所有 `Building_Aerocraft_*.cs` 行号指 ilspycmd 反编译产物（`.tmp/aero17/MYDE_AerocraftFramework/`），
 结论以该 1.7 DLL 为准，`AerocraftFramework1.6update/` 的 1.5 时代源码只用于命名参考。
 
-**实施状态（2026-10-25）：§1 §2 §3 §4 §5 §7 §9 已按本文实现并通过 Release 构建（0 警告 / 0 错误），并通过 `Run-V1.ps1 -Scenario aerocraft -Aerocraft` 在真实游戏里验收 34/34。**
+**实施状态（2026-10-26）：已按 v2 模型实现（“空中飞行器跟随视角所在层”），并通过 `Tests/Run-V1.ps1 -Scenario aerocraft -Aerocraft` 在真实游戏里验收。**
 实现落在 `Source/RimLayers/Compatibility/AerocraftCompatibility.cs`（绑定）、`AerocraftLayers.cs`（分层记录）、`AerocraftPatches.cs`（全部 Harmony 挂点）。运行记录与已知限制见 [Aerocraft 兼容](AEROCRAFT-COMPATIBILITY.md)。
+
+> **阅读顺序提示**：§1–§11 是 v1 的调研与设计（“把连续坐标整体驻留在一个存储 band 内，换层时整体平移”）。
+> 该模型**已被推翻**，理由是它把飞行器钉死在某一层，而真实语义是“飞行器在天上、不属于任何一层”。
+> **§13 记录 v2 的三条契约，与 §1/§2/§6 冲突之处一律以 §13 为准。** §1–§11 保留作为根因证据链与
+> 原生行为记录（这些证据仍然成立，被推翻的只是结论）。
 
 本文其余部分保留为设计依据；与实现有偏差的地方在对应小节标注“实现”。
 
@@ -33,8 +38,11 @@ Aerocraft 1.7 只有 DLL、没有源码；下文所有 `Building_Aerocraft_*.cs`
 
 S≈0.5 天，M≈1–2 天（含游戏内验证）。
 
-**架构结论（最重要的一条）**：Aerocraft 是 `Building` + 连续 `Vector2` 运动学，**不能**走 `FrameworkVehicleAdapter`/`IVehicleAdapter` 那条 Pawn 路线（它没有 `Vehicles` 程序集、没有 `PatherType`），也不需要 `VehicleFlight`/`VehicleAirspace` 的规划器。
-它的正确兼容形态是“**把连续坐标整体驻留在一个存储 band 内，换层时整体平移**”，这与 `SteelFlightAdapter` 处理 Steel Horizon 的手法是同一个套路（`Commit` 里 `position.Set(comp, position.Get(comp)+new Vector2(0,shift))`，`shift=(layer-oldLayer)*Stride`），只是对象从 Pawn 换成 Building、从 3D-track 换成 2D-track。
+**架构结论（v2 修正版，最重要的一条）**：Aerocraft 是 `Building` + 连续 `Vector2` 运动学，**不能**走 `FrameworkVehicleAdapter`/`IVehicleAdapter` 那条 Pawn 路线（它没有 `Vehicles` 程序集、没有 `PatherType`），也不需要 `VehicleFlight`/`VehicleAirspace` 的规划器。
+
+v1 曾经把它的兼容形态定为“**把连续坐标整体驻留在一个存储 band 内，换层时整体平移**”（借鉴 `SteelFlightAdapter` 的 `Commit`）。**这是错的**：那样飞行器属于某一层，跨层就只能靠“落地→换层→再起飞”，而真实的飞行器是在天上、不属于任何一层。
+
+v2 的正确形态是：**空中的飞行器去“驻留”你正在看的那一层的 band**，而不是去驻留它自己的层。因为存储格、目标、阴影全都在同一个 band，右键目标、拾取、verb 射程、预约、搭载、加油、伤害这些原生子系统**一行都不用改**；而“跨层”这件事被化简为“换个 band”，实现是一处 `SetViewedLayer` Postfix。详见 §13。
 
 ---
 
@@ -597,3 +605,92 @@ Aerocraft 适配器放在第 3 步旁边：`Compatibility.AerocraftCompatibility
 - §9 的“诊断开关与 `Docs/AEROCRAFT-COMPATIBILITY.md` 的自动化验证矩阵”只做到日志埋点（`AircraftTrace`，上限 40 条），
   没有新增测试场景。原因见下：本机没有启用 Aerocraft，写不出能跑的验收。
 - 前文 §0 表 #9（扩层窗口）与 #10（`Change_Position` 写入代价）只加了闸门与非回归观测，没有独立场景。
+
+---
+
+## 13. v2 契约（当前实现，覆盖 §1/§2/§6 的结论）
+
+§1–§12 记录的是 v1 的调研与实现。根因证据（Aerocraft 的坐标与写入点、RimLayers 的 band 布局、
+原生落点扫描只看 `roofGrid`）全部成立，**被推翻的只是"兼容形态"这个结论**。
+
+### 13.0 为什么 v1 是错的
+
+v1 的形态是「把连续坐标整体驻留在一个存储 band 内，换层时整体平移」。它把飞行器**归属**到某一层，
+于是：
+
+- 在哪层起飞就只能降落到哪层（换层没有任何入口，除非先落地）；
+- 攻击/投弹/搭载只能针对起飞层；
+- 选中后切层会被 `LayerView.Switch` 里的反选逻辑取消选择（`selected is not Pawn` 一律 `Deselect`）。
+
+而真实语义是「**飞行器在天上，理论上在所有层之上**」：它应当能在地表及以上任意层被选中，
+对**当前正在看的那一层**降落/攻击/投弹/搭载 pawn。
+
+### 13.1 三条契约
+
+> **契约 1（层归属）**：在飞的飞行器不属于任何一层，它跟随 `ViewedLayer`。
+> **契约 2（地下不可见）**：`ViewedLayer` 的 `Elevation < 0` 时不跟随，于是它在所有地下视图里
+> 既不可见也不可选中（拾取/剖面过滤只放行 viewed band，天然成立）。
+> **契约 3（返航归层）**：`Set_GoBack` 回到**起飞时那一层**（`TakeOffVPos_A/G` 不随视角平移）。
+
+### 13.2 为什么"跟随 viewed band"是最省事的正解
+
+飞行器的一切原生子系统都读 `Thing.Position`（存储格）：
+
+| 子系统 | 原生依据 |
+|---|---|
+| 右键指定目标 | `Selector.HandleMapClicks` 的 `IntVec3.FromVector3(UI.MouseMapPosition())` → 已是 viewed band 的存储格 |
+| 拾取 / 框选 | `SectionViewPatch` / `PickThingsPatch` 只放行 viewed band |
+| verb 射程、可否攻击 | `Position` 与 `TargetVPos` 同 band |
+| 预约、搭载、加油 | `pawn.CanReserve` / `ClosestThingReachable` / `Home[...]` 都是存储格 |
+| 伤害、爆炸、EMP | `Position.GetThingList(Map)` |
+
+**只要让 `RealCurrentPosition.y`、`Shadow_Pos.z`、`TargetVPos.z` 与 `Position` 一起待在 viewed band，
+这些子系统一行都不用改。** "跨层"因此被化简成"换个 band"，而且是**一个** Postfix：
+
+```
+LayerMapComponent.SetViewedLayer  (Prefix/Postfix)
+  └─ AerocraftCompatibility.Follow(owner)
+       └─ foreach airborne flight: RebaseTo(aircraft, owner, viewed)
+```
+
+`SetViewedLayer` 是 `LayerView.Switch` 与 `LayerTransition` 动画共同的收口点，所以拖拽切层、
+按 F7/F8、选中自动跳层、`CameraJumper` 全部自动覆盖。
+
+### 13.3 挂点表（`Compatibility/AerocraftPatches.cs`）
+
+| 挂点 | 类型 | 作用 |
+|---|---|---|
+| `LayerMapComponent.SetViewedLayer` | Postfix | **唯一的跨层机制**：`Follow` |
+| `Building_Aerocraft_AsBaseThing.Change_Position` | Prefix | 空中时把 track 夹进本 band 的 `local z ∈ [1, Height-1]`、`x ∈ [size, Width-size]`；落地时放行原生体（电力重连在方法尾部） |
+| `Change_Up` | Postfix | `If_UpOrDown` 真的翻了才记 `HomeLayer = BandOf(...)`（原生缺油/缺电时不会翻） |
+| `Change_Down` | Postfix | 降落层即新 `HomeLayer`（`Follow` 只动空中飞行器，此刻的 band 就是玩家看着的层） |
+| `Set_TargetVPos_Down_GlidingTakeOff(Vector3)` | Prefix | 缺油/缺电/EMP/坠毁/自毁五个强制降落点的唯一收口：落点不在本 band 真实地表上就换成同 band 最近合法格 |
+| `PlaceWorker_NotUnderRoof.AllowsPlacing` | Prefix | 放置前置条件换成"本层有地表 + 净空柱"，与降落同一把尺子 |
+| `WorkGiver_Refuel_Turret.CanRefuelThing` | Prefix `Priority.First` | 抢在 Aerocraft 自己的 Prefix 前：Home 判定改成"同 (x,z) 列任意层在 Home" |
+| `Set_GoBack` | Prefix | 空中且 `HomeLayer ≠ ViewedLayer` 时先 `ShowFloor(home)`，让 `Follow` 把机体带回基地 band，原生瞄准才成立 |
+| `WorldObject_CrossMapThing_Flying.Arrived` | Postfix（反射字段 `LinkToAerocraft`/`TargetMap`） | 原生四角/中心用 `Map.Size` 算，会落到顶部 band 或中间层：重新落到真实地表并记为新 `HomeLayer` |
+
+`LayerView.SelectionKeepers`（`Presentation/LayerView.cs`）是 v1 遗留但**仍然必需**的补丁：
+`Switch` 的反选逻辑对非 Pawn 一律 `Deselect`，空中飞行器必须被豁免
+（`KeepSelected` 返回 `IsAerocraft && IsFlying`）。它和 `Follow` 是两件事，不要合并。
+
+### 13.4 明确不需要做的事（v1 曾计划过）
+
+| 项 | 为什么不需 |
+|---|---|
+| 坐标空间转换层 | `RealCurrentPosition.y` 与 RimLayers 存储 z 本来就是同一个量 |
+| `DrawPos` / 阴影 / 装饰投影 | 三者 x/z 都取自 track/`Shadow_Pos`，y 是海拔（`def.Altitude`/`Altitudes.AltitudeFor`），与层无关；相机已按 `ViewedLayer*Stride` 平移 |
+| `TargetVPos` 的右键转换 | `UI.MouseMapPosition()` 天然带当前层偏移；RimLayers 只改 `UI.MouseCell`，不碰它 |
+| 存档迁移 | band 信息已隐含在 z 里，旧档全是 band 0（= 地表） |
+| 接入 `IVehicleAdapter` | 该接口面向 `Pawn`；Aerocraft 是 `Building`，硬接会污染载具能力语义 |
+| 跨层同屏绘制 | 层在 z 轴上、相机硬切，跨层观感必然是"从这层消失、在那层出现"，与 `SteelFlightAdapter.Commit` 一致 |
+
+### 13.5 已知退化与未做
+
+- **两架分处不同层 band 的空中飞行器不会互相碰撞**：`Check_Collide` 只查同 band 的同格；
+  `VehicleAirspace.Snapshot` 也只收 `IVehicleAdapter` 的 Pawn，看不到 Aerocraft。
+- **固定翼滑翔起降的跑道扫描**仍只在本 band 内生效；跨层滑翔未实现（拒绝式校验也没有加，
+  原生扫描会退化为"本 band 内找屋顶/边界"）。
+- **地下层不跟随**是设计选择：地下看不见天空，飞行器在地下视图里不出现。
+- **`Follow` 只在切层时触发**，不做每 tick 校正：一旦切层后玩家又用其它手段改层，
+  需要 `AerocraftLayers.FinalizeInit` 或下一次切层来收敛（读档时有 `Settle()` 兜底）。

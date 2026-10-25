@@ -19,6 +19,15 @@ public static class LayerView
 
     internal static void EndDrag(DesignatorManager manager) => Dragger(manager).EndDrag();
 
+    /// <summary>
+    /// A floor switch deselects every non-Pawn so a leftover build tool cannot act on the floor you
+    /// just left. An object that belongs to no single floor is the exception: an airborne aircraft
+    /// rides the view with you, so dropping the selection would make it impossible to steer it
+    /// across floors. Compatibility modules register a predicate here instead of this file learning
+    /// about third-party types.
+    /// </summary>
+    internal static readonly List<Func<object, bool>> SelectionKeepers = new();
+
     private static readonly AccessTools.FieldRef<CameraDriver, Vector3> RootPos =
         AccessTools.FieldRefAccess<CameraDriver, Vector3>("rootPos");
 
@@ -49,7 +58,8 @@ public static class LayerView
             ? Find.Selector.SingleSelectedThing : null;
         if(!Find.Targeter.IsTargeting)
             foreach(object selected in Find.Selector.SelectedObjectsListForReading.ToList())
-                if(selected is not Pawn && !ReferenceEquals(selected, installSource)) Find.Selector.Deselect(selected);
+                if(selected is not Pawn && !ReferenceEquals(selected, installSource) &&
+                    !SelectionKeepers.Any(keep => keep(selected))) Find.Selector.Deselect(selected);
         // Only the old drag belongs to the outgoing floor; a new placement uses the new floor.
         EndDrag(Find.DesignatorManager);
         camera.SetRootPosAndSize(position, camera.RootSize);

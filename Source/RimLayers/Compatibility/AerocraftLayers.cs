@@ -4,13 +4,13 @@ using Verse;
 namespace RimLayers.Compatibility;
 
 /// <summary>
-/// Per-map record of which storage band each Aerocraft aircraft is parked in, plus the floor its
-/// "return to base" command belongs to. The continuous track itself (Aerocraft's own
-/// <c>RealCurrentPosition</c>) stays authoritative for x/z; this component only owns the band.
+/// Per-map record of the Aerocraft flights RimLayers has to steer. The continuous track itself
+/// (<c>RealCurrentPosition</c>) stays authoritative for x/z and for the band; this component only
+/// remembers which floor each aircraft took off from, so "return to base" has a floor to go back to.
 ///
-/// <para>Aerocraft has no height field at all, so the band cannot be re-derived after a rebase from
-/// anything but the saved track. It is therefore saved explicitly and corrected on load from
-/// <c>RealCurrentPosition.y</c>, so a record and its geometry can never drift apart.</para>
+/// <para>An airborne aircraft does not belong to a floor: it rides the layer you are looking at.
+/// That is why no band is stored here — a saved band could contradict the track after a save made
+/// while the camera was on another floor, and the geometry is what every native subsystem reads.</para>
 ///
 /// <para>Instantiation is free: <see cref="Map"/>'s constructor walks
 /// <c>typeof(MapComponent).AllSubclassesNonAbstract()</c> and adds every non-<c>CustomMapComponent</c>
@@ -22,15 +22,12 @@ public sealed class AerocraftLayers : MapComponent
     public sealed class Flight : IExposable
     {
         public Thing Aircraft = null!;
-        /// <summary>Storage band the continuous track currently lives in.</summary>
-        public int ProxyLayer;
-        /// <summary>Band the aircraft last took off from; "return to base" targets this floor.</summary>
+        /// <summary>Floor the aircraft last took off from; "return to base" flies back to it.</summary>
         public int HomeLayer;
 
         public void ExposeData()
         {
             Scribe_References.Look(ref Aircraft, "aerocraft");
-            Scribe_Values.Look(ref ProxyLayer, "aerocraftProxyLayer", 0);
             Scribe_Values.Look(ref HomeLayer, "aerocraftHomeLayer", 0);
         }
     }
@@ -55,6 +52,38 @@ public sealed class AerocraftLayers : MapComponent
         return flight;
     }
 
+    internal IReadOnlyList<Flight> All() => flights;
+
+    /// <summary>
+    /// Snaps every PARKED aircraft onto a real surface of the floor it is resting on. An airborne
+    /// flight is never moved: it belongs to no floor and is re-seated by
+    /// <see cref="AerocraftCompatibility.Follow"/> as the view changes.
+    ///
+    /// <para>This is what makes "land on the floor I am looking at" safe: the track arrives in the
+    /// viewed band, and the stored cell is then resolved against that band's own surfaces instead of
+    /// being left over open air or inside a reserved isolation row.</para>
+    /// </summary>
+    public void Settle()
+    {
+        var owner = LayerMapComponent.For(map);
+        if (owner?.Layout == null || flights.Count == 0) return;
+        foreach (var flight in flights)
+        {
+            var aircraft = flight.Aircraft;
+            if (aircraft == null || aircraft.Destroyed || !aircraft.Spawned) continue;
+            if (!AerocraftCompatibility.IsAerocraft(aircraft)) continue;
+            if (AerocraftCompatibility.IsFlying(aircraft)) continue;
+            var size = AerocraftCompatibility.SizeOf(aircraft);
+            if (AerocraftLanding.CanRest(owner, aircraft.Position, size)) continue;
+            // A parked aircraft only needs a floor, not a clear column: it may rest under a roof.
+            if (!AerocraftLanding.TryFindNearby(owner, aircraft.Position, size, out var legal, requireColumn: false))
+                continue;
+            aircraft.Position = legal;
+            AerocraftCompatibility.Position.Write(aircraft, new UnityEngine.Vector2(legal.x + 0.5f, legal.z + 0.5f));
+            flight.HomeLayer = owner.TryDecode(legal, out var at) ? at.LayerId : flight.HomeLayer;
+        }
+    }
+
     internal void Forget(Thing thing)
     {
         if (Of(thing) is not { } flight) return;
@@ -76,8 +105,8 @@ public sealed class AerocraftLayers : MapComponent
     }
 
     /// <summary>
-    /// Re-derives every band from the saved track once the map is complete. The geometry is what the
-    /// rest of the game reads through <c>Thing.Position</c>, so it wins over the saved number.
+    /// Re-seats every airborne aircraft on the floor being viewed once the map is complete, so a save
+    /// taken while the camera was upstairs cannot leave a flight parked in a band nobody can see.
     /// </summary>
     public override void FinalizeInit()
     {
@@ -93,9 +122,9 @@ public sealed class AerocraftLayers : MapComponent
                 flights.RemoveAt(i);
                 continue;
             }
-            flight.ProxyLayer = AerocraftCompatibility.BandOf(flight.Aircraft, owner);
             flight.HomeLayer = Math.Clamp(flight.HomeLayer, 0, owner.Layout.LayerCount - 1);
         }
+        AerocraftCompatibility.Follow(owner);
     }
 
     public override void MapComponentTick()
