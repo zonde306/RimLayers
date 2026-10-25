@@ -153,10 +153,13 @@ Aerocraft 是可选第三方包，**不允许**它的适配失败连累 RimLayer
   让原生触发器跑一遍。
 - 选点不合法时**不会**在光标上拒绝（原生 validator 是编译闭包，无法定点 Patch；为它去 Postfix
   全局 `GenGrid.InBounds` 风险大于收益）。表现是“点了照样接受，但落点被自动改到同层最近合法格”。
-- 换层表现为离散的“整条轨迹平移一个 band”，不是连续 3D 升降。Aerocraft 本身没有高度变量
+- 换层表现为离散的“视角切层时整条轨迹平移一个 band”，不是连续 3D 升降。Aerocraft 本身没有高度变量
   （`If_UpOrDown` 是 bool），做连续高度等于替它重写一套飞行模型。
-- 两条在飞的飞机不会跨层相撞：`Check_Collide` 只看 `Position.GetThingList`，这是 band 局部语义，
-  物理上也正确（不同层的高度不同）。
+- 两条在飞的飞机**不会**跨层相撞：`Follow` 把每一架在飞的飞机都搬进同一个 viewed band，
+  所以它们永远同 band，原生 `Check_Collide`（同格 `GetThingList`）照常生效。
+  真正没有的是"跨层同列"的碰撞——而那在物理上也说不通（不同层高度不同）。
+- 停放（`Is_Static`）的飞机不跟随视角，它属于自己那一层。所以在飞的飞机与停在别层的飞机
+  不会互相阻挡；这也是正确语义。
 - `Area` / `Zone` / `Plan` 没有分层语义。加油的 Home 判定是“该 (x,z) 列任一层被圈进 Home”的近似。
 - 原子加油（`atomicFueling=true`，Aerocraft 默认不开）跨层仍不支持 ——
   `RefuelWorkGiverUtility.FindEnoughReservableThings` 尚未分层。
