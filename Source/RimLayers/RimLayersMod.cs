@@ -23,6 +23,9 @@ public sealed class RimLayersMod : Mod
         // Optional-adapter registration must run before the patch loop: their Prepare() gates
         // depend on the detected state this sets up.
         Compatibility.VVRaceCompatibility.Install();
+        // Same ordering rule as VVRace: an optional adapter that answers Prepare() from its own
+        // binding state must resolve before the class-processor loop reaches its patch classes.
+        Compatibility.AerocraftCompatibility.Install();
         int patchClasses=0;
         var failed=new List<string>();
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())

@@ -3,7 +3,7 @@ param(
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
-    [ValidateSet("collapse-perf","deep-resources","environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed", "minimap")][string]$Scenario = "navigation",
+    [ValidateSet("aerocraft","collapse-perf","deep-resources","environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed", "minimap")][string]$Scenario = "navigation",
     [switch]$CheckPure,
     [switch]$TemperatureCore,
     [ValidateSet("travel","handling","queue")][string]$CargoCheckpoint="travel",
@@ -29,6 +29,7 @@ param(
     [switch]$ExistingMap,
     [switch]$Har,
     [switch]$VVRace,
+    [switch]$Aerocraft,
     [switch]$AllDlc,
     [int]$RaidSeed=17,
     [string]$RaidAuditSave,
@@ -60,6 +61,8 @@ if($Vehicles){
     $active += @('baal.vehicleframework','rimthunder.core','mo.technicalvehicles')
 }
 $active += 'rimlayers.core'
+# Aerocraft Framework is an optional third-party pack; only the aerocraft scenario needs it.
+if($Aerocraft){$active+='MYDE.AerocraftFramework'}
 if($Vge -gt 0){$active=@($active|Where-Object {$_ -ne 'rimlayers.core'});$active+=@('oskarpotocki.vanillafactionsexpanded.core','vanillaexpanded.gravship');if($Vge -eq 2){$active+='vanillaexpanded.gravship2'};$active+='rimlayers.core'}
 if($Dashboard){$active+=@('rimiris.rimiris.beta','rimiris.dashboard')}
 if($GuiPerf){$active+='wowgag.guiperformancepatch'}
@@ -105,7 +108,7 @@ if($CollapseReplaySave){
     $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
     Copy-Item -LiteralPath $CollapseReplaySave -Destination (Join-Path $saves 'RimLayers_CollapsePerf.rws')
 }
-$modes = if($CollapseReplaySave){@('load')} elseif($Scenario -eq 'minimap'){@('generate')} elseif($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -in @('environment','deep-resources','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
+$modes = if($CollapseReplaySave){@('load')} elseif($Scenario -eq 'minimap'){@('generate')} elseif($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -eq 'aerocraft') { @('generate','load') } elseif ($Scenario -in @('environment','deep-resources','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','migration','world-exit','home','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
 foreach ($mode in $modes) {
     if($mode -eq 'legacy-load'){
         # Mutate only this run's own checkpoint, never a player save.

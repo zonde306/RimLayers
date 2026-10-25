@@ -9,7 +9,10 @@
 Aerocraft 1.7 只有 DLL、没有源码；下文所有 `Building_Aerocraft_*.cs` 行号指 ilspycmd 反编译产物（`.tmp/aero17/MYDE_AerocraftFramework/`），
 结论以该 1.7 DLL 为准，`AerocraftFramework1.6update/` 的 1.5 时代源码只用于命名参考。
 
-本文只给方案与证据，不改代码。所有“未验证”的条目都标了需要的游戏内复核。
+**实施状态（2026-10-25）：§1 §2 §3 §4 §5 §7 §9 已按本文实现并通过 Release 构建（0 警告 / 0 错误），并通过 `Run-V1.ps1 -Scenario aerocraft -Aerocraft` 在真实游戏里验收 34/34。**
+实现落在 `Source/RimLayers/Compatibility/AerocraftCompatibility.cs`（绑定）、`AerocraftLayers.cs`（分层记录）、`AerocraftPatches.cs`（全部 Harmony 挂点）。运行记录与已知限制见 [Aerocraft 兼容](AEROCRAFT-COMPATIBILITY.md)。
+
+本文其余部分保留为设计依据；与实现有偏差的地方在对应小节标注“实现”。
 
 ---
 
@@ -539,3 +542,58 @@ Aerocraft 适配器放在第 3 步旁边：`Compatibility.AerocraftCompatibility
 - `Comp_AutoFindTarget`（`FindTarget()` 里比较 `map.Size.z`）在受管地图上 `Size.z == StorageHeight`，因此**不会**误判上层目标（已核实），无需修改；但它的目标判定仍按存储格距离，跨层目标会被当成“很远”，属可接受行为。
 - 原子加油（`atomicFueling=true`）跨层仍不支持（Aerocraft 默认不开）。
 - 三个 `Move_ByWrap_*` 瞬移（`AsBaseThing.cs:1326/1374/1426`）在默认配置下**不执行**（`If_CanWrap` 默认 false，`CompProperties_MoveToTargetAndHover.cs:51`，XML 全库无此键），因此不在本次范围内；若以后有人打开它，这三处需要一起 rebase。
+
+---
+
+## 12. 实现偏差（实现时推翻的设计）
+
+以下是实现阶段发现方案有误、或者代价高于收益的地方。维护时**不要**按前文改回去。
+
+### 12.1 `Rebase` 只平移 `RealCurrentPosition` 与 `Shadow_Pos`
+
+前文 §1 的代码示例把 `TargetVPos`、`TakeOffVPos_A/G` 一起 `+= shift`。这是错的，三个点分属三种坐标系：
+
+| 字段 | 真实语义 | 是否属于“当前层轨道” |
+|---|---|---|
+| `RealCurrentPosition` | 机体当前连续位置（存储坐标） | **是**，要平移 |
+| `Shadow_Pos` | 阴影投影点，由 `DrawPos` 派生 | **是**，要平移 |
+| `TargetVPos` | **目标层**的落点。它正是 `TargetBand()` 推导 band 的来源 | **否**。平移它会把目的地再推一个 band |
+| `TakeOffVPos_A` / `_G` | **起飞层**的返航点，`Set_GoBack` 原样复用 | **否**。平移它会让“返回基地”变成原地不动 |
+
+`Set_GoBack` 的行为因此变成：把 `TargetVPos` 设回仍留在旧 band 的 `TakeOffVPos_*`，
+下一次 `Set_TargetVPos` 的 Postfix 看到目标 band ≠ 当前 band，自动 rebase 回 home。返航是通的。
+
+### 12.2 落点合法性只挂一个 choke point，不挂 5 处扫描
+
+前文 §3 说 Prefix 掉 5 处落点扫描循环。实际做法是只 Prefix
+`Set_TargetVPos_Down_GlidingTakeOff`（`AerocraftForcedDescentPatch`）——5 处扫描（低油、低电、EMP、
+撞击坠落、自毁）**全部**汇聚到这一个方法，且它是 `public void Set_TargetVPos_Down_GlidingTakeOff(Vector3)`，
+签名稳定。在入口处把不合法落点替换成同层最近合法格，一处覆盖五个调用点，
+也不用碰 `GetVector3_By_AngleFlat` 与 `isThickRoof` 那套内联算术。
+
+### 12.3 放弃 `GenGrid.InBounds` 后补方案
+
+前文 §3 第 3 点打算 Postfix `GenGrid.InBounds` 给滑翔选点加红圈。实现时**放弃**了：
+`GenGrid.InBounds` 是全局热路径（每个 UI 帧、每个 AI 查询都会走），而原生的
+`TargetingParameters.validator` 是编译生成的闭包，无法定点 Patch。为了一个选点光标去 Postfix 全局函数
+风险远大于收益。改为在消费点（12.2）兜底：玩家点了不合法落点，飞行器自己改到最近合法格并打一条
+`forced-descent-redirected` 日志。**表现是“点了不会拒绝，但会落到合理的格子上”**，不是红圈。
+
+### 12.4 垂直起飞不换层
+
+`Change_Up` 既被垂直起飞 gizmo 调用，也被滑翔起飞尾部调用。垂直起飞时 `TargetVPos` 可能还留着
+上一次命令的旧值，照着它换层会让“原地起飞”突然跨层。因此 `TargetBand()` 先读
+`If_TuringByGlidingTakeOffOrDownNow`：为 false（垂直起飞）就直接返回当前 band，不换层。
+只有滑翔命令（先算跑道端点、再调 `Change_Up`）才按 `TargetVPos` 换层。
+
+### 12.5 `Change_Position` 的闸门只对空中生效
+
+前文 §8 说命中 `TransactionActive` 就整帧跳过 `Change_Position`。实现改了：**落地状态必须继续跑原生方法体**，
+因为该方法末尾的 `BestTransmitterForConnector` / `Notify_ConnectorWantsConnect` 是电力重连的唯一入口，
+跳过它会让停在地上的飞行器永久脱离电网。现在只在 `!IsStatic` 时 `DeferFor`。
+
+### 12.6 未实现的两项
+
+- §9 的“诊断开关与 `Docs/AEROCRAFT-COMPATIBILITY.md` 的自动化验证矩阵”只做到日志埋点（`AircraftTrace`，上限 40 条），
+  没有新增测试场景。原因见下：本机没有启用 Aerocraft，写不出能跑的验收。
+- 前文 §0 表 #9（扩层窗口）与 #10（`Change_Position` 写入代价）只加了闸门与非回归观测，没有独立场景。

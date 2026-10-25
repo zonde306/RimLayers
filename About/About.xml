@@ -14,6 +14,7 @@
     </li>
   </modDependencies>
   <loadAfter>
+    <li>MYDE.AerocraftFramework</li>
     <li>vanillaexpanded.gravship</li>
     <li>vanillaexpanded.gravship2</li>
     <li>Baal.VehicleFramework</li>
