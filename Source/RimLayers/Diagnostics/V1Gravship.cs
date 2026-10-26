@@ -391,7 +391,7 @@ internal static partial class V1Integration
 
     private static void CheckShipFloorConstruction()
     {
-        var cell=At(2,90,82);var below=At(1,90,82);var deck=ShipDeckTerrain.Def;
+        var cell=At(2,90,82);var below=At(1,90,82);var deck=ShipDeckTerrain.Def!;
         Check("ordinary-colony-and-ship-floor-planning-are-distinct",owner.Structure.Validate(RimLayersDefOf.RL_StructuralFloor,shipOutside.Position,Rot4.North,true).Accepted&&!owner.Structure.Validate(deck,shipOutside.Position,Rot4.North,true).Accepted&&!owner.Structure.Validate(RimLayersDefOf.RL_StructuralFloor,cell,Rot4.North,true).Accepted);
         var occupied=shipTable.Position;var foundation=map.terrainGrid.FoundationAt(occupied);
         map.terrainGrid.RemoveFoundation(occupied,true);

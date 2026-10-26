@@ -52,7 +52,7 @@ internal static partial class V1Integration
         FinishShipLandingHeightLimits();
         CheckHollowShipSupport();
         CoexistPlatform(new CellRect(73,69,24,13));
-        var baseCell=At(1,76,72);var deck=ShipDeckTerrain.Def;
+        var baseCell=At(1,76,72);var deck=ShipDeckTerrain.Def!;
         Find.ResearchManager.gravEngineInspected=true;
         Check("ordinary-upper-platform-allows-native-base-without-engine",
             GenConstruct.CanPlaceBlueprintAt(TerrainDefOf.Substructure,baseCell,Rot4.North,map).Accepted);

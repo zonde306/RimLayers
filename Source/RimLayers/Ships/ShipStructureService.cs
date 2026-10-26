@@ -181,12 +181,18 @@ public sealed class ShipStructureService
 
 internal static class ShipDeckTerrain
 {
-    internal static TerrainDef Def=>DefDatabase<TerrainDef>.GetNamed("RL_ShipStructuralFloor");
+    // MayRequire-gated: the def only exists with Odyssey loaded, yet this type is reached from patches
+    // that install in every configuration (ShipFoundationRemovalAvailability runs on every terrain
+    // query of every map, Odyssey or not). GetNamed throws, and that throw happened inside a terrain
+    // query. Resolve once and cache the miss.
+    internal static TerrainDef? Def=>def??=DefDatabase<TerrainDef>.GetNamedSilentFail("RL_ShipStructuralFloor");
+    private static TerrainDef? def;
     // Foundation setters reject an under terrain. Normalize only this cell, preserving its finish, cover and colour.
     internal static void Install(LayerMapComponent owner,IntVec3 cell,bool preserve)
     {
+        if(Def is not {} deck)return;
         var grid=owner.map.terrainGrid;var top=grid.TopTerrainAt(cell);var under=grid.UnderTerrainAt(cell);var temp=grid.TempTerrainAt(cell);var color=grid.ColorAt(cell);
-        grid.SetTerrain(cell,RimLayersDefOf.RL_OpenAir);grid.SetFoundation(cell,Def);
+        grid.SetTerrain(cell,RimLayersDefOf.RL_OpenAir);grid.SetFoundation(cell,deck);
         if(preserve&&under!=null&&top!=RimLayersDefOf.RL_StructuralFloor)
         {grid.SetTerrain(cell,top);grid.SetUnderTerrain(cell,under==RimLayersDefOf.RL_StructuralFloor?RimLayersDefOf.RL_OpenAir:under);}
         if(preserve&&temp!=null)grid.SetTempTerrain(cell,temp);
