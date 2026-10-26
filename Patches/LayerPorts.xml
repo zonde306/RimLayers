@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    Cross-layer pipe terminals for the Dubs family (Dubs Bad Hygiene, Dubs Central Heating,
+    Rimefeller, Dubs Rimatomics).
+
+    Each terminal is a REAL pipe of the owning mod: it inherits that mod's own abstract pipe base and
+    carries that mod's own CompProperties_Pipe with the right <mode>. That is mandatory, not stylistic:
+    all four mods let only one pipe comp occupy a cell (they log
+    "More than 1 pipe comp in the same cell ... things with pipes cannot overlap!" and Dubs even
+    destroys the overlapping pipe), so a separate connector building stacked on a pipe would break
+    their registration. Being a real pipe, the mod registers it in its own net exactly like any other
+    pipe; RimLayers.Compatibility.CompLayerPort only opts that cell into the vertical projection of
+    the flood fill.
+
+    Gating uses PatchOperationConditional on the other mod's own def rather than
+    PatchOperationFindMod, because PatchOperationFindMod compares ModMetaData.Name (the display name)
+    and not the packageId; the def test is also independent of translations and local forks. One
+    unique defName per package is used as the probe because Dubs Bad Hygiene and Dubs Central Heating
+    both define an "airPipe", so a shared probe would fire for the wrong mod (and with both mods
+    loaded only one of those two conflicting defs survives, so the probe must not be the air pipe
+    itself: the air risers are gated on a def only their own package defines).
+
+    Inheritance note: these defs inherit the ABSTRACT pipe base, never the concrete pipe, because a
+    <comps> child only appends <li> entries to the parent copy. Inheriting a concrete pipe would
+    therefore end up with two pipe comps on one thing.
+
+    The graphicData block only overrides <color>: the rest (texPath, linkType/linkFlags, damageData)
+    is merged from the parent, so each terminal still connects visually to its own mod's pipes.
+  -->
+
+  <!-- ============================ Dubs Bad Hygiene ============================ -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="sewagePipeStuff"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="DubsDirtyPipeBase">
+          <defName>RL_HygieneSewageRiser</defName>
+          <label>vertical sewage riser</label>
+          <description>A sewage pipe that also joins the sewage network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary sewage pipe otherwise.</description>
+          <graphicData>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <uiIconPath>DBH/UI/Plumbing</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <statBases>
+            <MaxHitPoints>100</MaxHitPoints>
+            <WorkToBuild>120</WorkToBuild>
+          </statBases>
+          <costList>
+            <Steel>8</Steel>
+          </costList>
+          <comps>
+            <li Class="DubsBadHygiene.CompProperties_Pipe">
+              <mode>Sewage</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2060</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="sewagePipeStuff"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="DubsDirtyPipeBase">
+          <defName>RL_HygieneAirRiser</defName>
+          <label>vertical air-con riser</label>
+          <description>A duct that also joins the air network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary duct otherwise.</description>
+          <designationCategory>Temperature</designationCategory>
+          <graphicData>
+            <texPath>DBH/Things/Building/ducting_atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <uiIconPath>DBH/UI/coolingPipe</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <statBases>
+            <MaxHitPoints>100</MaxHitPoints>
+            <WorkToBuild>120</WorkToBuild>
+          </statBases>
+          <costList>
+            <Steel>8</Steel>
+          </costList>
+          <comps>
+            <li Class="DubsBadHygiene.CompProperties_Pipe">
+              <mode>Air</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2061</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ========================== Dubs Central Heating ========================== -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="HeatingPipe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="DCHPipeBase">
+          <defName>RL_HeatingRiser</defName>
+          <label>vertical heating riser</label>
+          <description>A heating pipe that also joins the heating network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary heating pipe otherwise.</description>
+          <graphicData>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <uiIconPath>DCH/UI/Plumbing</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <statBases>
+            <MaxHitPoints>100</MaxHitPoints>
+            <WorkToBuild>120</WorkToBuild>
+          </statBases>
+          <costList>
+            <Steel>8</Steel>
+          </costList>
+          <comps>
+            <li Class="DubsCentralHeating.CompProperties_Pipe">
+              <mode>Heating</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2062</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="HeatingPipe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="DCHPipeBase">
+          <defName>RL_HeatingAirRiser</defName>
+          <label>vertical air-con riser</label>
+          <description>A duct that also joins the air network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary duct otherwise.</description>
+          <designationCategory>Temperature</designationCategory>
+          <graphicData>
+            <texPath>DCH/Things/Building/ducting_atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <uiIconPath>DCH/UI/coolingPipe</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <statBases>
+            <MaxHitPoints>100</MaxHitPoints>
+            <WorkToBuild>120</WorkToBuild>
+          </statBases>
+          <costList>
+            <Steel>8</Steel>
+          </costList>
+          <comps>
+            <li Class="DubsCentralHeating.CompProperties_Pipe">
+              <mode>Air</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2063</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ================================ Rimefeller =============================== -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="OilPipeline"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimefellerPipeBase">
+          <defName>RL_OilRiser</defName>
+          <label>vertical oil riser</label>
+          <description>An oil pipeline that also joins the oil network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary pipeline otherwise.</description>
+          <graphicData>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <statBases>
+            <MaxHitPoints>100</MaxHitPoints>
+            <WorkToBuild>200</WorkToBuild>
+          </statBases>
+          <costList>
+            <Steel>8</Steel>
+          </costList>
+          <comps>
+            <li Class="Rimefeller.CompProperties_Pipe" />
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2064</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ============================== Dubs Rimatomics =============================
+       Rimatomics' own "wires" and "data cables" are not native PowerNets: HighVoltage and Loom are
+       two mediums of its UniversalPipeMapComp, so they get pipe terminals like everything else.
+       Every concrete Rimatomics def is a RimatomicsThingDef, and the parent chain requires the same
+       Class on the child, hence Class="Rimatomics.RimatomicsThingDef" on each of these five.
+  -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="coolingPipe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimatomicsPipeBase" Class="Rimatomics.RimatomicsThingDef">
+          <defName>RL_RimatomicsCoolingRiser</defName>
+          <label>vertical coolant riser</label>
+          <description>A coolant pipe that also joins the coolant network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary coolant pipe otherwise.</description>
+          <graphicData>
+            <texPath>Rimatomics/Things/RimatomicsBuildings/coolingPipe_Atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <building>
+            <blueprintGraphicData>
+              <texPath>Rimatomics/Things/RimatomicsBuildings/coolingPipe_AtlasBP</texPath>
+            </blueprintGraphicData>
+          </building>
+          <uiIconPath>Rimatomics/UI/CoolingPipe</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <comps>
+            <li Class="Rimatomics.CompProperties_Pipe">
+              <mode>Cooling</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2065</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="steamPipe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimatomicsPipeBase" Class="Rimatomics.RimatomicsThingDef">
+          <defName>RL_RimatomicsSteamRiser</defName>
+          <label>vertical steam riser</label>
+          <description>A steam pipe that also joins the steam network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary steam pipe otherwise.</description>
+          <graphicData>
+            <texPath>Rimatomics/Things/RimatomicsBuildings/steamPipe_Atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <building>
+            <blueprintGraphicData>
+              <texPath>Rimatomics/Things/RimatomicsBuildings/steamPipe_AtlasBP</texPath>
+            </blueprintGraphicData>
+          </building>
+          <uiIconPath>Rimatomics/UI/HeatPipe</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <comps>
+            <li Class="Rimatomics.CompProperties_Pipe">
+              <mode>Steam</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2066</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="waterPipe"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimatomicsPipeBase" Class="Rimatomics.RimatomicsThingDef">
+          <defName>RL_RimatomicsWaterRiser</defName>
+          <label>vertical cold water riser</label>
+          <description>A cold water pipe that also joins the cold water network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary water pipe otherwise.</description>
+          <graphicData>
+            <texPath>Rimatomics/Things/RimatomicsBuildings/coldWaterPipe_Atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <building>
+            <blueprintGraphicData>
+              <texPath>Rimatomics/Things/RimatomicsBuildings/coldWaterPipe_AtlasBP</texPath>
+            </blueprintGraphicData>
+          </building>
+          <uiIconPath>Rimatomics/UI/WaterPipe</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <comps>
+            <li Class="Rimatomics.CompProperties_Pipe">
+              <mode>ColdWater</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2067</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="HighVoltage"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimatomicsPipeBase" Class="Rimatomics.RimatomicsThingDef">
+          <defName>RL_RimatomicsHighVoltageRiser</defName>
+          <label>vertical high-voltage riser</label>
+          <description>A high-voltage trunk that also joins the high-voltage network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary high-voltage trunk otherwise.</description>
+          <graphicData>
+            <texPath>Rimatomics/Things/RimatomicsBuildings/HighVoltage_Atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <building>
+            <blueprintGraphicData>
+              <texPath>Rimatomics/Things/RimatomicsBuildings/HighVoltage_AtlasBP</texPath>
+            </blueprintGraphicData>
+          </building>
+          <uiIconPath>Rimatomics/UI/HighVoltage</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <comps>
+            <li Class="Rimatomics.CompProperties_Pipe">
+              <mode>HighVoltage</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2068</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="controllerLoom"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="RimatomicsPipeBase" Class="Rimatomics.RimatomicsThingDef">
+          <defName>RL_RimatomicsLoomRiser</defName>
+          <label>vertical control cable riser</label>
+          <description>A control cable that also joins the control network of the layer directly above and below it. Build one on each layer at the same position; a riser only spans one layer, so a three-layer shaft needs one on every layer. It is an ordinary control cable otherwise.</description>
+          <graphicData>
+            <texPath>Rimatomics/Things/RimatomicsBuildings/Loom_Atlas</texPath>
+            <color>(0.45,0.8,1)</color>
+          </graphicData>
+          <building>
+            <blueprintGraphicData>
+              <texPath>Rimatomics/Things/RimatomicsBuildings/Loom_AtlasBP</texPath>
+            </blueprintGraphicData>
+          </building>
+          <uiIconPath>Rimatomics/UI/Loom_Atlas</uiIconPath>
+          <uiIconScale>0.8</uiIconScale>
+          <comps>
+            <li Class="Rimatomics.CompProperties_Pipe">
+              <mode>Loom</mode>
+            </li>
+            <li Class="RimLayers.Compatibility.CompProperties_LayerPort" />
+          </comps>
+          <uiOrder>2069</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+</Patch>

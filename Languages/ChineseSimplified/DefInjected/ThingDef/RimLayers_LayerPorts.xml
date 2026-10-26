@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_HygieneSewageRiser.label>垂直污水立管</RL_HygieneSewageRiser.label>
+  <RL_HygieneSewageRiser.description>同时接入正上方与正下方楼层的污水管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通污水管相同。</RL_HygieneSewageRiser.description>
+  <RL_HygieneAirRiser.label>垂直空调风管</RL_HygieneAirRiser.label>
+  <RL_HygieneAirRiser.description>同时接入正上方与正下方楼层的空调风网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通风管相同。</RL_HygieneAirRiser.description>
+  <RL_HeatingRiser.label>垂直供暖立管</RL_HeatingRiser.label>
+  <RL_HeatingRiser.description>同时接入正上方与正下方楼层的供暖管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通供暖管相同。</RL_HeatingRiser.description>
+  <RL_HeatingAirRiser.label>垂直空调风管</RL_HeatingAirRiser.label>
+  <RL_HeatingAirRiser.description>同时接入正上方与正下方楼层的空调风网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通风管相同。</RL_HeatingAirRiser.description>
+  <RL_OilRiser.label>垂直石油立管</RL_OilRiser.label>
+  <RL_OilRiser.description>同时接入正上方与正下方楼层的石油管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通输油管相同。</RL_OilRiser.description>
+  <RL_RimatomicsCoolingRiser.label>垂直冷却剂立管</RL_RimatomicsCoolingRiser.label>
+  <RL_RimatomicsCoolingRiser.description>同时接入正上方与正下方楼层的冷却剂管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通冷却剂管相同。</RL_RimatomicsCoolingRiser.description>
+  <RL_RimatomicsSteamRiser.label>垂直蒸汽立管</RL_RimatomicsSteamRiser.label>
+  <RL_RimatomicsSteamRiser.description>同时接入正上方与正下方楼层的蒸汽管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通蒸汽管相同。</RL_RimatomicsSteamRiser.description>
+  <RL_RimatomicsWaterRiser.label>垂直冷水立管</RL_RimatomicsWaterRiser.label>
+  <RL_RimatomicsWaterRiser.description>同时接入正上方与正下方楼层的冷水管网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通水管相同。</RL_RimatomicsWaterRiser.description>
+  <RL_RimatomicsHighVoltageRiser.label>垂直高压输电立管</RL_RimatomicsHighVoltageRiser.label>
+  <RL_RimatomicsHighVoltageRiser.description>同时接入正上方与正下方楼层的高压输电网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通高压线相同。</RL_RimatomicsHighVoltageRiser.description>
+  <RL_RimatomicsLoomRiser.label>垂直控制电缆立管</RL_RimatomicsLoomRiser.label>
+  <RL_RimatomicsLoomRiser.description>同时接入正上方与正下方楼层的控制线网。在每层相同位置各建一根；每根只跨一层，三层竖井需要每层都建。其余行为与普通控制电缆相同。</RL_RimatomicsLoomRiser.description>
+</LanguageData>

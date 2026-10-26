@@ -12,6 +12,8 @@
   <RL_RequiresLayerMap>This requires a RimLayers map.</RL_RequiresLayerMap>
   <RL_PowerNoPeer>No active terminal on an adjacent layer at this position.</RL_PowerNoPeer>
   <RL_PowerPeers>Connected layers: {0}</RL_PowerPeers>
+  <RL_PipeNoPeer>No matching pipe on the layer above or below at this position.</RL_PipeNoPeer>
+  <RL_PipePeers>Connected layers: {0}</RL_PipePeers>
   <RL_StairMapUnsupported>This map cannot acquire upper floors (pocket or underground map).</RL_StairMapUnsupported>
   <RL_StairExpansionFailed>Upper floors could not be created. Check the log; unfinished stair frames and their materials are retained.</RL_StairExpansionFailed>
   <RL_ShipMultipleCores>Multiple grav engines share this structure. Separate the ships before using cross-floor links.</RL_ShipMultipleCores>

@@ -42,7 +42,7 @@ internal static class GenerateMapPatch
     {
         GenCommandLine.TryGetCommandLineArg("rimlayerscase",out string scenario);
         if(scenario=="vehicle-ground"&&GenCommandLine.CommandLineArgPassed("rimlayersvehicleflat"))return false;
-        return !scenario.StartsWith("environment")&&scenario is not ("stairs-bootstrap" or "incremental" or "mountains" or "underground" or "shaft-extension" or "deep-resources");
+        return !scenario.StartsWith("environment")&&scenario is not ("stairs-bootstrap" or "incremental" or "mountains" or "underground" or "shaft-extension" or "deep-resources" or "dubs");
     }
 
     static Exception? Finalizer(Exception? __exception, GenerationScope? __state)
@@ -87,6 +87,9 @@ internal static class FinalizeMapPatch
         RemapRiver(__instance, scope.Layout);
         EmptySpace.Fill(__instance, scope.Layout);
         __instance.GetComponent<LayerMapComponent>().Mountains.InitializeAddedLayers(1,new List<Thing>());
+        // Same notification as a runtime expansion, so adapters that resize their own buffers see one
+        // code path for "a map now stores more rows than a ground map".
+        LiveMapExpansion.NotifyCommitted(__instance,scope.Layout);
         LayerExpansionQuota.Current?.Allocated(__instance);
         Log.Message($"[RimLayers] Generated map {__instance.uniqueID}: {scope.Layout.Width}x{scope.Layout.Height}, {scope.Layout.LayerCount} layers, stride {scope.Layout.Stride}, repaired grids {repaired}.");
     }

@@ -20,6 +20,25 @@ internal static class LiveMapExpansion
     private sealed record Resume(Pawn Pawn,LocalTargetInfo Target,PathEndMode End);
     private sealed record Climate(IntVec3 Cell,float Temperature,float Vacuum);
 
+    /// <summary>
+    /// Raised exactly once, after a map's storage size grew and every swap was committed but before
+    /// the original owners are released. Subscribers may assume the final layout and the final
+    /// cellCount are already live (so per-cell buffers can be resized and networks rebuilt), and
+    /// that the transaction can no longer roll back.
+    /// </summary>
+    internal static event Action<Map,LayerLayout>? Committed;
+
+    /// <summary>Notifies subscribers; one failing adapter must not stop the others or the expansion.</summary>
+    internal static void NotifyCommitted(Map map,LayerLayout layout)
+    {
+        var listeners=Committed;if(listeners==null)return;
+        foreach(var listener in listeners.GetInvocationList())
+        {
+            try {((Action<Map,LayerLayout>)listener)(map,layout);}
+            catch(Exception exception) {Log.Error($"[RimLayers] A layer-expansion subscriber failed and was skipped; the rest keeps working.\n{exception}");}
+        }
+    }
+
     internal static bool CanExpand(Map map)=>!map.Disposed&&!map.IsPocketMap&&map.generatorDef?.isUnderground!=true&&map.Size.y==1&&map.Size.x>0&&map.Size.z>0;
 
     // beforeCommit is an isolation-test fault/validation seam.
@@ -130,7 +149,7 @@ internal static class LiveMapExpansion
         // All persistent state and derivatives are now usable. Release old owners exactly once.
         oldFinder.Dispose();oldPathing.Dispose();
         try {map.info.Size=oldSize;DisposeDrawer(oldDrawer);}finally {map.info.Size=full;}
-        changes.Commit();owner.Underground.CommitGeneration();ResumePaths(paths);
+        changes.Commit();owner.Underground.CommitGeneration();NotifyCommitted(map,layout);ResumePaths(paths);
         LayerExpansionQuota.Current?.Allocated(map);
         Log.Message($"[RimLayers] Expanded existing map {map.uniqueID}: {oldSize} -> {full}, {changes.Inventory.Count} field swaps, {timer.Elapsed.TotalMilliseconds:F1}ms.");
         return new(oldSize,full,timer.Elapsed.TotalMilliseconds,changes.Inventory,phases);
@@ -163,6 +182,13 @@ internal static class LiveMapExpansion
         }
         roots.AddRange(map.areaManager.AllAreas);roots.AddRange(map.zoneManager.AllZones);
         roots.AddRange(map.planManager.AllPlans);roots.AddRange(map.components);
+        // A mod can hold an Area it dropped from AreaManager.AllAreas. Dubs Bad Hygiene's
+        // RefreshAreas() removes duplicates with `x != cleanWater` for all three of its area types,
+        // so its dirty-water and ocean areas are always removed while the component keeps writing to
+        // them. Those areas never appear in AllAreas, so they are found through components instead.
+        foreach(var holder in map.components)
+            foreach(var field in AllFields(holder.GetType()))
+                if(typeof(Area).IsAssignableFrom(field.FieldType)&&field.GetValue(holder) is Area orphan)roots.Add(orphan);
         // Only map-owned managers/components and their grid/drawer members, never Thing or other Map graphs.
         for(int index=0;index<roots.Count;index++)
         {
@@ -179,7 +205,12 @@ internal static class LiveMapExpansion
                 bool nativeDeclared=value!=null&&
                     RimLayers.Compatibility.LayerCellBufferCompatibility.TryGrow(p,root,f,value,oldCount,newCount);
                 if(nativeDeclared)continue;
-                if(value is Array array&&array.Rank==1&&array.Length==oldCount)p.GrowArray(root,f,array,newCount);
+                if(value is Array array&&GridCapacityRepair.IsCellBuffer(array,oldCount))
+                {
+                    // ThingGrid's per-cell lists must not stay null in the appended band.
+                    if(array.Rank==1&&root is ThingGrid)p.GrowArray(root,f,array,newCount);
+                    else p.GrowCells(root,f,array,oldCount,newCount);
+                }
                 else if(value is CellIndices ci&&ci.SizeX==oldSize.x&&ci.SizeZ==oldSize.z)p.Set(root,f,new CellIndices(full.x,full.z));
                 else if(value is BoolGrid or ByteGrid or IntGrid or CellGrid or CellBoolDrawer)roots.Add(value);
                 else if(value!=null&&value.GetType().Namespace?.StartsWith("Unity.Collections",StringComparison.Ordinal)==true)
@@ -189,14 +220,48 @@ internal static class LiveMapExpansion
                         throw new NotSupportedException($"Unmapped native per-cell buffer: {root.GetType().FullName}.{f.Name}. Expansion was not applied.");
                 }
             }
-            if(root is BoolGrid b&&b.Width==oldSize.x&&b.Height==oldSize.z)p.Set(root,"height",full.z);
-            if(root is ByteGrid or IntGrid or CellGrid or CellBoolDrawer)
+            // An Area grid (Verse.Area.innerGrid) is sized from map.Size when the Area is constructed,
+            // which is before the storage extent exists, so it is still ground-sized at this point and
+            // matches neither oldSize nor the new size. The copy length is therefore taken from the
+            // buffer itself; the test is the buffer's own consistency, not the map's old rectangle.
+            if(root is BoolGrid b&&b.Width==full.x&&b.Height!=full.z)
             {
-                var x=AccessTools.Field(root.GetType(),"mapSizeX");var z=AccessTools.Field(root.GetType(),"mapSizeZ");
-                if((int)x.GetValue(root)! ==oldSize.x&&(int)z.GetValue(root)! ==oldSize.z)
-                {p.Set(root,z,full.z);if(root is CellBoolDrawer)p.Set(root,"dirty",true);}
+                var backing=AccessTools.Field(typeof(BoolGrid),"arr");
+                if(backing?.GetValue(b)is bool[] cells)
+                {
+                    int keep=Math.Min(cells.Length,b.Width*b.Height);
+                    p.GrowCells(b,backing,cells,keep,full.x*full.z);
+                }
+                p.Set(root,"height",full.z);
+            }
+            // Same flat layout and the same ground-vs-storage size hazard; growing only the size field
+            // would leave the storage short and the next CellToIndex write would throw.
+            if(root is ByteGrid or IntGrid or CellGrid)
+            {
+                var z=AccessTools.Field(root.GetType(),"mapSizeZ");
+                var backing=AccessTools.Field(root.GetType(),"grid");
+                int x=(int)AccessTools.Field(root.GetType(),"mapSizeX").GetValue(root)!;
+                int height=(int)z.GetValue(root)!;
+                if(x==full.x&&height!=full.z&&backing?.GetValue(root)is Array grid)
+                {
+                    int keep=Math.Min(grid.Length,x*height);
+                    p.GrowCells(root,backing,grid,keep,full.x*full.z);
+                    p.Set(root,z,full.z);
+                }
+            }
+            if(root is CellBoolDrawer)
+            {
+                if(AccessTools.Field(typeof(CellBoolDrawer),"mapSizeZ")is {} z)p.Set(root,z,full.z);
+                if(AccessTools.Field(typeof(CellBoolDrawer),"dirty")is {} dirty)p.Set(root,dirty,true);
             }
         }
+        // Third-party cell grids keep their buffers one level below the component: Bad Hygiene and
+        // Rimefeller both nest a `GridLayer`, and Rimefeller nests an `OilGrid`, so the root walk
+        // above never reaches them. They are grown here, inside the transaction, because the redraw
+        // at the end of it regenerates section overlays that index those buffers directly.
+        var oldSections=Sections(oldSize);var fullSections=Sections(full);
+        foreach(MapComponent component in map.components)
+            if(component!=null)NestedGrids(component,p,oldCount,newCount,oldSections,fullSections,full);
         // These are randomized/derived views, not saved map facts.
         p.Set(map.gasGrid,"cellsInRandomOrder",null);
         p.Set(map.pollutionGrid,"allPollutableCells",null);
@@ -206,6 +271,55 @@ internal static class LiveMapExpansion
         foreach(var f in AllFields(savedClimate.GetType()))
             if(f.GetValue(savedClimate) is Array a&&a.Rank==1&&a.Length==oldCount)p.GrowArray(savedClimate,f,a,newCount);
     }
+    private static IntVec2 Sections(IntVec3 size)=>
+        new(Mathf.CeilToInt(size.x/17f),Mathf.CeilToInt(size.z/17f));
+
+    /// <summary>True when <paramref name="holder"/> declares an array keyed by the per-cell index.</summary>
+    private static bool HoldsCells(object holder,int cells)
+    {
+        foreach(var field in AllFields(holder.GetType()))
+        {
+            if(!field.FieldType.IsArray)continue;
+            object? value;try {value=field.GetValue(holder);}catch {continue;}
+            if(value is Array array&&GridCapacityRepair.IsCellBuffer(array,cells))return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Grows the per-cell buffers of a component's own grid objects, plus the section-indexed dirty
+    /// rectangles and drawer extents that are derived from the old storage height.
+    /// </summary>
+    private static void NestedGrids(MapComponent component,ExpansionBuffers p,int oldCount,int newCount,
+        IntVec2 oldSections,IntVec2 fullSections,IntVec3 full)
+    {
+        foreach(var field in AllFields(component.GetType()))
+        {
+            object? holder;try {holder=field.GetValue(component);}catch {continue;}
+            if(holder==null||holder is Array or string or Def||holder.GetType().IsValueType)continue;
+            // A collection or a Thing/Def graph is never a per-cell grid owner; growing its internal
+            // array would corrupt it without updating its own element count.
+            if(holder is IEnumerable||holder is Thing)continue;
+            if(!HoldsCells(holder,oldCount))continue;
+            foreach(var member in AllFields(holder.GetType()))
+            {
+                if(p.Has(holder,member))continue;
+                object? value;try {value=member.GetValue(holder);}catch {continue;}
+                if(value is Array array&&GridCapacityRepair.IsCellBuffer(array,oldCount))
+                    p.GrowCells(holder,member,array,oldCount,newCount);
+                else if(value is bool[,] flags
+                    &&flags.GetLength(0)==oldSections.x&&flags.GetLength(1)==oldSections.z
+                    &&(fullSections.x!=oldSections.x||fullSections.z!=oldSections.z))
+                    p.Set(holder,member,new bool[fullSections.x,fullSections.z]);
+                else if(value is CellBoolDrawer drawer)
+                {
+                    if(AccessTools.Field(typeof(CellBoolDrawer),"mapSizeZ")is {} z)p.Set(drawer,z,full.z);
+                    if(AccessTools.Field(typeof(CellBoolDrawer),"dirty")is {} dirty)p.Set(drawer,dirty,true);
+                }
+            }
+        }
+    }
+
     private static void PrepareRiver(Map map,ExpansionBuffers p,IntVec3 oldSize,LayerLayout layout)
     {
         var water=map.waterInfo;var flow=water?.riverFlowMap;

@@ -81,10 +81,9 @@ namespace RimLayers.Generation
                         }
                         // Plain per-cell arrays indexed by cellIndices (z-major, e.g. MixedBiomeMapComponent.biomeGrid):
                         // the ground part is a prefix of the full array.
-                        else if (v is Array arr && arr.Rank == 1 && arr.Length == groundCells && arr.GetType().GetElementType()!.IsValueType)
+                        else if (v is Array arr && IsCellBuffer(arr, groundCells))
                         {
-                            Array full = Array.CreateInstance(arr.GetType().GetElementType()!, map.cellIndices.NumGridCells);
-                            Array.Copy(arr, full, groundCells);
+                            Array full = GrowCells(arr, groundCells, map.cellIndices.NumGridCells);
                             f.SetValue(root, full);
                             fixedCount++;
                             Log.Message($"resized {t.Name}.{f.Name} ({arr.GetType().Name}[{groundCells}]) to the full map");
@@ -114,6 +113,35 @@ namespace RimLayers.Generation
                 }
             }
             return fixedCount;
+        }
+
+        // A per-cell buffer keeps the cell dimension last: T[cells], T[rows, cells].
+        // Rank-1 arrays were the original prefix case; rank-2 matrices (Dubs' PipeGrid is
+        // int[pipeTypes, cells]) and rank-1 arrays of references (a RoofDef[] roof copy) follow
+        // the same rule, so they are grown here instead of staying ground-sized. Arrays keyed by
+        // sections (bool[sectionsX, sectionsZ]) do not match because their last dimension is not
+        // the cell count, so they are left to their owner.
+        internal static bool IsCellBuffer(Array array, int cells) =>
+            array.Rank == 1 ? array.Length == cells : array.Rank == 2 && array.GetLength(1) == cells;
+
+        internal static Array GrowCells(Array old, int oldCount, int newCount)
+        {
+            Type element = old.GetType().GetElementType()!;
+            if (old.Rank == 1)
+            {
+                Array flat = Array.CreateInstance(element, newCount);
+                Array.Copy(old, flat, oldCount);
+                return flat;
+            }
+            int rows = old.GetLength(0);
+            Array next = Array.CreateInstance(element, rows, newCount);
+            // A multi-dimensional array is contiguous row-major, so each row is one block copy
+            // (Array.Copy handles both value and reference element types).
+            for (int row = 0; row < rows; row++)
+            {
+                Array.Copy(old, row * oldCount, next, row * newCount, oldCount);
+            }
+            return next;
         }
 
         // ByteGrid / IntGrid / CellGrid keep their size in private mapSizeX / mapSizeZ.

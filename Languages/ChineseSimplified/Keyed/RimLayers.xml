@@ -12,6 +12,8 @@
   <RL_RequiresLayerMap>需要 RimLayers 地图。</RL_RequiresLayerMap>
   <RL_PowerNoPeer>相邻楼层的对应位置没有启用的电力端子。</RL_PowerNoPeer>
   <RL_PowerPeers>连接楼层：{0}</RL_PowerPeers>
+  <RL_PipeNoPeer>相邻楼层的对应位置没有同类管道。</RL_PipeNoPeer>
+  <RL_PipePeers>连接楼层：{0}</RL_PipePeers>
   <RL_StairMapUnsupported>此地图不支持创建上层（口袋或地下地图）。</RL_StairMapUnsupported>
   <RL_StairExpansionFailed>上层创建失败，请查看日志。未完成的楼梯框架与材料仍保留。</RL_StairExpansionFailed>
   <RL_ShipMultipleCores>同一船体连接了多个逆重引擎，请先拆分船体。</RL_ShipMultipleCores>

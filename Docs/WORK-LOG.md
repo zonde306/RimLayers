@@ -900,3 +900,23 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 
 **最后一版代码的完整验证**（两处改动落地之后重跑）：VGE Ch1 generate 98 / load 5，Ch2 generate 101 / load 5，均 0 失败、`errors=[]`，日志 `0.1.5 loaded (356 patch classes)`、`Gravship facility has no engine link` 计数 0；产物 `v1-ship-vge-20261026-071944`、`v1-ship-vge-20261026-072114`。原生回归：`ship-structure` 55 项、`structure` 32+16 项，均 0 失败；产物 `v1-ship-structure-20261026-071431`、`v1-structure-20261026-071507`。
 
+## Dubwise 五 mod 跨层兼容（DBH / DCH / Rimatomics / Rimefeller / Dubs Skylights）
+
+> 完整方案与逐 mod 细节见 `Docs/DUBS-COMPATIBILITY-PLAN.md`。这里只记结论、坑与验证。
+
+**四类需求的落点。** ①跨层端子：新增 `Compatibility/LayerPipePorts.cs` + `Patches/LayerPorts.xml`（10 个 `RL_*Riser` def，用 `PatchOperationConditional` 以对方 defName 存在性为门槛）。它们在运行时整体替换 `FloodFiller.FloodFill` 的 BFS，仅当出队格带 `CompLayerPort` 时额外向 `owner.Adjacent(cell,±1)` 扩展；`[ThreadStatic] depth` 只在四个 mod 的重建入口内为真，因此寻路/房间/气体洪泛完全不受影响。②地下水与石油只在地表/地下 LayerAllowed（`Elevation <= 0`）：`DubsWater.cs` / `RimefellerOil.cs` 在 mod 自己的 `Regen*` 之后按层清零 + `PlaceWorker` 前置拒绝。③天窗：`DubsSkylights.cs` 在 `RegenGrid()` 之后按 `owner.Sky.IsExposed(cell)` 清 `SkylightGrid`——这一处同时喂到 Dubs 的 `GlowGrid` Postfix、它的 LightingOverlay Prefix、DCH 太阳能锅炉和 DBH 反射读的 `skylights`，四个消费者一次修好。④扩层韧性：`LiveMapExpansion.Committed` + `GridCapacityRepair` 的 rank-2 支持 + `NestedGrids`。
+
+**为什么必须换掉整个洪泛，而不是包 `passCheck`。** `FloodFill` 只对**出队格的平面四邻**调 `passCheck`，另一层的格子永远不会被问到；`extraRoots` 只在开场入队一次且**不经过** `passCheck`，而这四个 mod 的 `passCheck` 闭包正是做 `GridID`/`pipeNetRef`/`PipeGrid`/`PipedThings` 记账的地方——用 `extraRoots` 灌进去的格子永远不被登记，下次重建会再开一个 net。所以只能整体替换 BFS。
+
+**扩层时按 cell 索引的缓冲必须在事务**内**扩好。** `EnsureElevation` 里 `map.mapDrawer.RegenerateEverythingNow()` 早于 `NotifyCommitted`，overlay `SectionLayer` 会先用旧长度数组读一遍（DBH `SectionLayer_Irrigation` 直接 `grid.Grid[index]`）。因此 `PrepareManaged`/`NestedGrids` 负责扩，`Committed` 只用来重算派生数据（重灌管网、重播种、重建 drawer 尺寸）。
+
+**最费时的一处：`Verse.Area.innerGrid` 与「被组件私自持有、却已从 `AllAreas` 摘掉」的 Area。** 起初 7804 条 `IndexOutOfRangeException`，栈是 `BoolGrid.get_Item ← Area.Set ← MapComponent_Hygiene.SetWaterCellsCache ← DBH 的 TerrainChanged Postfix ← MountainService/UndergroundService.SetTerrain`。两个独立缺陷叠在一起：
+
+1. `Area` 的 `innerGrid` 在 `Map.ConstructComponents` 阶段按**当刻 `map.Size`（= 地面矩形）**创建，既不是 `oldSize`（第二次扩层时已含上层带）也不是新尺寸，所以原来以 `oldSize` 为前置条件的修复永不命中。改为按 buffer 自身一致性判断（`Width==full.x && Height!=full.z`），拷贝长度取 `Min(arr.Length, Width*Height)`。
+2. **DBH 的 `RefreshAreas()` 是失败广播式的**：三条 `RemoveAll` 都用 `x != cleanWater` 比较，于是 `Area_WaterDirty` / `Area_WaterOcean` 每建即被移除，而组件仍通过 `_dirtyWater`/`_oceanWater` 字段写它们。这类 Area 在 `areaManager.AllAreas` 里根本查不到（探针实测 `listed=False`），必须遍历 `map.components` 的 `Area` 类型字段才能找到。修完这两条，警告从 8200 直接归零。
+
+教训：修「第三方网格没扩容」时，只要该对象**存在两条可达路径**（manager 列表 / 组件私有字段），就必然有一条是断的；探针打印 `listed=` 比读源码快得多。
+
+**夹具自身的两个坑。** `Tests/Run-V1.ps1` 固定 `-Layers 2..3`，所以 `dubs` 必须加进 `LayerGeneration.V1Preallocated()` 的排除表，否则 `EnsureElevation` 全部 early-return（表现为 `65280 -> 65280`）。另外 Rimatomics 的 `HighVoltage`(x=56)/`controllerLoom`(x=60) 组超出旧测试台 `PrepareDubsDeck(30,30,24)` 的范围，冒出 8 条 `[RimLayers.Recovery] reason=UnknownBuilding`，改成 `(30,30,44)` 后归零。
+
+**最终验证。** `Tests/Run-V1.ps1 -Scenario dubs -Dubs -AllDlc -TimeoutSeconds 900`：generate **66 项断言 / 0 失败**，`errors=[]`，`IndexOutOfRangeException`=0、`BoolGrid.get_Item`=0、`[RimLayers.Recovery]`=0；产物 `Tests/Artifacts/v1-dubs-20261026-085843`。关键值：层结构 `0,1,-1` → `0,1,-1,2`；`PipeGrid 48960 -> 65280`（rows=4, cols=65280）；水 `upper=0 / ground=10542`、深水 `0 / 9323`；石油 `0 / 484`（深油 `0 / 3628`，油田 5/8 个且 `RootCell` 不在上层）；10 组端子全部 `net-crosses` + `net-splits-without-the-riser`；天窗 `open-column-is-lit exposed=True`、`covered-column-is-not-lit exposed=False`。Release 0 警告 / 0 错误。

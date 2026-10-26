@@ -20,6 +20,11 @@
     <li>Baal.VehicleFramework</li>
     <li>SmashPhil.VehicleFramework</li>
     <li>brrainz.harmony</li>
+    <li>Dubwise.DubsSkylights</li>
+    <li>Dubwise.DubsCentralHeating</li>
+    <li>Dubwise.DubsBadHygiene</li>
+    <li>Dubwise.Rimefeller</li>
+    <li>Dubwise.Rimatomics</li>
   </loadAfter>
   <incompatibleWith>
     <li>Peren.IsoRimProjectZ</li>

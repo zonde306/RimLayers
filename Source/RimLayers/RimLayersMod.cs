@@ -26,6 +26,10 @@ public sealed class RimLayersMod : Mod
         // Same ordering rule as VVRace: an optional adapter that answers Prepare() from its own
         // binding state must resolve before the class-processor loop reaches its patch classes.
         Compatibility.AerocraftCompatibility.Install();
+        // Third-party pipe/water/skylight adapters. Installed here (not only from their static
+        // constructor) so their Harmony patches are in place before the class-processor loop, which
+        // is the only point where a failure is still reported per patch class.
+        Compatibility.DubsCompatibility.Install(harmony);
         int patchClasses=0;
         var failed=new List<string>();
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())

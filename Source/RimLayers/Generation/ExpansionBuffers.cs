@@ -35,6 +35,21 @@ internal sealed class ExpansionBuffers
         }
         Set(owner,field,next);
     }
+    /// <summary>
+    /// Grows a per-cell buffer whose cell dimension is the last one: T[cells] or T[rows, cells].
+    /// Rank-2 matrices are the shape a mod uses for "one row of cells per network type"
+    /// (Dubs' PipeGrid is int[pipeTypes, cells]); a rank-1 array of references (a RoofDef[] roof
+    /// copy) reaches here too, because it is a per-cell buffer even though its elements are not
+    /// value types.
+    /// </summary>
+    internal void GrowCells(object owner,FieldInfo field,Array old,int oldCount,int newCount)
+    {
+        if(!arrays.TryGetValue(old,out var next))
+        {
+            next=GridCapacityRepair.GrowCells(old,oldCount,newCount);arrays.Add(old,next);
+        }
+        Set(owner,field,next);
+    }
     internal void GrowStorageGroups(RimWorld.HaulDestinationManager owner,int width,int oldHeight,int newHeight)
     {
         var field=AccessTools.Field(owner.GetType(),"groupGrid");var old=(RimWorld.SlotGroup[,,])field.GetValue(owner)!;
@@ -88,5 +103,4 @@ internal sealed class ExpansionBuffers
     internal void Restore(){foreach(var action in beforeRestore)action();for(int i=changes.Count-1;i>=0;i--)changes[i].Field.SetValue(changes[i].Owner,changes[i].Before);}
     internal void Commit(){foreach(var release in releaseOld)release();releaseOld.Clear();releaseNew.Clear();}
     internal void Discard(){foreach(var release in releaseNew)release();releaseOld.Clear();releaseNew.Clear();}
-    private static string Describe(object? value)=>value is Array a?$"{a.GetType().Name}[{a.Length}]":value?.GetType().Name??"null";
-}
+    private static string Describe(object? value)=>value is Array a?$"{a.GetType().Name}[{a.Length}]":value?.GetType().Name??"null";}
