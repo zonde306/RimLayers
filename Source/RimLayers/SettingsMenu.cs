@@ -57,6 +57,7 @@ internal sealed class SettingsMenu
                     break;
                 case 2:
                     body.Note("Immediate");
+                    body.Check("CrossLayerInteraction",ref settings.CrossLayerInteraction);
                     body.Slider("StairTime",ref settings.StairTime,.25f,4);
                     body.Slider("PoweredLiftTime",ref settings.PoweredLiftTime,.25f,4);
                     body.Slider("EmergencyLiftTime",ref settings.EmergencyLiftTime,.25f,4);

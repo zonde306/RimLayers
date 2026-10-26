@@ -14,6 +14,7 @@ public sealed class RimLayersSettings : ModSettings
     public float StairTime=1, PoweredLiftTime=1, EmergencyLiftTime=1;
     public float MaterialCost=1, WorkCost=1, LiftPower=1, HeightRange=1, Minerals=1;
     public bool Caves=true, CaveHives=true, AutoRecovery=true;
+    public bool CrossLayerInteraction=true;
     public RecoveryPreference RecoveryMode;
     public RimLayers.Environment.EnvironmentSettings Environment=new();
     public List<string> RecoveryExcludedDefs=new();
@@ -48,6 +49,7 @@ public sealed class RimLayersSettings : ModSettings
         Scribe_Values.Look(ref Caves,"caves",true);
         Scribe_Values.Look(ref CaveHives,"caveHives",true);
         Scribe_Values.Look(ref AutoRecovery,"autoRecovery",true);
+        Scribe_Values.Look(ref CrossLayerInteraction,"crossLayerInteraction",true);
         Scribe_Values.Look(ref RecoveryMode,"recoveryMode",RecoveryPreference.FallThenReset);
         Scribe_Deep.Look(ref Environment,"environment");
         Environment??=new();

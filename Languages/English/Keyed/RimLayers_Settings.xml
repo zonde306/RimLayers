@@ -24,6 +24,7 @@
   <RL_SettingsSpaceExpansion>Allow new floors on space maps</RL_SettingsSpaceExpansion>
   <RL_SettingsQuotaHelp>Empty floors count. Only removing a map releases its used quota. The quota protects resources; it is not a frame-rate guarantee. Space excavation remains unavailable.</RL_SettingsQuotaHelp>
   <RL_SettingsSaveCompatibility>Saves containing floors beyond the old ±2 limits cannot be loaded with an older RimLayers DLL.</RL_SettingsSaveCompatibility>
+  <RL_SettingsCrossLayerInteraction>Allow cross-layer pawn selection &amp; interaction</RL_SettingsCrossLayerInteraction>
   <RL_SettingsStairTime>Stair travel time</RL_SettingsStairTime>
   <RL_SettingsPoweredLiftTime>Powered lift travel time</RL_SettingsPoweredLiftTime>
   <RL_SettingsEmergencyLiftTime>Emergency lift travel time</RL_SettingsEmergencyLiftTime>

@@ -24,6 +24,7 @@
   <RL_SettingsSpaceExpansion>允许在太空地图新增楼层</RL_SettingsSpaceExpansion>
   <RL_SettingsQuotaHelp>空层仍占额度，只有地图真正移除才释放占用。数量配额用于保护资源，不保证固定帧率。太空仍禁止地下开挖。</RL_SettingsQuotaHelp>
   <RL_SettingsSaveCompatibility>含超出旧版 −2～+2 上限楼层的存档，不能回退旧版 RimLayers DLL 读取。</RL_SettingsSaveCompatibility>
+  <RL_SettingsCrossLayerInteraction>允许Pawn跨层交互与选取</RL_SettingsCrossLayerInteraction>
   <RL_SettingsStairTime>楼梯耗时倍率</RL_SettingsStairTime>
   <RL_SettingsPoweredLiftTime>通电电梯耗时倍率</RL_SettingsPoweredLiftTime>
   <RL_SettingsEmergencyLiftTime>应急电梯耗时倍率</RL_SettingsEmergencyLiftTime>

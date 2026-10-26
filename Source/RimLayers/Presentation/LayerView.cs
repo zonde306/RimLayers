@@ -182,7 +182,93 @@ internal static class PickThingsPatch
         var c = LayerView.Current;
         if (c == null)return;
         __result.RemoveAll(t => t.MapHeld != c.map || !c.IsViewedCell(t.PositionHeld));
-        if(Find.Targeter.IsTargeting)__result.AddRange(LowerFloorBackdrop.Pick(c,clickPos,pawnWideClickRadius,clickParams,source));
+        if(Find.Targeter.IsTargeting || RimLayersMod.Settings.CrossLayerInteraction)
+            __result.AddRange(LowerFloorBackdrop.Pick(c,clickPos,pawnWideClickRadius,clickParams,source));
+    }
+}
+
+[HarmonyPatch(typeof(Selector), "SelectUnderMouse")]
+internal static class SelectUnderMouseStatePatch
+{
+    [ThreadStatic] internal static bool SelectingUnderMouse;
+    static void Prefix() => SelectingUnderMouse = true;
+    static void Finalizer() => SelectingUnderMouse = false;
+}
+
+[HarmonyPatch(typeof(Selector), "SelectableObjectsUnderMouse")]
+internal static class SelectableObjectsUnderMousePatch
+{
+    static bool Prefix(ref IEnumerable<object> __result)
+    {
+        var owner = LayerView.Current;
+        if (owner == null || !RimLayersMod.Settings.CrossLayerInteraction) return true;
+
+        Vector2 mousePositionOnUIInverted = UI.MousePositionOnUIInverted;
+        Thing thing = Find.ColonistBar.ColonistOrCorpseAt(mousePositionOnUIInverted);
+        if (thing != null && thing.SpawnedOrAnyParentSpawned)
+        {
+            __result = YieldOne(thing);
+            return false;
+        }
+
+        IntVec3 mouseCell = UI.MouseCell();
+        if (!mouseCell.InBounds(Find.CurrentMap))
+        {
+            __result = Enumerable.Empty<object>();
+            return false;
+        }
+
+        TargetingParameters clickParams = new TargetingParameters
+        {
+            mustBeSelectable = true,
+            canTargetPawns = true,
+            canTargetBuildings = true,
+            canTargetItems = true,
+            mapObjectTargetsMustBeAutoAttackable = false
+        };
+
+        Vector3 mouseMapPos = UI.MouseMapPosition();
+        List<Thing> selectableList = GenUI.ThingsUnderMouse(mouseMapPos, 1f, clickParams);
+
+        float DistToMouse(Thing t)
+        {
+            Vector3 pos = t.DrawPosHeld ?? t.DrawPos;
+            if (t.MapHeld == owner.map && !owner.IsViewedCell(t.PositionHeld))
+                pos = LowerFloorBackdrop.Project(owner, pos);
+            return (pos - mouseMapPos).MagnitudeHorizontal();
+        }
+
+        if (selectableList.Count > 0)
+        {
+            selectableList.SortBy(DistToMouse);
+            if (selectableList[0] is Pawn && DistToMouse(selectableList[0]) < 0.4f)
+            {
+                for (int num = selectableList.Count - 1; num >= 0; num--)
+                {
+                    Thing thing2 = selectableList[num];
+                    if (thing2.def.category == ThingCategory.Pawn && DistToMouse(thing2) > 0.4f)
+                    {
+                        selectableList.Remove(thing2);
+                    }
+                }
+            }
+        }
+
+        List<object> results = new List<object>(selectableList);
+
+        Zone zone = Find.CurrentMap.zoneManager.ZoneAt(mouseCell);
+        if (zone != null) results.Add(zone);
+
+        Plan plan = Find.CurrentMap.planManager.PlanAt(mouseCell);
+        if (plan != null) results.Add(plan);
+
+        __result = results;
+        return false;
+    }
+
+    private static IEnumerable<object> YieldOne(object obj)
+    {
+        yield return obj;
     }
 }
 
@@ -221,6 +307,11 @@ internal static class SelectionLayerPatch
     static void Postfix(object obj)
     {
         if (obj is Thing thing && thing.MapHeld == Find.CurrentMap)
+        {
+            var owner = LayerView.Current;
+            if (owner != null && RimLayersMod.Settings.CrossLayerInteraction && LowerFloorBackdrop.Exposed(owner, thing.PositionHeld))
+                return;
             LayerView.ShowTarget(thing.PositionHeld, thing.MapHeld);
+        }
     }
 }
