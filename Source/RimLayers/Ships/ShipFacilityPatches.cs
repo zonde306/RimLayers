@@ -57,6 +57,11 @@ internal static class ShipFacilityTrace
         var ship=owner.Ships.Get(engine);
         var props=facility.Props;
         var allowed=engine.def.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
+        // Two directions create a link and they can fail independently: the engine-side list decides
+        // CompAffectedByFacilities.PotentialThingsToLinkTo, the facility-side list decides
+        // CompFacility.LinkToNearbyBuildings. Recording the engine's own CanLinkTo verdict captures
+        // both at once and names the gate directly instead of leaving one generic "membership" line.
+        var canLinkTo=engine.AffectedByFacilities.CanLinkTo(parent);
         // Thrusters have their own extra gates (deck substructure in the exhaust zone, and the
         // outdoors room test). Without them in the line a thruster failure reads identically to a
         // membership failure, which cost two rounds of guessing already.
@@ -67,6 +72,7 @@ internal static class ShipFacilityTrace
             " at "+parent.Position+" engine="+engine.def.defName+"@"+engine.Position+
             " ship="+(ship==null?"null":ship.Ambiguous?"ambiguous":"cells="+ship.Cells.Count)+
             " allowed="+(allowed?.Contains(parent.def)==true)+
+            " engineCanLinkTo="+canLinkTo+
             " linksTo="+ShipFacilities.LinksTo(props,engine)+
             " canLink="+(parent.TryGetComp<CompFacility>()?.CanLink().ToString()??"none")+
             " belongs="+owner.Ships.Belongs(engine,parent)+
@@ -221,6 +227,54 @@ internal static class ShipFacilityCandidates
         // fall through instead of replacing a possibly-correct native answer with an empty list.
         if(logical.Length==0)return true;
         __result=logical;return false;
+    }
+}
+
+[HarmonyPatch(typeof(CompFacility),"LinkToNearbyBuildings")]
+internal static class ShipFacilityOwnCandidates
+{
+    // Native link creation has TWO independent directions. Widening only one is invisible to a
+    // fixture that spawns things, yet breaks every loaded save - which is exactly what happened.
+    //
+    //  - engine side: CompAffectedByFacilities.PotentialThingsToLinkTo enumerates the ENGINE's
+    //    linkableFacilities. ShipFacilityCandidates above handles it.
+    //  - facility side: CompFacility.LinkToNearbyBuildings enumerates the FACILITY's own
+    //    linkableBuildings, built by CompProperties_Facility.ResolveReferences from every def whose
+    //    linkableFacilities names this facility.
+    //
+    // A vanilla PilotConsole declares itself linkable only to vanilla GravEngine, because that is the
+    // only engine whose linkableFacilities names it; VGE never adds it to VGE_GravjumperEngine or
+    // VGE_GravhulkEngine. So while loading a save, PostSpawnSetup -> LinkToNearbyBuildings walks a
+    // list that cannot contain a VGE engine, the console ends up with no LinkedBuildings, and it
+    // reports NotConnectedToGravEngine forever - even though every engine-side gate and the trace
+    // line (linksTo=True canLink=True belongs=True distance=3.6/200) all look fine.
+    //
+    // The list is completed for the duration of the call rather than the loop being reimplemented.
+    // UnlinkAll, the CanLinkTo gate, maxSimultaneous, Notify_NewLink and the OnLinkAdded event that
+    // sets CompGravshipFacility.engine all stay native, so this cannot invent a link native would
+    // reject: appending a def only makes the engine a candidate, and CanPotentiallyLinkTo_Static
+    // (widened by LayerFacilityScopePatch) plus IsValidFacilityForMe still decide.
+    private static readonly List<ThingDef> Added=new();
+    private static List<ThingDef>? patched;
+    static void Prefix(CompFacility __instance)
+    {
+        Added.Clear();patched=null;
+        if(__instance.Props?.linkableBuildings is not {} list)return;
+        if(__instance.parent?.Map==null||LayerMapComponent.For(__instance.parent.Map)==null)return;
+        foreach(var engineDef in Compatibility.VanillaGravshipCompatibility.AllEngineDefs())
+        {
+            if(list.Contains(engineDef))continue;
+            list.Add(engineDef);Added.Add(engineDef);
+        }
+        if(Added.Count>0)patched=list;
+    }
+    static void Postfix()
+    {
+        // Nothing here is per-instance: linkableBuildings is shared by every instance of the def, but
+        // always undo it so no later native read sees engine defs it does not expect (the same list
+        // drives the vanilla link-drawing overlay and the placement attachment line).
+        if(patched!=null)foreach(var d in Added)patched.Remove(d);
+        Added.Clear();patched=null;
     }
 }
 

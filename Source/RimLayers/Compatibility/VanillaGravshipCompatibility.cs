@@ -26,6 +26,8 @@ internal static class VanillaGravshipCompatibility
     private static HashSet<ThingDef>? engineDefs;
     private static int engineDefsDefCount=-1;
     internal static void RefreshEngineDefs(){engineDefs=null;engineDefsDefCount=-1;}
+    /// <summary>Every def whose thingClass is a grav engine. Callers must not mutate the result.</summary>
+    internal static IReadOnlyCollection<ThingDef> AllEngineDefs()=>EngineDefs();
     internal static bool EngineDef(ThingDef? def)
     {
         if(def==null)return false;

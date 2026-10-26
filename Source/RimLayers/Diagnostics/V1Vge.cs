@@ -114,6 +114,31 @@ internal static partial class V1Integration
             // Destroy before the capture: Gravship.AddThing keeps the first CompPilotConsole it sees.
             vanilla.Destroy(DestroyMode.Vanish);owner.Ships.MarkDirty();owner.Ships.Tick();
         }
+        // 2c. The same pairing, reached the way a LOADED SAVE reaches it.
+        //
+        // 2b spawns the console while the engine is already linked, so only the engine-side
+        // enumeration runs. A save load instead runs PostSpawnSetup -> CompFacility.
+        // LinkToNearbyBuildings, which enumerates the FACILITY-side linkableBuildings - a different
+        // list that never named a VGE engine. That asymmetry is why this stayed green on the fixture
+        // and red on the player's save for two rounds. A despawn/spawn cycle reproduces it exactly.
+        if(DefDatabase<ThingDef>.GetNamedSilentFail("PilotConsole") is {} reloadDef&&console.def!=reloadDef)
+        {
+            var reload=(ThingWithComps)GenSpawn.Spawn(reloadDef,At(2,80,71),map,Rot4.North);
+            reload.SetFaction(Faction.OfPlayer);
+            owner.Ships.MarkDirty();owner.Ships.Tick();
+            var comp=reload.GetComp<CompFacility>();
+            var before=comp?.LinkedBuildings.Contains(engine)==true;
+            var host=reload.Map;var at=reload.Position;
+            reload.DeSpawn();owner.Ships.MarkDirty();owner.Ships.Tick();
+            GenSpawn.Spawn(reload,at,host,Rot4.North);reload.SetFaction(Faction.OfPlayer);
+            owner.Ships.MarkDirty();owner.Ships.Tick();
+            var after=comp?.LinkedBuildings.Contains(engine)==true;
+            Check(name+"-vanilla-console-survives-a-respawn-like-a-save-load",
+                before&&after&&reload.GetComp<CompPilotConsole>()?.engine==engine,
+                $"before={before}; after={after}; links={string.Join(",",comp?.LinkedBuildings.Select(t=>t.def.defName)??Enumerable.Empty<string>())}; "+
+                $"engineFacilities={engine.AffectedByFacilities.LinkedFacilitiesListForReading.Count}");
+            reload.Destroy(DestroyMode.Vanish);owner.Ships.MarkDirty();owner.Ships.Tick();
+        }
         // 3. A plain-facility engine link (VGE_GravshipStructuralBeam) is offered and accepted across decks.
         if(DefDatabase<ThingDef>.GetNamedSilentFail("VGE_GravshipStructuralBeam") is {} beamDef)
         {
