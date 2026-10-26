@@ -235,3 +235,81 @@ coverage=1, enabled=True
 各场景 `*-results.json` 里的 `assemblyMvid` 取自 `typeof(Pawn).Assembly`，即**游戏本体
 `Assembly-CSharp.dll`**，不是 RimLayers，因此**无法区分基线 run 与改动 run**。
 若需严格的「同一 DLL」证据，应把 RimLayers 自己的 MVID 写进结果。
+
+## 二层视角的渲染成本（2026-10-26 实测，配对 A/B）
+
+之前所有 scale 运行都在初始化时 `LayerView.Switch(owner, scaleLayers-1)`，即全程停在顶层，
+因此从来没有「同一世界、不同视角」的对照。本节补上了这块。
+
+### 方法
+
+`V1Scale.ScaleStep()` 每 `ScaleViewDwell=600` tick 切换视角
+（`LayerView.Switch(owner, owner.ViewedLayer==scaleLayers-1?0:scaleLayers-1)`），
+并在 `ScaleDrawEnded` 里按 `owner.ViewedLayer` 二次分桶（key = `Method@viewN`），
+跳过切换后前 60 tick 以排除 section 重建的一次性开销。
+
+命令：`Tests/Run-V1.ps1 -Scenario scale -AllDlc -MapSize 250 -PawnCount 60 -Layers 2 -TimeoutSeconds 900`
+（2 层即可产生「有下层 / 无下层」两种状态；3 层只会让两者都非空，失去对照价值。）
+
+### 结果（`v1-scale-20261026-142716`，2 层，things=36,328，pawns=131）
+
+| 方法 | view0（一层） | view1（二层） | 差 |
+|---|---|---|---|
+| `LowerFloorBackdrop` | 0.004 | **0.405** | **+0.401（×101）** |
+| `MapDrawer` | 0.312 | 0.246 | −0.066 |
+| `MapInterface` | 0.588 | 0.604 | +0.016 |
+| `DynamicDrawManager` mean | 0.647 | 0.648 | **0.000** |
+| `DynamicDrawManager` p50 | 0.535 | 0.110 | −0.425 |
+| `DynamicDrawManager` p99 | 2.616 | **10.069** | **+7.45** |
+| `RoofSurfaces` (view1) | — | 0.012 | — |
+| `DriftingMist` (view1) | — | 0.013 | — |
+
+`LowerFloorBackdrop.Draw` 的门是 `Below(viewed)` 非空，所以一层是零成本 early-return、
+二层才第一次真正执行。`+0.401 ms` 是唯一随视角层变化的 mod 侧成本，
+占 60fps 的 16.7 ms 预算约 2.4%。
+
+`DynamicDrawManager` 的均值**完全不动**而 p99 从 2.6 跳到 10.1：长尾来自渲染顺序变化
+（每帧多了一批背景层 `Graphics.DrawMesh` 提交），不是工作量增加。优化应针对
+`LowerFloorBackdrop` 自身，而不是去动原生管理器。
+
+### 0.325 ms 的三段拆分（`v1-scale-20261026-143312`）
+
+用 `Stopwatch.GetTimestamp()` 在 `Draw()` 内三段打点（计数器被 view0 零值帧对半稀释，数值×2 还原）：
+
+| 阶段 | 占比 | 内容 |
+|---|---|---|
+| section 网格提交 | 36%（0.116 ms） | ~140 个 section，5 种图层，`Graphics.DrawMesh` |
+| 动态 thing 筛选 | **54%（0.176 ms）** | 逐 thing 过谓词链 + `DrawNowAt` |
+| roof + mist 尾部 | 7%（0.024 ms） | `RoofSurfaces.Draw` + `DriftingMist.Draw` |
+
+逐帧漏斗（×2 还原）：`scanned≈364` → `floorMatch≈350` → `viewReject≈296` → `dynamic≈8`。
+即 350 个候选里 296 个**仅因不在视野**被丢弃，只有约 54 个进入 `Exposed()`。
+
+### 已提交的两处修改（`e0d86e3`）
+
+1. 视野包含测试提到 `Exposed()`/`Fogged()` 之前 → 删掉 ~85% 的 `Exposed()` 调用。
+   依据：两者都是纯读谓词，提前 `continue` 不改变任何存活的 drawable。
+2. `Exposed()` 去掉每次调用两次 `new[]{...}.Concat(...).Where(...)`，
+   直接用预计算的 `Above()` 数组；`target.LayerId` 的屋顶检查提到循环外
+   （此时 `Elevation(target) < viewed` 已成立，谓词恒真）。两个谓词无副作用且任一命中即 `false`，
+   所以逐层交错检查等价于原两遍扫描。
+
+### 被实测推翻的先前判断（勿重复）
+
+| 先前说法 | 实测 |
+|---|---|
+| 存档每帧扫描 13,381 个 thing | `DrawThings` 实为 ~168 个；13,045 是 `listerThings`，多数 `drawerType=MapMeshOnly` |
+| 掉帧主因是下层渲染 | 仅 0.35-0.40 ms/帧 |
+| `RoofSurfaces` 字符串比较 + 全 key 扫描是热点 | 0.010-0.012 ms/帧 |
+| `DriftingMist` 字典无淘汰是隐患 | 0.012-0.013 ms/帧 |
+| `Exposed()` 零分配能显著改善长尾 | 动态阶段每帧只覆盖 2-8 个 thing；长尾在原生 `DynamicDrawManager` |
+| 测试夹具测不到热点 | 夹具是真实的（~168 DrawThings 与玩家存档同量级） |
+
+`RoofSurfaces`/`DriftingMist` 比其余两项便宜 3 个数量级，**不是优化对象**。
+
+### 仍未量化
+
+- 层数 ≥3 时 `Below` 长度 >1，`LowerFloorBackdrop` 的 cost 是否严格线性（预期是，
+  但未实测；3 层下 0.602 vs 2 层 0.434/0.372 的对比混入了 thing 数差异，不可直接比）。
+- 原生 `DynamicDrawManager` 的 p99 尖峰内部构成（`ComputeCulledThings` 的 job 调度
+  vs 后续提交），需 Unity Profiler 级别的采样，本仓库的 Stopwatch 基建测不到。
