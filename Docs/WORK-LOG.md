@@ -906,7 +906,11 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 
 教训：拓宽一个原生答案之前先分清它是**集合**还是**谓词**。集合往往被灌进原版的平面操作（capture、地形移除、bounds），必须保持原样；谓词才承载新语义。把两者当成一件事，就会在「桥掉集合拓宽」的同时把谓词一起丢掉。
 
-**最后一版代码的完整验证**（两处改动落地之后重跑）：VGE Ch1 generate 98 / load 5，Ch2 generate 101 / load 5，均 0 失败、`errors=[]`，日志 `0.1.5 loaded (356 patch classes)`、`Gravship facility has no engine link` 计数 0；产物 `v1-ship-vge-20261026-071944`、`v1-ship-vge-20261026-072114`。原生回归：`ship-structure` 55 项、`structure` 32+16 项，均 0 失败；产物 `v1-ship-structure-20261026-071431`、`v1-structure-20261026-071507`。
+**`GetNamed` 在 MayRequire 缺失时抛异常，而且抛在地形查询内部。** 修完谓词后重跑五个场景，`structure`（**不加载 Odyssey**）冒出 8 条 `Failed to find Verse.TerrainDef named RL_ShipStructuralFloor`，并连带 3 条拆解断言失败。`RL_ShipStructuralFloor` 带 `MayRequire="Ludeon.RimWorld.Odyssey"`，可取它的 `ShipDeckTerrain.Def` 用的是会抛的 `DefDatabase.GetNamed`，而引用者 `ShipFoundationRemovalAvailability` 是 `TerrainGrid.CanRemoveFoundationAt` 的 Prefix——**每张地图每次地形查询都跑**，`foundation != ShipDeckTerrain.Def` 这句在没有 Odyssey 时直接抛。改成 `GetNamedSilentFail` + 缓存 miss，`Install` 在 def 缺失时变 no-op。教训：任何 `MayRequire` 门控的 def 都不得用 `GetNamed` 从**跨配置加载**的补丁里取，因为这类补丁的安装时机与 def 是否存在无关。
+
+另外那 3 条拆解断言失败有一半是**我自己的参数错误**：`Run-V1.ps1` 对 `structure` 默认只加载 `ludeon.rimworld`，而上一轮绿的那次带了 `-AllDlc`。跑原生场景时先确认 `activeMods` 里到底有没有 Odyssey，再判断是产品红还是夹具红。
+
+**最后一版代码的完整验证**（谓词 + def 解析 + 双边成员资格三处落地之后）：`ship-structure` generate 55、`structure` 32 + 16、`gravship` 53 + 26 + 8（landed-load）、VGE Ch1 generate 100 / load 5、Ch2 generate 103 / load 5，全部 0 失败、`errors=[]`；产物 `v1-ship-structure-20261026-205515`、`v1-structure-20261026-205600`、`v1-gravship-20261026-204335`、`v1-ship-vge-20261026-205658`、`v1-ship-vge-20261026-205825`。日志 `0.1.5 loaded (367 patch classes)`。
 
 **第三层根因：成员资格是单边的。** 上面七道门全部改成 fail-open 之后，实机仍然有一条控制台连不上，日志给出了决定性证据（`Player-prev.log:75789`）：
 
