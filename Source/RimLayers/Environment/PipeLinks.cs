@@ -40,6 +40,8 @@ public sealed class PipeLinks
         "RL_PipeRiser"
     };
 
+    internal static void RegisterRiser(string defName) => riserDefNames.Add(defName);
+
     public PipeLinks(LayerMapComponent owner)=>this.owner=owner;
 
     /// <summary>Called once from the compatibility installer when PipeSystem is loaded.</summary>

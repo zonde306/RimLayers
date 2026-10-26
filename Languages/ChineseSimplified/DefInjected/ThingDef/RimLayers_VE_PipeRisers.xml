@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_ChemfuelPipeRiser.label>垂直化合燃料管道端子</RL_ChemfuelPipeRiser.label>
+  <RL_ChemfuelPipeRiser.description>用于在层与层之间连通化合燃料管道网络的加固连接端子。在两层的同一相对坐标分别建造一个端子即可建立上下连通。</RL_ChemfuelPipeRiser.description>
+
+  <RL_DeepchemPipeRiser.label>垂直重化油管道端子</RL_DeepchemPipeRiser.label>
+  <RL_DeepchemPipeRiser.description>用于在层与层之间连通重化油管道网络的加固连接端子。在两层的同一相对坐标分别建造一个端子即可建立上下连通。</RL_DeepchemPipeRiser.description>
+
+  <RL_HelixienPipeRiser.label>垂直太阳罗盘天然气管道端子</RL_HelixienPipeRiser.label>
+  <RL_HelixienPipeRiser.description>用于在层与层之间连通天然气管道网络的加固连接端子。在两层的同一相对坐标分别建造一个端子即可建立上下连通。</RL_HelixienPipeRiser.description>
+
+  <RL_NutrientPastePipeRiser.label>垂直营养膏管道端子</RL_NutrientPastePipeRiser.label>
+  <RL_NutrientPastePipeRiser.description>用于在层与层之间连通营养膏管道网络的加固连接端子。在两层的同一相对坐标分别建造一个端子即可建立上下连通。</RL_NutrientPastePipeRiser.description>
+</LanguageData>

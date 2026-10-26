@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    Cross-deck / cross-layer pipe risers for Vanilla Chemfuel Expanded, Vanilla Helixien Gas Expanded,
+    and Vanilla Nutrient Paste Expanded.
+
+    Gated on each mod's PipeNetDef rather than packageId/modName to remain immune to display name changes
+    or forks.
+  -->
+
+  <!-- Chemfuel Net (Vanilla Chemfuel Expanded) -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VCHE_ChemfuelNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_ChemfuelPipeRiser</defName>
+          <label>vertical chemfuel riser</label>
+          <description>A reinforced chemfuel junction that carries the pipe network between two layers. Build one on each layer at the same position; it links only the layers directly above and below it.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <clearBuildingArea>false</clearBuildingArea>
+          <graphicData>
+            <texPath>Things/Building/Linked/ChemfuelPipes_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/Building/Linked/ChemfuelPipes_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VCHE_ChemfuelNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VCHE_PipeNetworks</designationCategory>
+          <uiOrder>2060</uiOrder>
+          <researchPrerequisites>
+            <li>BiofuelRefining</li>
+          </researchPrerequisites>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- Deepchem Net (Vanilla Chemfuel Expanded) -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VCHE_DeepchemNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_DeepchemPipeRiser</defName>
+          <label>vertical deepchem riser</label>
+          <description>A reinforced deepchem junction that carries the pipe network between two layers. Build one on each layer at the same position; it links only the layers directly above and below it.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <clearBuildingArea>false</clearBuildingArea>
+          <graphicData>
+            <texPath>Things/Building/Linked/DeepchemPipes_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/Building/Linked/DeepchemPipes_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VCHE_DeepchemNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VCHE_PipeNetworks</designationCategory>
+          <uiOrder>2061</uiOrder>
+          <researchPrerequisites>
+            <li>BiofuelRefining</li>
+          </researchPrerequisites>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- Helixien Gas Net (Vanilla Helixien Gas Expanded) -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VHGE_HelixienNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_HelixienPipeRiser</defName>
+          <label>vertical gas riser</label>
+          <description>A reinforced gas junction that carries the pipe network between two layers. Build one on each layer at the same position; it links only the layers directly above and below it.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <clearBuildingArea>false</clearBuildingArea>
+          <graphicData>
+            <texPath>Things/Building/Linked/GasPipe_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/Building/Linked/GasPipe_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VHGE_HelixienNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VCHE_PipeNetworks</designationCategory>
+          <uiOrder>2062</uiOrder>
+          <researchPrerequisites>
+            <li>VHGE_GasExtraction</li>
+          </researchPrerequisites>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- Nutrient Paste Net (Vanilla Nutrient Paste Expanded) -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/PipeSystem.PipeNetDef[defName="VNPE_NutrientPasteNet"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="BuildingBase">
+          <defName>RL_NutrientPastePipeRiser</defName>
+          <label>vertical nutrient paste riser</label>
+          <description>A reinforced nutrient paste junction that carries the pipe network between two layers. Build one on each layer at the same position; it links only the layers directly above and below it.</description>
+          <thingClass>PipeSystem.Building_Pipe</thingClass>
+          <category>Building</category>
+          <tickerType>Never</tickerType>
+          <altitudeLayer>Building</altitudeLayer>
+          <clearBuildingArea>false</clearBuildingArea>
+          <graphicData>
+            <texPath>Things/Building/Linked/NutrientPipes/NutrientPipes_Atlas</texPath>
+            <graphicClass>Graphic_Single</graphicClass>
+          </graphicData>
+          <uiIconPath>Things/Building/Linked/NutrientPipes/NutrientPipes_MenuIcon</uiIconPath>
+          <uiIconScale>0.7</uiIconScale>
+          <statBases>
+            <MaxHitPoints>140</MaxHitPoints>
+            <WorkToBuild>300</WorkToBuild>
+            <Flammability>0.3</Flammability>
+            <Beauty>-2</Beauty>
+          </statBases>
+          <costList>
+            <Steel>12</Steel>
+          </costList>
+          <building>
+            <isInert>true</isInert>
+            <isEdifice>false</isEdifice>
+            <ai_chillDestination>false</ai_chillDestination>
+          </building>
+          <comps>
+            <li Class="PipeSystem.CompProperties_Resource">
+              <pipeNet>VNPE_NutrientPasteNet</pipeNet>
+            </li>
+            <li Class="RimLayers.Environment.CompProperties_ResourcePort" />
+          </comps>
+          <designationCategory>VCHE_PipeNetworks</designationCategory>
+          <uiOrder>2063</uiOrder>
+          <researchPrerequisites>
+            <li>NutrientPaste</li>
+          </researchPrerequisites>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+</Patch>

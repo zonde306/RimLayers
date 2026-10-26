@@ -920,3 +920,22 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 **夹具自身的两个坑。** `Tests/Run-V1.ps1` 固定 `-Layers 2..3`，所以 `dubs` 必须加进 `LayerGeneration.V1Preallocated()` 的排除表，否则 `EnsureElevation` 全部 early-return（表现为 `65280 -> 65280`）。另外 Rimatomics 的 `HighVoltage`(x=56)/`controllerLoom`(x=60) 组超出旧测试台 `PrepareDubsDeck(30,30,24)` 的范围，冒出 8 条 `[RimLayers.Recovery] reason=UnknownBuilding`，改成 `(30,30,44)` 后归零。
 
 **最终验证。** `Tests/Run-V1.ps1 -Scenario dubs -Dubs -AllDlc -TimeoutSeconds 900`：generate **66 项断言 / 0 失败**，`errors=[]`，`IndexOutOfRangeException`=0、`BoolGrid.get_Item`=0、`[RimLayers.Recovery]`=0；产物 `Tests/Artifacts/v1-dubs-20261026-085843`。关键值：层结构 `0,1,-1` → `0,1,-1,2`；`PipeGrid 48960 -> 65280`（rows=4, cols=65280）；水 `upper=0 / ground=10542`、深水 `0 / 9323`；石油 `0 / 484`（深油 `0 / 3628`，油田 5/8 个且 `RootCell` 不在上层）；10 组端子全部 `net-crosses` + `net-splits-without-the-riser`；天窗 `open-column-is-lit exposed=True`、`covered-column-is-not-lit exposed=False`。Release 0 警告 / 0 错误。
+
+## Vanilla Expanded PipeSystem 跨层兼容（VCHE / VHGE / VNPE）
+
+> 适配 Vanilla Chemfuel Expanded (VCHE)、Vanilla Helixien Gas Expanded (VHGE)、Vanilla Nutrient Paste Expanded (VNPE)。
+
+**需求落点：**
+① 跨层管道端子：新增 `Compatibility/VEPipeSystemCompatibility.cs` + `Patches/VE_PipeRisers.xml`（4 个 `RL_*PipeRiser` def：化合燃料 `RL_ChemfuelPipeRiser`、深层化学品 `RL_DeepchemPipeRiser`、螺旋气 `RL_HelixienPipeRiser`、营养膏 `RL_NutrientPastePipeRiser`）。继承 `BuildingBase`，`thingClass` 使用 `PipeSystem.Building_Pipe`，挂载 `PipeSystem.CompProperties_Resource` 与 `RimLayers.Environment.CompProperties_ResourcePort`。通过 `PipeLinks.RegisterRiser` 注册到跨层判定表，复用 PipeSystem 现有的 `NeighbourThingsCardinal` 垂直邻居补丁进行原生合并与拆分。
+② 地下资源与深井泵层级限制：
+- `PipeSystem.PlaceWorker_DeepExtractor.AllowsPlacing` 与 `VHelixienGasE.Placeworker_Pump.AllowsPlacing` 挂 Prefix，在非地表/地下层（`!DeepResourceScope.LayerAllowed`）直接拒绝并返回原版拒绝提示，阻断 2 层及以上蓝图放置。
+- `DeepResourceScope.PlacementReport` 挂 Postfix，将 `VCHE_DeepchemPumpjack` 与 `VHGE_HelixienPump` 加入深层资源建筑白名单判定。
+- `VHelixienGasE.HelixienGasHandler.CanScatterAt` 与 `CanSpawnAt` 挂 Prefix，在非地表/地下层直接返回 false，阻断螺旋气天然喷口在上层散落或生成。
+③ 扩层与网格自愈：订阅 `LiveMapExpansion.Committed`，在地图扩层时自动触发 `PipeNetManager` 重算并复位。
+
+**夹具与验证：**
+`Tests/Run-V1.ps1 -Scenario vefpipes -VePipes`：28 项断言 0 失败，`errors=[]`。
+- 地下资源限制：深层化合泵与螺旋气泵在上层结构拒绝与蓝图拒绝全部通过，地表层正常允许；螺旋气天然喷口在上层 scatter/spawn 均被正确拦截。
+- 管道网络跨层：化合燃料、深层化学品、螺旋气、营养膏四套管网在双层分别放置管道与端子时，两层管道成功合并入同一 `PipeNet`；拆除端子后两层管网正确拆分为独立网络。
+- 产物：`Tests/Artifacts/v1-vefpipes-20261026-132442`。
+

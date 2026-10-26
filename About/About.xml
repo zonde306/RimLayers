@@ -25,6 +25,10 @@
     <li>Dubwise.DubsBadHygiene</li>
     <li>Dubwise.Rimefeller</li>
     <li>Dubwise.Rimatomics</li>
+    <li>OskarPotocki.VanillaFactionsExpanded.Core</li>
+    <li>VanillaExpanded.VChemfuelE</li>
+    <li>VanillaExpanded.HelixienGas</li>
+    <li>VanillaExpanded.VNutrientE</li>
   </loadAfter>
   <incompatibleWith>
     <li>Peren.IsoRimProjectZ</li>

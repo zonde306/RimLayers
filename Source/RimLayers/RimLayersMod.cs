@@ -30,6 +30,7 @@ public sealed class RimLayersMod : Mod
         // constructor) so their Harmony patches are in place before the class-processor loop, which
         // is the only point where a failure is still reported per patch class.
         Compatibility.DubsCompatibility.Install(harmony);
+        Compatibility.VEPipeSystemCompatibility.Install(harmony);
         int patchClasses=0;
         var failed=new List<string>();
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())
