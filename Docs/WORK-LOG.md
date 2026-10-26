@@ -929,6 +929,34 @@ WARN [RimLayers] Gravship facility has no engine link: PilotConsole at (131, 0, 
 
 **最终验证（双边成员资格之后）**：VGE Ch1 generate **100** / load 5，Ch2 generate **103** / load 5，均 0 失败、`errors=[]`，日志 `0.1.5 loaded (366 patch classes)`、`Gravship facility has no engine link` 计数 0；产物 `v1-ship-vge-20261026-175351`、`v1-ship-vge-20261026-175616`。Ch2 那轮另过 `chapter2-remote-lock-still-vetoes-launch`、`chapter2-ground-jammer-blocks-upper-deck-landing`、`chapter2-jammer-removal-restores-landing`。截图复核 `vge-restored-platform.png`（Floor 2 空白板 + 顶部已拆解碎片）与 `vge-landed-upper-deck.png`（Floor 3 上旋转后的驾驶桥、银色货物、洋红真空屏障顶、地板屋顶正确）。
 
+**第四层根因（真正的根）：链接有两个方向，只修一边等于没修。** 上面双边成员资格让 `engineFacilities` 从 0 涨到 **5**（推进器与 VGE 自家设施都连上了），可原版 `PilotConsole` 仍然不在其中。实机新日志：
+
+```
+allowed=False linksTo=True engineCanLinkTo=True canLink=True belongs=True
+  distance=3.6/200 engineFacilities=5
+```
+
+原生创建链接实际上有**两条彼此独立的路**：
+
+| 方向 | 枚举入口 | 枚举的清单 |
+|---|---|---|
+| 引擎侧 | `CompAffectedByFacilities.PotentialThingsToLinkTo` | `engine.linkableFacilities` |
+| 设施侧 | `CompFacility.LinkToNearbyBuildings` | `facility.Props.linkableBuildings` ← 由 `CompProperties_Facility.ResolveReferences` 反查生成 |
+
+前几轮修的统统是**引擎侧**。而 `CompFacility.LinkToNearbyBuildings` 走的是 `Props.linkableBuildings`，那是「哪些 def 的 `linkableFacilities` 点名了我」的反查结果——原版 `PilotConsole` 只被原版 `GravEngine` 点名，所以它那份清单里**根本没有** `VGE_GravjumperEngine` / `VGE_GravhulkEngine`。设施自己去找引擎时永远看不到 VGE 引擎。
+
+**这就是「夹具绿、实机红」的真正机制**，比层跨度那次更隐蔽：`GenSpawn` 生成设施时，引擎侧的 `RelinkAll` 碰巧把它带上；而**读档**走的是 `PostSpawnSetup → LinkToNearbyBuildings`，恰好是没修的那条。缺陷只存在于读档路径，正好是玩家每一次进游戏的路径。
+
+修法 `Ships/ShipFacilityPatches.cs` 的 `ShipFacilityOwnCandidates`：在 `LinkToNearbyBuildings` 执行期间把各引力引擎 def **临时补进** `linkableBuildings`，`Postfix` 立刻还原（该字段被整个 ThingDef 共享，也会驱动原生的连线预览，不能留残留）。
+
+关键约束：**不重写原生循环**。`UnlinkAll`、`CanLinkTo` 闸门、`maxSimultaneous` 容量、`Notify_NewLink`、以及设置 `CompGravshipFacility.engine` 的 `OnLinkAdded` 事件全部保持原生；追加 def 只是让引擎进入候选，最终仍由 `CanPotentiallyLinkTo_Static`（已由 `LayerFacilityScopePatch` 放宽）与 `IsValidFacilityForMe` 裁决，所以不可能凭空造出原生会拒绝的链接。
+
+**对照实验删掉了一个多余补丁。** 最初我还加了 `ShipFacilities.RepairLinks`（在船体缓存刷新时做一次确定性的两面对账）。但新断言读的是 `Ships.Tick()` 之后的状态，而 `RepairLinks` 也在 tick 里跑，两套机制会互相掩盖。于是做对照：把 `RepairLinks` 关掉重跑，**102 项仍然 0 失败、respawn 断言仍 `before=True; after=True`**——证明设施侧清单修复本身已经足够。该补丁随即删除，没有留在工程里。教训：修一个现象时若叠了两层机制，必须各自单独验证；否则交付的是「至少有一个在起作用」而不是「每个都有用」。
+
+新断言 `*-vanilla-console-survives-a-respawn-like-a-save-load` 用 despawn + respawn 精确复现读档路径。它在修复前必失败——旧的 `*-vanilla-console-links-to-this-engine-across-decks` 抓不到这个缺陷，因为它只在引擎已连线的状态下 spawn。
+
+**最终验证**：VGE Ch1 generate **102** / load 5、Ch2 generate **105** / load 5、`ship-structure` 55，全部 0 失败、`errors=[]`；日志 `0.1.5 loaded (368 patch classes)`、`Gravship facility has no engine link` 计数 0、异常 0；产物 `v1-ship-vge-20261027-022717`、`v1-ship-vge-20261027-022858`、`v1-ship-structure-20261027-023041`。提交 `310d7be`（源码）+ `11bdba6`（DLL，sha256 `607fa7a3…`）。
+
 **夹具坑（会白烧一轮）**：`Gravship..ctor` 抛 `NullReferenceException` 不是产品缺陷。`VGE_PilotBridge` 是 5×3 占 `x78..82,z74..76`，而夹具把 filler 银和 `VGE_GravshipStructuralBeam` spawn 在 `(81,76)` / `(81,75)`，都在 bridge footprint 内，`GenSpawn` 把 bridge 挤掉 → VGE 的 `Gravship_AddThing_Patch` 没机会设置 `pilotConsole` → `DetermineLaunchDirection()` 里 `pilotConsole.Rotation` 空引用。移到 `(81,77)` / `(77,74)` 后消失。
 
 ## Dubwise 五 mod 跨层兼容（DBH / DCH / Rimatomics / Rimefeller / Dubs Skylights）
