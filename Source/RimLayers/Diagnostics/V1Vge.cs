@@ -306,6 +306,16 @@ internal static partial class V1Integration
                     .Where(c=>map.terrainGrid.FoundationAt(At(2,c.x,c.z))?.IsSubstructure!=true)
                     .Select(c=>c.x+","+c.z)));
             Check(name+"-upper-console-linked",console.GetComp<CompPilotConsole>().engine==engine&&console.GetComp<CompPilotConsole>().CanBeActive,$"engine={console.GetComp<CompPilotConsole>().engine}; links={engine.AffectedByFacilities.LinkedFacilitiesListForReading.Count}");
+            // Guard the guard: this fixture only proves anything if it actually sits in the regime that
+            // failed live. Native CompGravshipFacility.CanBeActive measures storage coordinates
+            // (z = layer*Stride + z) with IntVec3.InHorDistOf, so one deck of separation is exactly
+            // Stride cells. On a 250 map Stride is 255 while VGE's pilot console allows only 200, so
+            // native alone must report "not connected" and only RimLayers' logical-distance widening
+            // can rescue it. A smaller map silently makes both assertions below pass for free.
+            var consoleMaxDistance=console.GetComp<CompPilotConsole>().Props.maxDistance;
+            Check(name+"-fixture-reproduces-live-deck-gap",!console.Position.InHorDistOf(engine.Position,consoleMaxDistance),
+                $"storage dz={engine.Position.z-console.Position.z} maxDistance={consoleMaxDistance} stride={owner.Layout!.Stride} "+
+                $"mapHeight={map.Size.z} (run ship-vge with -MapSize 250 to reproduce live play)");
             if(owner.Ships.Get(engine) is not {} shipNow)
             {
                 var footprint=engine.OccupiedRect().Select(c=>

@@ -22,17 +22,113 @@ internal static class ShipFacilities
     internal static int MaxSimultaneous(Thing thing)=>Props(thing)?.maxSimultaneous??1;
 }
 
+/// <summary>
+/// One-shot trace for a gravship facility that stands on a layered ship deck but has no live engine
+/// link. The link list is what drives both CompGravshipFacility's NotConnectedToGravEngine line and
+/// VGE's CompDisconnectedFacilityOverlay badge, so an empty list is the whole user-visible bug. The
+/// gate that actually failed is logged once per thing; opening the inspect window again is silent.
+/// </summary>
+internal static class ShipFacilityTrace
+{
+    private static readonly HashSet<int> Reported=new();
+    internal static void MissingLink(LayerMapComponent owner,CompGravshipFacility facility)
+    {
+        var parent=facility.parent;
+        if(!owner.Managed||!parent.Spawned)return;
+        if(owner.Ships.BuildOwner(parent.Position) is not {} engine)return;
+        if(!ShipStructureService.Core(engine))return;
+        if(!Reported.Add(parent.thingIDNumber))return;
+        var ship=owner.Ships.Get(engine);
+        var props=facility.Props;
+        var allowed=engine.def.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
+        Log.Warning("[RimLayers] Gravship facility has no engine link: "+parent.def.defName+
+            " at "+parent.Position+" engine="+engine.def.defName+"@"+engine.Position+
+            " ship="+(ship==null?"null":ship.Ambiguous?"ambiguous":"cells="+ship.Cells.Count)+
+            " allowed="+(allowed?.Contains(parent.def)==true)+
+            " canLink="+(parent.TryGetComp<CompFacility>()?.CanLink().ToString()??"none")+
+            " belongs="+owner.Ships.Belongs(engine,parent)+
+            " distance="+owner.Ships.Distance(parent.Position,engine.Position).ToString("F1")+
+            "/"+props.maxDistance.ToString("F0")+
+            " loose="+props.onlyRequiresLooseConnection+
+            " engineFacilities="+engine.AffectedByFacilities.LinkedFacilitiesListForReading.Count);
+    }
+}
+
+/// <summary>
+/// Native CompGravshipThruster.IsBlocked treats ANY substructure foundation inside the exhaust zone as
+/// a blocker. A single-deck gravship hangs its thrusters off the hull rim, so that test never fires.
+/// In a layered ship the upper deck IS substructure, so every thruster standing on a deck is
+/// permanently blocked: CanLink() returns false, CompFacility.LinkToNearbyBuildings never links it,
+/// and the facility reports ThrusterNotConnected / NotConnectedToGravEngine forever.
+///
+/// Substructure that belongs to the thruster's own ship is the deck it stands on, not an obstacle.
+/// The zone is rescanned here so a neighbouring ship's deck still blocks; a wind-blocking building is
+/// never excused and the outdoors requirement is untouched.
+/// </summary>
+[HarmonyPatch(typeof(CompGravshipThruster),nameof(CompGravshipThruster.IsBlocked))]
+internal static class ShipThrusterDeckBlock
+{
+    private static List<IntVec3> Zone=new();
+    static void Postfix(ThingDef thrusterDef,Map map,IntVec3 position,Rot4 rotation,ref bool blockedBySubstructure)
+    {
+        if(!blockedBySubstructure)return;
+        if(LayerMapComponent.For(map) is not {} owner||!owner.Managed)return;
+        var props=thrusterDef.GetCompProperties<CompProperties_GravshipThruster>();
+        if(props==null)return;
+        var own=owner.Ships.BuildOwner(position);
+        if(own==null||!ShipStructureService.Core(own))return; // Not on a player deck: keep native.
+        Zone.Clear();props.GetExclusionZone(position,rotation,ref Zone);
+        // Fail open: only a deck we can positively attribute to a DIFFERENT engine keeps blocking.
+        // A cold ship cache must never leave a thruster permanently blocked, because CanLink() then
+        // returns false and the thruster reports ThrusterNotConnected forever.
+        foreach(var c in Zone)
+        {
+            if(!c.InBounds(map)||map.terrainGrid.FoundationAt(c)?.IsSubstructure!=true)continue;
+            if(owner.Ships.BuildOwner(c) is {} deck&&deck!=own)return;
+        }
+        blockedBySubstructure=false;
+    }
+}
+
+/// <summary>
+/// Widens CompGravshipFacility.CanBeActive across layers, and only widens.
+///
+/// The native getter is a 2D test: it bails out as soon as one engine fails IntVec3.InHorDistOf,
+/// then requires OnValidSubstructure (a same-band flood). Replacing it outright was wrong: every
+/// extra condition this patch added - a live link, a cached ship, the engine footprint radius -
+/// could then turn a working native verdict into "not connected". A facility whose link is fine but
+/// whose ship cache has not refreshed yet would report NotConnectedToGravEngine for no reason.
+/// A Postfix that can only flip false to true keeps the native answer authoritative and adds the
+/// cross-deck case on top of it.
+///
+/// The replacement test is the deck itself, never the engine footprint radius. InHorDistOf spans the
+/// storage stride, so with maxDistance 200 an upper-deck facility is already out of range on a 200
+/// map (stride 204, one deck apart) - that is the reported live failure. The engine radius is far
+/// smaller than maxDistance (VGE_GravjumperEngine 7.9 against 200), so using InField here would leave
+/// any facility more than a few cells from the engine reading "not connected" even though native
+/// OnValidSubstructure never had that limit. Substructure underneath the whole footprint is what
+/// native actually tests, and it needs no ship cache, so a cold cache cannot break it.
+/// </summary>
 [HarmonyPatch(typeof(CompGravshipFacility),nameof(CompGravshipFacility.CanBeActive),MethodType.Getter)]
 internal static class ShipFacilityActive
 {
-    static bool Prefix(CompGravshipFacility __instance,ref bool __result)
+    static void Postfix(CompGravshipFacility __instance,ref bool __result)
     {
-        var c=__instance;var owner=LayerMapComponent.For(c.parent.Map);if(owner==null)return true;
-        var engine=c.engine;
-        __result=engine!=null&&ShipStructureService.Core(engine)&&
-            (c.parent.TryGetComp<CompPowerTrader>() is not {} p||p.PowerOn)&&
-            owner.Ships.Distance(c.parent.Position,engine.Position)<=c.Props.maxDistance&&owner.Ships.CanConnect(engine,c.parent,c.Props.onlyRequiresLooseConnection);
-        return false;
+        if(__result)return;
+        var c=__instance;
+        if(LayerMapComponent.For(c.parent.Map) is not {} owner)return;
+        if((c.engine??owner.Ships.BuildOwner(c.parent.Position)) is not {} engine||!ShipStructureService.Core(engine))return;
+        if(c.parent.TryGetComp<CompPowerTrader>() is {} p&&!p.PowerOn)return;
+        if(owner.Ships.Distance(c.parent.Position,engine.Position)>c.Props.maxDistance)return;
+        // Veto only a deck we can positively attribute to a DIFFERENT engine; an unknown owner is not
+        // evidence against the link.
+        var cellOwner=owner.Ships.OwnerAt(c.parent.Position)??owner.Ships.BuildOwner(c.parent.Position);
+        if(cellOwner!=null&&cellOwner!=engine)return;
+        // Native OnValidSubstructure floods the engine's own band; every deck of a layered ship is
+        // substructure, so testing the foundation directly is the same rule without the stride.
+        foreach(var cell in c.parent.OccupiedRect())
+            if(c.parent.Map.terrainGrid.FoundationAt(cell)?.IsSubstructure!=true)return;
+        __result=true;
     }
 }
 
@@ -50,6 +146,7 @@ internal static class ShipFacilityInspectRange
     {
         var parent=__instance.parent;
         if(!parent.Spawned||LayerMapComponent.For(parent.Map) is not {} owner)return;
+        if(__instance.LinkedBuildings.NullOrEmpty())ShipFacilityTrace.MissingLink(owner,__instance);
         float best=float.PositiveInfinity;
         if(__instance.engine is {} linked)best=owner.Ships.Distance(parent.Position,linked.Position);
         else foreach(var engine in Compatibility.VanillaGravshipCompatibility.Engines(owner.map))
@@ -71,41 +168,51 @@ internal static class ShipFacilityCandidates
         var engine=myPos.GetThingList(myMap).OfType<Building_GravEngine>().FirstOrDefault();if(engine==null)return true;
         var allowed=myDef.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
         if(allowed==null)return true;
-        __result=myMap.listerThings.AllThings.Where(t=>allowed.Contains(t.def)&&ShipFacilities.IsEngineFacility(engine,t)&&
-                owner.Ships.Distance(myPos,t.Position)<=ShipFacilities.Props(t)!.maxDistance&&owner.Ships.Belongs(engine,t))
+        // Ownership is decided by CanLinkTo (fail-open, only vetoing a positively different ship),
+        // not here: a partially filtered list would make the engine's RelinkAll drop links the
+        // facility side had legitimately established.
+        var logical=myMap.listerThings.AllThings.Where(t=>allowed.Contains(t.def)&&ShipFacilities.IsEngineFacility(engine,t)&&
+                owner.Ships.Distance(myPos,t.Position)<=ShipFacilities.Props(t)!.maxDistance)
             .OrderBy(t=>owner.Ships.Distance(myPos,t.Position)).ThenBy(t=>t.thingIDNumber)
-            .GroupBy(t=>t.def).SelectMany(g=>g.Take(ShipFacilities.MaxSimultaneous(g.First()))).ToArray();return false;
+            .GroupBy(t=>t.def).SelectMany(g=>g.Take(ShipFacilities.MaxSimultaneous(g.First()))).ToArray();
+        // Empty means the layer-aware filter found nothing the native scan would have found either, so
+        // fall through instead of replacing a possibly-correct native answer with an empty list.
+        if(logical.Length==0)return true;
+        __result=logical;return false;
     }
 }
 
 [HarmonyPatch(typeof(Building_GravEngine),nameof(Building_GravEngine.LooselyConnectedToGravEngine))]
 internal static class ShipLooseConnection
 {
-    static bool Prefix(Building_GravEngine __instance,Thing thing,ref bool __result)
-    {if(LayerMapComponent.For(__instance.Map) is not {} o)return true;__result=o.Ships.Belongs(__instance,thing);return false;}
+    static void Postfix(Building_GravEngine __instance,Thing thing,ref bool __result)
+    {if(__result||LayerMapComponent.For(__instance.Map) is not {} o)return;if(o.Ships.Belongs(__instance,thing))__result=true;}
 }
 
 [HarmonyPatch(typeof(PlaceWorker_InRangeOfGravEngine),nameof(PlaceWorker_InRangeOfGravEngine.AllowsPlacing))]
 internal static class ShipFacilityPlacement
 {
-    static bool Prefix(BuildableDef checkingDef,IntVec3 loc,Map map,ref AcceptanceReport __result)
+    // Only widen: a rejected native placement becomes accepted when the logical distance is in range.
+    static void Postfix(BuildableDef checkingDef,IntVec3 loc,Map map,ref AcceptanceReport __result)
     {
-        if(LayerMapComponent.For(map) is not {} o||checkingDef is not ThingDef d)return true;
-        var e=o.Ships.BuildOwner(loc);var p=d.GetCompProperties<CompProperties_Facility>();
-        __result=e!=null&&p!=null&&o.Ships.Distance(e.Position,loc)<=p.maxDistance?true:"MessageMustBePlacedInRangeOfGravEngine".Translate();return false;
+        if(__result.Accepted)return;
+        if(LayerMapComponent.For(map) is not {} o||checkingDef is not ThingDef d)return;
+        if(o.Ships.BuildOwner(loc) is not {} e)return;
+        if(d.GetCompProperties<CompProperties_Facility>() is not {} p)return;
+        if(o.Ships.Distance(e.Position,loc)<=p.maxDistance)__result=true;
     }
 }
 
 [HarmonyPatch(typeof(GravshipUtility),nameof(GravshipUtility.InsideFootprint))]
 internal static class ShipLogicalFootprint
 {
-    static bool Prefix(IntVec3 loc,Map map,Thing thingToExclude,ref bool __result)
+    // Only widen: native already covers same-band footprint cells, this adds the other decks.
+    static void Postfix(IntVec3 loc,Map map,Thing thingToExclude,ref bool __result)
     {
-        if(LayerMapComponent.For(map) is not {} o)return true;
-        var e=o.Ships.BuildOwner(loc);
-        if(e==null)return true;
-        if(thingToExclude!=null)return true; // Native exclusion previews retain native policy.
-        __result=o.Ships.InField(e,loc);return false;
+        if(__result||thingToExclude!=null)return; // Native exclusion previews retain native policy.
+        if(LayerMapComponent.For(map) is not {} o)return;
+        if(o.Ships.BuildOwner(loc) is not {} e)return;
+        if(o.Ships.InField(e,loc))__result=true;
     }
 }
 
@@ -163,15 +270,24 @@ internal static class ShipCapacityInspect
     {if(LayerMapComponent.For(__instance.Map)?.Ships.Get(__instance) is {} s)__result+="\n"+"RL_ShipCapacity".Translate(Compatibility.VanillaGravshipCompatibility.SupportCost(__instance.Map,s.Cells),(int)__instance.GetStatValue(StatDefOf.SubstructureSupport));}
 }
 
+/// <summary>
+/// Keeps an engine from linking a facility that stands on another engine's deck.
+///
+/// This used to be a fail-closed Prefix: anything Ships.Belongs could not positively confirm - an
+/// unrefreshed cache, an ambiguous hull, a facility footprint straddling a deck edge - was silently
+/// rejected, which is indistinguishable from "never linked" to the player. The veto now fires only
+/// when the facility's own cell positively belongs to a DIFFERENT engine.
+/// </summary>
 [HarmonyPatch(typeof(CompAffectedByFacilities),nameof(CompAffectedByFacilities.CanLinkTo))]
 internal static class ShipFacilityLinkOwnership
 {
-    static bool Prefix(CompAffectedByFacilities __instance,Thing facility,ref bool __result)
+    static void Postfix(CompAffectedByFacilities __instance,Thing facility,ref bool __result)
     {
-        if(__instance.parent is not Building_GravEngine engine||LayerMapComponent.For(engine.Map) is not {} o)return true;
-        if(ShipFacilities.Props(facility)==null)return true;
-        if(o.Ships.Belongs(engine,facility))return true;
-        __result=false;return false;
+        if(!__result)return;
+        if(__instance.parent is not Building_GravEngine engine||LayerMapComponent.For(engine.Map) is not {} o)return;
+        if(ShipFacilities.Props(facility)==null)return;
+        var owner=o.Ships.OwnerAt(facility.Position)??o.Ships.BuildOwner(facility.Position);
+        if(owner!=null&&owner!=engine)__result=false;
     }
 }
 

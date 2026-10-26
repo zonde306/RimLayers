@@ -222,13 +222,16 @@ static bool NeighboursPrefix(Thing thing, Map ___map, ref List<Thing> __result)
 
 | 原生成员 | 覆盖情况 |
 |---|---|
-| `CompGravshipFacility.CanBeActive` | Prefix，逻辑距离 + `Ships.CanConnect` |
-| `CompAffectedByFacilities.PotentialThingsToLinkTo` | Prefix，`Ships.Belongs` + 逻辑距离 + `maxSimultaneous` |
-| `Building_GravEngine.LooselyConnectedToGravEngine` | Prefix，`Ships.Belongs` |
-| `PlaceWorker_InRangeOfGravEngine.AllowsPlacing` | Prefix，`Ships.BuildOwner` + 逻辑距离 |
-| `GravshipUtility.InsideFootprint` | Prefix（`thingToExclude==null` 时） |
-| `CompAffectedByFacilities.CanLinkTo` | Prefix（归属校验） |
+| `CompGravshipFacility.CanBeActive` | Postfix（只在原生 false 时按逻辑距离 + 脚下甲板放宽） |
+| `CompAffectedByFacilities.PotentialThingsToLinkTo` | Prefix，逻辑距离 + `maxSimultaneous`；逻辑结果为空时交回原生 |
+| `Building_GravEngine.LooselyConnectedToGravEngine` | Postfix（原生 false 时按 `Ships.Belongs` 放宽） |
+| `PlaceWorker_InRangeOfGravEngine.AllowsPlacing` | Postfix（原生拒绝时按逻辑距离放行） |
+| `GravshipUtility.InsideFootprint` | Postfix（原生 false 且 `thingToExclude==null` 时按 `Ships.InField` 放宽） |
+| `CompAffectedByFacilities.CanLinkTo` | Postfix（仅当设施所在格明确属于**另一艘**船时否决） |
+| `CompGravshipThruster.IsBlocked` | Postfix（只消除“尾焰压到本船自己甲板”这一伪阻塞） |
 | `Environment/FacilityPatches.cs` `CanPotentiallyLinkTo_Static` | Prefix（引擎↔Gravship 设施） |
+
+**为什么全是 Postfix**：这些门早期都写成 Prefix 直接覆盖原生判定。那样每多一个前置条件（船体缓存已刷新、非 Ambiguous、footprint 全在 `ship.Cells` 内、在引擎 footprint 半径内）就多一条让原生本来正常的场景**静默**变成“未连接”的路径。原生 `CompGravshipFacility.CanBeActive` 用 `IntVec3.InHorDistOf` 量存储坐标，而层存储是 `z = layer*Stride + z`、`Stride=((height+17)/17)*17`：250 地图 stride 255 > VGE 控制台 `maxDistance` 200，所以跨层设施在原生眼里**永远**超距。正确做法是保留原生结论，只在它为 false 时按**解码后的逻辑坐标**补上跨层情况。
 
 ### 4.2 漏掉的部分（本次要补）
 
@@ -303,6 +306,8 @@ static void Postfix(Building_GravEngine __instance,ref HashSet<IntVec3> __result
 
 - 返回 `ShipStructure.Cells`（已缓存的 HashSet），**不要复制**（getter 在渲染/热管理热路径上）。消费方都是只读，需在注释里写清契约。
 - `AllConnectedSubstructure*` 不动：`LooselyConnectedToGravship`/`ValidSubstructureAt`/`OnValidSubstructure` 已由 RimLayers 单独接管，改它只会引入回归。
+
+> 后续修正（2026-10-26）：`ValidSubstructureAt` 的接管已被**删除**。`ValidSubstructure` 拓宽到全甲板后，原生 `ValidSubstructureAt` 就是 `ValidSubstructure.Contains(cell)`（`/tmp/rwdec/RimWorld/Building_GravEngine.cs:348`），因此上层控制台的交互格天然为真；不启用 VGE 时又必须保持单层语义。原来的 Prefix 把答案替换成 `Cells.Contains(cell) && InField(cell)`，而 `InField` 受引擎 `CompSubstructureFootprint` 半径约束（`VGE_GravjumperEngine` 只有 7.9），设施却允许 `maxDistance 200` —— 离引擎远的控制台会白丢发射按钮。现已改为不补丁，只在 `Ships/ShipCapturePatches.cs` 留注释记录。
 - `UpdateSubstructureIfNeeded` 内部用的是**字段**，不会递归。
 - 回归重点：`ShipLayers.Eligible`（`ShipLayerData.cs:83-86`）与 `ShipLayerData.AttachNativeSingle` 会读该属性，需确认语义仍成立（上层也算“本船甲板”，对它们更正确）。
 

@@ -22,6 +22,9 @@
 - VGE subscaffold 仍随船运输但不占承载容量；不能因适配而变成可放建筑的普通船板。
 - 真空屏障顶颜色按船内层坐标保存，旋转/高层降落后还原到对应楼层。
 - VGE 仪式直接起飞入口必须在扣燃料前完成分离确认与目标配额预留。
+- **跨层设施判定不得替换原生结论，只能在其为 false 时放宽**。原生 `CompGravshipFacility.CanBeActive` 用 `IntVec3.InHorDistOf`（只看 x/z）量存储坐标，而层存储是 `z = layer*Stride + z`、`Stride = ((height+17)/17)*17`：120 地图 stride 136，250 地图 stride 255。VGE 驾驶台 `maxDistance` 是 200，所以玩家的 250 地图上「引擎在下层、控制台在上层」在原生眼里永远超距 → 恒报“未连接至逆重引擎”。RimLayers 的放宽按**解码后的逻辑坐标**判定，并叠加“脚下整块 footprint 都是本船 substructure”与“该格不属于另一艘船”两道校验。
+- 相应的六个设施门（`CanBeActive`、`CanLinkTo`、`PotentialThingsToLinkTo`、`LooselyConnectedToGravEngine`、`PlaceWorker_InRangeOfGravEngine`、`GravshipUtility.InsideFootprint`）全部是 Postfix：原生为真就直接返回，绝不再加条件。早期版本用 Prefix 直接覆盖原生判定，把“船体缓存还没刷新”“footprint 跨甲板边”“超出引擎 footprint 半径”这些内部状态都翻译成了用户可见的“未连接”，而且是静默的。
+- `ship-vge` 场景默认 `-MapSize 250`，并保留断言 `*-fixture-reproduces-live-deck-gap`（要求控制台与引擎的存储距离**大于** `maxDistance`）。没有这条断言时，夹具跑 120 地图会让所有跨层断言免费通过，正是这个盲区让“夹具全绿、实机全红”持续了两轮。
 
 ## 验证
 
@@ -29,9 +32,15 @@ Release 构建通过，0 警告 / 0 错误。以下均为独立配置的真实�
 
 | 配置与场景 | 结果 | Artifacts 目录 |
 |---|---|---|
+| **Chapter 1，250 地图（实机几何）** | **生成 98、重载 5 项通过** | v1-ship-vge-20261026-071944 |
+| **Chapter 1 + 2，250 地图（实机几何）** | **生成 101、重载 5 项通过** | v1-ship-vge-20261026-072114 |
+| 原生 `ship-structure`（设施门改为 fail-open 后） | 生成 55 项通过 | v1-ship-structure-20261026-071431 |
+| 原生 `structure`（同上） | 生成 32、重载 16 项通过 | v1-structure-20261026-071507 |
 | 无 VGE / VEF，原生高层引擎完整起飞、降落、返航 | 生成 49、飞行重载 26、落地重载 10 项通过 | v1-gravship-20261021-024545 |
-| 仅 Chapter 1，三种引擎双层转运 | 生成 43、重载 5 项通过 | v1-ship-vge-20261021-025241 |
-| Chapter 1 + 2，含仪式选择、远程锁与干扰 | 生成 47、重载 5 项通过 | v1-ship-vge-20261021-025425 |
+| 仅 Chapter 1，三种引擎双层转运（120 地图，旧） | 生成 43、重载 5 项通过 | v1-ship-vge-20261021-025241 |
+| Chapter 1 + 2，含仪式选择、远程锁与干扰（120 地图，旧） | 生成 47、重载 5 项通过 | v1-ship-vge-20261021-025425 |
+
+上表前两行的 250 地图是必须的：120 地图的层跨带距离（stride 136）小于 VGE 控制台的 `maxDistance 200`，会让所有跨层断言免费通过。这两次运行里 `*-fixture-reproduces-live-deck-gap` 均报 `storage dz=-255 / maxDistance=200 / stride=255`，即夹具确实坐在实机失败区间内；跨层控制台 `links=1` 且 `CanBeActive=True`，燃料 `shared=250`，推进器 `canLink=True`。这两次是**最后一版代码**（`Environment/FacilityPatches.cs` 的第七个门改成 Postfix 放宽、`ShipCapturePatches.cs` 删除冗余的 `ValidSubstructureAt` 接管之后）的验证，日志报 `0.1.5 loaded (356 patch classes)`，`Gravship facility has no engine link` 计数为 0。
 
 画面复核：v1-ship-vge-visual-20261021-025605 复用最终飞行存档，重载 5 项通过、errors=[]；实看第 3 层的旋转驾驶台、白银、subscaffold 与洋红色真空屏障顶。初始截图停在世界地图，修正测试视图后取得实际甲板画面：
 
@@ -45,10 +54,10 @@ VGE 三种引擎逐一测试：本船跨两层 98 格、匹配驾驶设施跨层
 
 尚未单独跑完 VGE 的完整仪式 UI、整场舰战、突袭/轨道任务及每种特殊敌舰流程；本次验证的是玩家多层船的转运、设施、资源与起降约束。保留 VGE 对这些玩法的原实现。
 
-复现命令（游戏根目录，PowerShell 7）：
+复现命令（游戏根目录，PowerShell 7）。`ship-vge` 默认 250 地图：层存储跨带距离 `Stride=255` 超过 VGE 控制台的 `maxDistance=200`，必须在这个尺寸下测才能复现实机的跨层断连；
 
-    ./Mods/RimLayers/Tests/Run-V1.ps1 -Scenario ship-vge -Vge 1 -AllDlc -TimeoutSeconds 480
-    ./Mods/RimLayers/Tests/Run-V1.ps1 -Scenario ship-vge -Vge 2 -AllDlc -TimeoutSeconds 480
+    ./Mods/RimLayers/Tests/Run-V1.ps1 -Scenario ship-vge -Vge 1 -AllDlc -TimeoutSeconds 900
+    ./Mods/RimLayers/Tests/Run-V1.ps1 -Scenario ship-vge -Vge 2 -AllDlc -TimeoutSeconds 900
     ./Mods/RimLayers/Tests/Run-V1.ps1 -Scenario gravship -NativeShip -AllDlc -EngineLayer 1 -TimeoutSeconds 480
 
 ### 发现并修复的问题
@@ -65,6 +74,9 @@ VGE 三种引擎逐一测试：本船跨两层 98 格、匹配驾驶设施跨层
 - 20261025：`Gravship..ctor` 的 `NullReferenceException` 最终定位为**测试夹具位置冲突**，不是产品缺陷。`VGE_PilotBridge` 是 5×3，占 `x78..82, z74..76`；测试把 filler 货和 `VGE_GravshipStructuralBeam` 分别 spawn 在 `(81,76)` 和 `(81,75)`，都在 bridge footprint 内，`GenSpawn` 把 bridge 挤掉后 VGE 的 `Gravship_AddThing_Patch` 就没有机会设置 `pilotConsole`，`DetermineLaunchDirection` 里 `pilotConsole.Rotation` 直接空引用。移到 `(81,77)` 和 `(77,74)` 后 NRE 消失。
 - 20261025：回归发现 `ValidSubstructure` 拓宽对原生多船路径是错的（`native-footprint-remains-core-deck-with-logical-cross-layer-ownership`），改为按 VGE 是否启用门控。教训：改了共享属性就应同时跑目标场景和一个反例场景，不要等全绿后才跑回归。
 - 20261025：`gravship -NativeShip` 的 `legal-rotated-ground-origin-accepted` 失败经 `git stash` 基线对比确认为**既有问题**，与本次 VGE 工作无关。
+- 20261026（实机反馈“1 层引擎、2 层控制台/推进器还是提示未连接”）：根因是层存储跨带距离与 VGE `maxDistance 200` 的冲突。`LayerLayout.CalculateStride(height) = ((height+17)/17)*17`，存储 `z = layer*Stride + z`；120 地图 stride 136（< 200，夹具全绿），250 地图 stride 255（> 200，玩家实际存档）。原生 `CompGravshipFacility.CanBeActive` 对**第一个**超距引擎就直接返回 false，所以只要引擎在另一层，所有设施都是“未连接”。同时发现 RimLayers 自己的六个门是**失败关闭**的：`ShipFacilityLinkOwnership` 在 `Belongs` 失败时硬返回 false，`ShipFacilityActive` 用 `InField`（引擎 footprint 半径 7.9）当活跃判据——比原生 `OnValidSubstructure` 严得多。两者都改成了只在原生为 false 时放宽的 Postfix，活跃判据改为“脚下整块都是本船 substructure”，不再依赖船体缓存。
+- 20261026：推进器在分层船上必然 `Blocked`。`CompGravshipThruster.IsBlocked` 把**尾焰范围内任何** substructure 格当成障碍；单层船上推进器挂在船体外沿所以永不触发，而分层船的上层甲板本身就是 substructure。结果所有甲板推进器 `CanLink()` 恒为 false → 永不连线 → `ThrusterNotConnected`。修法是在 `IsBlocked` 的 Postfix 里只保留“尾焰压到**别的**船的甲板”这一种阻塞，`blockedBy`（挡风建筑）与户外要求完全不动。
+- 20261026：教训——兼容补丁“替换”原生判定时，每多一个前置条件就多一条让原生本来正常的场景静默坏掉的路径；改成“只在原生为 false 时放宽”的 Postfix 无法让原生行为变差。另一条教训：夹具必须坐在出问题的参数区间里，否则它只是在证明别的东西。
 
 最终验证（全部 0 失败）：VGE Chapter 1 generate 95 项 + load 5 项；Chapter 2 generate 98 项 + load 5 项（含 `chapter2-remote-lock-still-vetoes-launch`、`chapter2-ground-jammer-blocks-upper-deck-landing`、`chapter2-jammer-removal-restores-landing`）；`ship-structure` 55 项；`structure` generate 32 项 + load 16 项。产物目录 `Tests/Artifacts/v1-ship-vge-20261025-220928`（Ch2）、`v1-ship-structure-20261025-221712`、`v1-structure-20261025-223241`。
 - 夹具设计约束（后续改测试必读）：VGE 引擎把结构容量卡在 100 格，所以船体不能超过 7×7；而 `VGE_GravhulkEngine` 是 5×5，几乎占满 7×7 船体。因此燃料/管道夹具只能放在**船外地面**，靠同层管道与接头相连（同层连接不需要船归属）。`CompResource.RemovePipes()` 会销毁接头自己 footprint 上的管道，所以接头不能和管道同格。
@@ -77,6 +89,8 @@ VGE 三种引擎逐一测试：本船跨两层 98 格、匹配驾驶设施跨层
 
 - Compatibility/VanillaGravshipCompatibility.cs：按 packageId 绑定反射接口，不引用 VGE/VEF DLL；引擎按类型派生识别、subscaffold 容量、全甲板发电负荷、颜色编码、`PlaceWorker_InRangeOfGravSource` 跨层选址和 VGE 仪式扣费前确认；选址时的可取消仪式窗口不预占额度。
 - 两处原生设施筛选同时识别 VGE 引擎与“普通 CompProperties_Facility 但 linkableBuildings 含引擎”的设施（`Ships/ShipFacilityPatches.cs` 的 `ShipFacilities` 谓词），保留其 linkableFacilities 与 CanLink；型号不匹配、尾焰阻塞和缺燃料照常拒绝。
+- `Ships/ShipFacilityPatches.cs` 的六个跨层门都是 Postfix：`ShipFacilityActive`（`CompGravshipFacility.CanBeActive`）、`ShipFacilityLinkOwnership`（`CompAffectedByFacilities.CanLinkTo`）、`ShipFacilityCandidates`（`PotentialThingsToLinkTo`，空结果时交回原生）、`ShipLooseConnection`（`LooselyConnectedToGravEngine`）、`ShipFacilityPlacement`（`PlaceWorker_InRangeOfGravEngine.AllowsPlacing`）、`ShipLogicalFootprint`（`GravshipUtility.InsideFootprint`）。均以 `if(__result) return;` 开头，只把原生 false 翻成 true（`LinkOwnership` 唯一例外：只在设施所在格明确属于**另一艘**船时才翻成 false）。`ShipThrusterDeckBlock`（`CompGravshipThruster.IsBlocked`）只消除“尾焰压到本船自己甲板”这一伪阻塞。
+- `ShipFacilityTrace` 对“站在分层船甲板上但 `LinkedBuildings` 为空”的设施打一次性 Warning（defName、位置、引擎、船体状态、linkable 判定、CanLink、Belongs、逻辑距离、loose 标记），使这类故障不再静默。
 - `CompGravshipFacility.CompInspectStringExtra` 的“是否在引擎范围内”改为逻辑距离判定，跨层设施不再误报 `MessageMustBePlacedInRangeOfGravEngine`。
 - `ValidSubstructure`/`ValidSubstructureNoRegen` 在 **VGE 启用时**用 `ShipDeckTerrain.DeckCells` 覆盖全甲板，单点修复 VGE 热管理/遮罩/清树等直接消费者；未装 VGE 时保持原生单层语义，因为原生 `CanLaunch` 与多船路径依赖它（回归断言 `native-footprint-remains-core-deck-with-logical-cross-layer-ownership`）。
 - `Ships/ShipFoundationRemoval.cs` 用前缀接管船板地基可用性；`Structure/ConstructionPatches.cs` 的 `ShipDeckFinish` 负责“装修层可拆、甲板保留”。

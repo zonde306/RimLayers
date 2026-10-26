@@ -139,7 +139,12 @@ internal static partial class V1Integration
 
     private static void Setup()
     {
-        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:120;
+        // ship-vge honours -MapSize because the layer stride is derived from map height: a 120 map has
+        // stride 136 while a 250 map has stride 255. Native CompGravshipFacility.CanBeActive measures
+        // storage z (layer*stride+z), so on a 250 map a facility one deck above its engine sits 255
+        // cells away and VGE's pilot-console maxDistance of 200 can never be satisfied. Testing only on
+        // 120 hid that; ship-vge therefore defaults to the realistic 250.
+        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:scenario=="ship-vge"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var vgeSize)?int.Parse(vgeSize):120;
         foreach (var tile in Find.WorldGrid.Tiles)
             if (tile.PrimaryBiome == BiomeDefOf.TemperateForest && tile.hilliness == Hilliness.Flat &&
                 RimWorld.Planet.TileFinder.IsValidTileForNewSettlement(tile.tile))

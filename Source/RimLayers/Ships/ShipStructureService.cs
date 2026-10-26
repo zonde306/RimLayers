@@ -129,8 +129,11 @@ public sealed class ShipStructureService
                (t.TryGetComp<CompPowerTrader>() is not {} power||power.PowerOn)&&Distance(cell,t.Position)<=f.Props.radius)return true;
         return false;
     }
-    public bool CanConnect(Building_GravEngine engine,Thing thing,bool loose)=>Belongs(engine,thing)&&
-        (loose||thing.OccupiedRect().All(c=>InField(engine,c)));
+    // NOTE: there used to be a `CanConnect(engine,thing,loose)` here built on InField. It was deleted
+    // because it encoded the wrong rule: InField uses the engine footprint radius (VGE_GravjumperEngine
+    // 7.9) while facilities allow maxDistance 200, so any facility more than a few cells from the engine
+    // read "not connected". Facility link/active tests now live in Ships/ShipFacilityPatches.cs and use
+    // logical distance plus the substructure under the footprint.
     public AcceptanceReport LaunchReport(Building_GravEngine engine)
     {
         var s=Get(engine);if(s==null)return true;

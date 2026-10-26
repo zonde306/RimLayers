@@ -43,6 +43,11 @@ param(
     [ValidateRange(1,2)][double]$UiScale=1
 )
 $ErrorActionPreference = 'Stop'
+# The layer stride comes from map height (stride = ((h+17)/17)*17), and native facility distance
+# tests run on storage z = layer*stride + z. A 120 map gives stride 136; a 250 map gives 255, which
+# exceeds VGE's 200 maxDistance for pilot consoles the moment they sit one deck above the engine.
+# ship-vge therefore defaults to the player's real 250 so the suite reproduces live geometry.
+if($Scenario -eq 'ship-vge' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
 $modRoot = Split-Path -Parent $PSScriptRoot
 $runRoot = Join-Path $PSScriptRoot (('Artifacts/v1-' + $Scenario + '-') + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null

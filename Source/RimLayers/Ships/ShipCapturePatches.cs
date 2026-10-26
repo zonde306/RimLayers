@@ -192,12 +192,11 @@ internal static class LayerShipBoarding
             (desperate||cell.GetRoom(engine.Map)?.PsychologicallyOutdoors==false);return false;
     }
 }
-[HarmonyPatch(typeof(Building_GravEngine),nameof(Building_GravEngine.ValidSubstructureAt))]
-internal static class LayerShipOnboardCell
-{
-    static bool Prefix(Building_GravEngine __instance,IntVec3 cell,ref bool __result)
-    {
-        if(LayerMapComponent.For(__instance.Map) is not {} o||!ShipStructureService.Core(__instance))return true;
-        __result=o.Ships.Get(__instance) is {Ambiguous:false} s&&s.Cells.Contains(cell)&&o.Ships.InField(__instance,cell);return false;
-    }
-}
+// LayerShipOnboardCell used to live here: a Prefix on Building_GravEngine.ValidSubstructureAt that
+// replaced the native answer with `Ships.Get(engine).Cells.Contains(cell) && Ships.InField(engine,cell)`.
+// It is gone for two reasons. It was redundant - with VGE active ShipEngineDeckView already widens
+// ValidSubstructure to every deck (ShipDeckTerrain.DeckCells), so the native `ValidSubstructure.Contains`
+// returns true for an upper-deck console's interaction cell on its own; and it was wrong - InField is
+// bounded by the engine's CompSubstructureFootprint radius (VGE_GravjumperEngine is 7.9) while facilities
+// allow maxDistance 200, so a console far from its engine lost the launch button. Without VGE the native
+// single-deck contract must stay intact, so there is nothing left for this patch to widen.
