@@ -244,9 +244,12 @@ internal static partial class V1Integration
     private static void ScaleProgress(string phase)
     {
         if(scaleElapsed!=1&&scaleElapsed!=15&&scaleElapsed%1000!=0)return;
+        // pather is null once a pawn despawns, and the cohort can be dismissed off-map by
+        // JobGiver_ExitMapRandom before the identity check below notices. This probe runs first,
+        // so it must tolerate that instead of aborting the whole run with a NullReferenceException.
         File.WriteAllText(Path.Combine(directory,mode+"-scale-progress.json"),JsonSerializer.Serialize(new {
             phase,elapsedTicks=scaleElapsed,completedTrips=scaleLegs,engineFrames=frame,nativeTick=Find.TickManager.TicksGame,
-            firstActors=scaleActors.Take(3).Select(p=>new {id=p.ThingID,position=p.Position.ToString(),job=p.CurJob?.ToString(),next=p.pather.nextCell.ToString()}).ToArray()}));
+            firstActors=scaleActors.Take(3).Select(p=>new {id=p.ThingID,position=p.Position.ToString(),job=p.CurJob?.ToString(),next=p.pather?.nextCell.ToString(),spawned=p.Spawned}).ToArray()}));
     }
     private static object ScaleStats(List<double> samples)
     {
