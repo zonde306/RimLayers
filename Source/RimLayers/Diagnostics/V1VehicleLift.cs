@@ -38,26 +38,43 @@ internal static partial class V1Integration
         }
         foreach(var c in new CellRect(81,81,9,9))
         {
-            map.terrainGrid.SetTerrain(LiftAt(1,c.x,c.z),RimLayersDefOf.RL_OpenAir);
-            map.roofGrid.SetRoof(LiftAt(0,c.x,c.z),null);
+            map.terrainGrid.SetTerrain(LiftAt(1,c.x,c.z),RimLayersDefOf.RL_StructuralFloor);
+            map.roofGrid.SetRoof(LiftAt(0,c.x,c.z),RoofDefOf.RoofConstructed);
         }
-        Check("station-refuses-uncleared-solid-floor",!owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,84,85),Rot4.North,true).Accepted);
-        Check("station-accepts-cleared-supported-opening",owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
+        // The player path is an explicit upward dig from the lower cabin, not a pre-cut hole.
+        var lowerStation=(Building_VehicleConnector)GenSpawn.Spawn(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(0,85,85),map);
+        lowerStation.SetFaction(Faction.OfPlayer);
+        vehicleStations=new[]{lowerStation,null!};
+        Check("station-refuses-uncleared-upper-floor",!owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
+        Check("upward-excavation-order-visible-on-ground-station",lowerStation.GetGizmos().OfType<Command_Action>().Any(g=>g.defaultLabel=="RL_VehicleDigStartUp".Translate().ToString()));
+        var digger=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfPlayer);
+        GenSpawn.Spawn(digger,LiftAt(0,80,85),map);digger.skills.GetSkill(SkillDefOf.Mining).Level=20;
+        Check("upward-excavation-order-accepted",lowerStation.StartShaftExcavation(1));
+        for(int guard=0;lowerStation.ExcavatingShaft&&guard<200;guard++)lowerStation.WorkShaft(digger,Building_VehicleConnector.ShaftCellWork);
+        var upper=new CellRect(81,81,9,9);
+        Check("upward-excavation-converts-covering-slab-to-deck",upper.All(c=>map.terrainGrid.TerrainAt(LiftAt(1,c.x,c.z)).defName=="RL_VehicleDeck"));
+        Check("upward-excavation-clears-roof-under-the-opening",upper.All(c=>map.roofGrid.RoofAt(LiftAt(0,c.x,c.z))==null));
+        Check("upward-excavation-drops-covering-slab-from-structural-set",upper.All(c=>!owner.StructuralCells.Contains(LiftAt(1,c.x,c.z))));
+        digger.Destroy(DestroyMode.Vanish);
+        Check("station-accepts-excavated-supported-opening",owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
         DamageVehicleFixture(testVehicle);
         StartVehiclePreview("RL_VehicleLift",LiftAt(1,85,85),"vehicle-lift-preview-clear.png");
         vehiclePhase=-2;stage=551;ticks=0;
     }
     private static void BuildVehicleLiftFixture()
     {
-        if(!UndergroundLift)vehicleStations=Enumerable.Range(0,2).Select(l=>{
-            var station=(Building_VehicleConnector)GenSpawn.Spawn(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),At(l,85,85),map);
-            station.SetFaction(Faction.OfPlayer);
-            var generator=UtilityBuilding("WoodFiredGenerator",l,91,85);generator.GetComp<CompRefuelable>().Refuel(100);
-            UtilityBuilding("WoodFiredGenerator",l,91,89).GetComp<CompRefuelable>().Refuel(100);
-            for(int z=85;z<=89;z++)UtilityBuilding("PowerConduit",l,90,z);
-            for(int x=85;x<90;x++)UtilityBuilding("PowerConduit",l,x,85);
-            return station;
-        }).ToArray();
+        if(!UndergroundLift){
+            var upper=(Building_VehicleConnector)GenSpawn.Spawn(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),map);
+            upper.SetFaction(Faction.OfPlayer);
+            vehicleStations=new[]{vehicleStations[0],upper};
+            foreach(var l in new[]{0,1})
+            {
+                var generator=UtilityBuilding("WoodFiredGenerator",l,91,85);generator.GetComp<CompRefuelable>().Refuel(100);
+                UtilityBuilding("WoodFiredGenerator",l,91,89).GetComp<CompRefuelable>().Refuel(100);
+                for(int z=85;z<=89;z++)UtilityBuilding("PowerConduit",l,90,z);
+                for(int x=85;x<90;x++)UtilityBuilding("PowerConduit",l,x,85);
+            }
+        }
         map.powerNetManager.UpdatePowerNetsAndConnections_First();
         VehicleTraffic.Command(()=>VehicleCompatibility.Adapter!.Commit(testVehicle,LiftAt(0,85,79),0));
         destination=LiftAt(1,82,92);

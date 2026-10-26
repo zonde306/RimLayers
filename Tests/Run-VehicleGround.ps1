@@ -69,6 +69,10 @@ try {
         if($Expansion){$arguments+='-rimlayersvehicleexpansion'}
         $process=Start-Process -FilePath (Join-Path $game 'RimWorld.exe') -WorkingDirectory $game -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $run ($mode+'-stdout.log')) -RedirectStandardError (Join-Path $run ($mode+'-stderr.log'))
         if(!$process.WaitForExit($TimeoutSeconds*1000)){$process.Kill();$process.WaitForExit();throw "Vehicle scenario timed out: $run"}
+        # Start-Process -PassThru can leave ExitCode unset right after a timed WaitForExit; the parameterless
+        # overload flushes the cached exit code that the async pipe readers still populating.
+        $process.WaitForExit()
+        $exitCode=$process.ExitCode
         $gameLog='C:/Users/zonre/AppData/LocalLow/Ludeon Studios/RimWorld by Ludeon Studios/Logs/Player.log'
         if(Test-Path -LiteralPath $gameLog){Copy-Item -LiteralPath $gameLog -Destination (Join-Path $run ($mode+'-Player.log'))}
         if($mode -eq 'excavate'){Move-Item -LiteralPath (Join-Path $run ('load-'+$Scenario+'-results.json')) -Destination (Join-Path $run ('excavate-'+$Scenario+'-results.json'))}
@@ -76,7 +80,7 @@ try {
         $report=Join-Path $run ($mode+'-'+$Scenario+'-results.json')
         if(!(Test-Path -LiteralPath $report)){throw "Missing vehicle report: $run"}
         $result=Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
-        if($process.ExitCode -ne 0){throw "Game exited with code $($process.ExitCode): $run"}
+        if($null -ne $exitCode -and $exitCode -ne 0){throw "Game exited with code $exitCode`: $run"}
         $result.checks | Format-Table name,pass,detail -AutoSize
         if($result.failures -ne 0){throw "Vehicle scenario failed: $report"}
     }

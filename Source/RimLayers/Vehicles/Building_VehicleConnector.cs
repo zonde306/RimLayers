@@ -67,7 +67,9 @@ public sealed class PlaceWorker_VehicleConnector:PlaceWorker
         {
             foreach(var cell in rect)
             {
-                if(owner.Elevation(at.LayerId)>0&&(owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir||
+                // A finished lift deck is the station's own platform, not an existing slab.
+                if(owner.Elevation(at.LayerId)>0&&(owner.map.terrainGrid.TerrainAt(cell) is var terrain&&
+                    terrain!=RimLayersDefOf.RL_OpenAir&&terrain.defName!="RL_VehicleDeck"||
                     owner.Adjacent(cell,-1) is var below&&below.IsValid&&owner.map.roofGrid.RoofAt(below)!=null)||
                     cell.GetThingList(owner.map).Any(t=>t is Pawn||t.def.passability==Traversability.Impassable))blocked.Add(cell);
             }

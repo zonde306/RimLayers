@@ -11,13 +11,14 @@
   <RL_VehicleLiftPaused>载具升降机暂停：未供电</RL_VehicleLiftPaused>
   <RL_VehicleRampWidth>同向、对齐的并排模块共同形成坡道净宽。</RL_VehicleRampWidth>
   <RL_VehicleDeckSupport>9×9 载车区四角外侧均须有现存支撑平台。</RL_VehicleDeckSupport>
-  <RL_VehicleShaftClear>请先清理井口：拆除现存楼板及下方屋顶。车站不会自动拆除。</RL_VehicleShaftClear>
+  <RL_VehicleShaftClear>这一格不属于已贯通的升降井口。请先从下层站台开凿井段。</RL_VehicleShaftClear>
   <RL_VehicleRampUpper>建造坡道前，请先按扩层规则开放相邻上层。</RL_VehicleRampUpper>
   <RL_VehicleRampOpening>请清空坡道六格上方：屋顶、楼板和岩石不能穿过坡面。</RL_VehicleRampOpening>
   <RL_VehicleRampLanding>坡道上端需要已完成并有支撑的出口平台。</RL_VehicleRampLanding>
   <RL_VehicleRampJoin>只能并排连接同起点、同朝向模块；不能接成长坡或弯折坡面。</RL_VehicleRampJoin>
   <RL_VehicleChooseFloor>前往楼层</RL_VehicleChooseFloor>
   <RL_VehicleChooseFloorHelp>选择同一井道的停靠楼层。车辆必须完全进入载车区并具备行驶条件。</RL_VehicleChooseFloorHelp>
+  <RL_VehicleNoFloorRoute>本载车区没有通向其他楼层的已开凿井道。两端升降机站必须对齐、通电，且井道全部贯通。</RL_VehicleNoFloorRoute>
   <RL_VehicleNotReady>车辆无法行驶，请检查征召、乘员、燃料和损伤。</RL_VehicleNotReady>
   <RL_VehicleCancel>取消载具运输</RL_VehicleCancel>
   <RL_VehicleCancelHelp>取消行程。坡道车辆退回入口；升降机返回合法出发站。无法卸载时继续保管原车，可清理出口后恢复。</RL_VehicleCancelHelp>
@@ -44,11 +45,16 @@
   <RL_VehicleDigNeedStation>先在紧邻下层的同位置建好载具升降机站。</RL_VehicleDigNeedStation>
   <RL_VehicleDigBusy>井道有载具运输任务；先完成或取消运输。</RL_VehicleDigBusy>
   <RL_VehicleDigClear>先挖走两站载车区内的岩石，移开车辆及其他障碍。</RL_VehicleDigClear>
-  <RL_VehicleDigNatural>只能开凿干燥天然地面；先人工移除铺装、地基和楼板。</RL_VehicleDigNatural>
+  <RL_VehicleDigNatural>开凿需要干燥、无地基的地面。水域、不可通行格和船体地基会阻止命令；铺装、楼板和天然岩石不会。</RL_VehicleDigNatural>
   <RL_VehicleDigComplete>下层井段已贯通</RL_VehicleDigComplete>
+  <RL_VehicleDigCompleteUp>上层井段已贯通</RL_VehicleDigCompleteUp>
   <RL_VehicleDigStart>开凿下层井段</RL_VehicleDigStart>
   <RL_VehicleDigCancel>暂停井段开凿</RL_VehicleDigCancel>
-  <RL_VehicleDigHelp>先用普通地下通道扩层，在同位置挖出 9×9 净载车区并建站。矿工从本站逐格开凿通往紧邻地下站的井段，每格需 600 工作量；完工后可双向通车。暂停保留已完成井口和工作进度。不会自动扩层或拆除岩石、建筑及铺装。</RL_VehicleDigHelp>
+  <RL_VehicleDigHelp>向紧邻下层开凿井段。下层同位置必须已建好升降机站。矿工逐格开凿（岩石 600 工作量，人造楼板 120）并清掉本站的屋顶，使本站成为井口。被切开的楼板和铺装会被消耗，不返还材料。贯通后双向通车；暂停保留已开井口和进度。</RL_VehicleDigHelp>
+  <RL_VehicleDigHelpUp>从本站向上开凿楼层。矿工逐格切开上方的天然岩层或建筑楼板（石头 600 工作量，人造楼板 120），并清掉本站的屋顶，使上层成为有支撑的升降井口；贯通后再在上层建站。完工后双向通车。</RL_VehicleDigHelpUp>
+  <RL_VehicleDigNoLevel>本站相邻方向没有可开凿的楼层。</RL_VehicleDigNoLevel>
   <RL_VehicleDigProgress>下层井段：{0}/{1} 格已贯通</RL_VehicleDigProgress>
+  <RL_VehicleDigProgressUp>上层井段：{0}/{1} 格已贯通</RL_VehicleDigProgressUp>
   <RL_VehicleDigRoof>先人工拆除下层载车区的建筑屋顶。</RL_VehicleDigRoof>
+  <RL_VehicleDigStartUp>开凿上层井段</RL_VehicleDigStartUp>
 </LanguageData>

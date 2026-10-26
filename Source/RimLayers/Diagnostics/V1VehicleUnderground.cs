@@ -61,7 +61,8 @@ internal static partial class V1Integration
         Check("building-stations-preserves-natural-rock-roofs",middleStation.OccupiedRect().All(c=>map.roofGrid.RoofAt(c)==RoofDefOf.RoofRockThick)&&vehicleStations[1].OccupiedRect().All(c=>map.roofGrid.RoofAt(c)==RoofDefOf.RoofRockThick));
         Check("solid-earth-rejects-route-before-excavation",!VehicleRoutePlanner.ShaftIntact(map.GetComponent<VehicleTraffic>(),owner,vehicleStations[0],vehicleStations[1],false));
         var probe=vehicleStations[0].OccupiedRect().First();map.terrainGrid.SetTerrain(probe,TerrainDefOf.Concrete);
-        Check("paved-floor-requires-deliberate-removal",!vehicleStations[0].ShaftExcavationConditions().Accepted);
+        // Pavement no longer blocks the order: the miner cuts it at the cheap built-flooring rate.
+        Check("paved-floor-is-excavated-at-built-flooring-rate",vehicleStations[0].ShaftExcavationConditions().Accepted&&vehicleStations[0].ShaftWorkAt(probe)<Building_VehicleConnector.ShaftCellWork);
         map.terrainGrid.RemoveTopLayer(probe,false);
         Check("excavation-command-visible-on-ground-station",vehicleStations[0].GetGizmos().OfType<Command_Action>().Any(c=>c.defaultLabel=="RL_VehicleDigStart".Translate().ToString()));
         var lowerProbe=middleStation.OccupiedRect().First();var nativeRoof=map.roofGrid.RoofAt(lowerProbe);

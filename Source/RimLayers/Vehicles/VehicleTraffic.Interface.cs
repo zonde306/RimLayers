@@ -43,7 +43,9 @@ public sealed partial class VehicleTraffic
         {
             if(!occupied.All(source.OccupiedRect().Contains))continue;
             foreach(var target in connectors.Where(b=>b!=source&&b.Spawned&&b.IsLift&&!b.IsForbidden(vehicle)))
-                if(VehicleRoutePlanner.ShaftIntact(this,owner,source,target,false)&&VehicleFacilitySpace.FitsCabin(owner,vehicle,target,heading))yield return target;
+                // Powered is part of the offer: an unpowered column must not advertise a floor
+                // the route planner will refuse.
+                if(VehicleRoutePlanner.ShaftIntact(this,owner,source,target,true)&&VehicleFacilitySpace.FitsCabin(owner,vehicle,target,heading))yield return target;
         }
     }
     internal IEnumerable<Gizmo> VehicleGizmos(Pawn vehicle)
@@ -55,11 +57,26 @@ public sealed partial class VehicleTraffic
                 icon=TexCommand.ClearPrioritizedWork,action=()=>CancelOrder(vehicle)};
             yield break;
         }
-        if(!FloorDestinations(vehicle).Any())yield break;
+        var destinations=FloorDestinations(vehicle).ToList();
+        if(destinations.Count==0)
+        {
+            // Silence is only correct when the vehicle is nowhere near a cabin. Parked in one
+            // without a usable shaft, the player needs to know why the order is missing.
+            var adapter=VehicleCompatibility.Adapter;
+            if(adapter==null)yield break;
+            var headingAt=adapter.Heading(vehicle);
+            var footprint=adapter.OccupiedCells(vehicle,vehicle.Position,headingAt).ToArray();
+            bool parked=connectors.Any(b=>b.Spawned&&b.IsLift&&footprint.All(b.OccupiedRect().Contains));
+            if(!parked)yield break;
+            var blocked=new Command_Action{defaultLabel="RL_VehicleChooseFloor".Translate(),defaultDesc="RL_VehicleChooseFloorHelp".Translate(),icon=TexCommand.Install};
+            blocked.Disable("RL_VehicleNoFloorRoute".Translate());
+            yield return blocked;
+            yield break;
+        }
         var command=new Command_Action{defaultLabel="RL_VehicleChooseFloor".Translate(),defaultDesc="RL_VehicleChooseFloorHelp".Translate(),
             icon=TexCommand.Install,action=()=>
             {
-                var choices=FloorDestinations(vehicle).OrderBy(s=>owner.Elevation(owner.TryDecode(s.Position,out var at)?at.LayerId:0))
+                var choices=destinations.OrderBy(s=>owner.Elevation(owner.TryDecode(s.Position,out var at)?at.LayerId:0))
                     .Select(s=>new FloatMenuOption(owner.LevelName(owner.TryDecode(s.Position,out var at)?at.LayerId:0),()=>
                     {if(!RequestFloor(vehicle,s))Messages.Message("RL_VehicleRouteLost".Translate(),vehicle,MessageTypeDefOf.RejectInput,false);})).ToList();
                 if(choices.Count>0)Find.WindowStack.Add(new FloatMenu(choices));

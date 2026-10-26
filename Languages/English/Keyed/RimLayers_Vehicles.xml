@@ -11,13 +11,14 @@
   <RL_VehicleLiftPaused>Vehicle lift paused: no power</RL_VehicleLiftPaused>
   <RL_VehicleRampWidth>Aligned modules beside this ramp form its usable width.</RL_VehicleRampWidth>
   <RL_VehicleDeckSupport>Each corner of the nine-cell cabin needs an existing supported platform alongside it.</RL_VehicleDeckSupport>
-  <RL_VehicleShaftClear>Clear the shaft opening first: remove existing slabs and the roof below. The station does not demolish them.</RL_VehicleShaftClear>
+  <RL_VehicleShaftClear>This cell is not part of a finished lift opening. Open the shaft from the station on the floor below first.</RL_VehicleShaftClear>
   <RL_VehicleRampUpper>Open the adjacent upper floor before building a ramp.</RL_VehicleRampUpper>
   <RL_VehicleRampOpening>Clear the space above all six ramp cells; roofs, slabs and rock cannot intersect the slope.</RL_VehicleRampOpening>
   <RL_VehicleRampLanding>The upper end needs a supported landing.</RL_VehicleRampLanding>
   <RL_VehicleRampJoin>Only side-by-side modules with the same start and direction can join.</RL_VehicleRampJoin>
   <RL_VehicleChooseFloor>Go to floor</RL_VehicleChooseFloor>
   <RL_VehicleChooseFloorHelp>Choose a stop in this lift shaft. The vehicle must be fully inside the cabin and ready to drive.</RL_VehicleChooseFloorHelp>
+  <RL_VehicleNoFloorRoute>No opened lift shaft reaches another floor from this cabin. Both stations must be aligned, powered and the shaft fully excavated.</RL_VehicleNoFloorRoute>
   <RL_VehicleNotReady>The vehicle is not ready to drive. Check ignition, crew, fuel and damage.</RL_VehicleNotReady>
   <RL_VehicleCancel>Cancel vehicle transit</RL_VehicleCancel>
   <RL_VehicleCancelHelp>Cancel the trip. A vehicle on a ramp backs down to its entry; a lift returns it to a legal source station. If unloading is blocked, the original vehicle stays in custody.</RL_VehicleCancelHelp>
@@ -44,11 +45,16 @@
   <RL_VehicleDigNeedStation>Build an aligned vehicle lift station on the floor immediately below first.</RL_VehicleDigNeedStation>
   <RL_VehicleDigBusy>Finish or cancel vehicle journeys in this shaft first.</RL_VehicleDigBusy>
   <RL_VehicleDigClear>Mine the rock and clear vehicles and other obstructions from both cabins first.</RL_VehicleDigClear>
-  <RL_VehicleDigNatural>Excavation requires dry natural ground. Remove flooring, foundations and slabs first.</RL_VehicleDigNatural>
+  <RL_VehicleDigNatural>Excavation needs dry ground with no foundation. Water, impassable cells and ship foundations block the order; slabs, flooring and natural rock do not.</RL_VehicleDigNatural>
   <RL_VehicleDigComplete>Shaft to the floor below is open</RL_VehicleDigComplete>
+  <RL_VehicleDigCompleteUp>Shaft to the floor above is open</RL_VehicleDigCompleteUp>
   <RL_VehicleDigStart>Excavate shaft below</RL_VehicleDigStart>
   <RL_VehicleDigCancel>Pause shaft excavation</RL_VehicleDigCancel>
-  <RL_VehicleDigHelp>Create underground access first, mine an aligned 9×9 cabin and build the lower station. Miners at this station open the shaft one cell at a time, requiring 600 work per cell. The completed shaft supports travel in both directions. Pausing retains openings and work. This order does not create floors or remove rock Things, buildings or flooring.</RL_VehicleDigHelp>
+  <RL_VehicleDigHelp>Open the shaft to the floor below. An aligned station must already stand one floor down. Miners cut one cell at a time (600 work for rock, 120 for built flooring) and clear this cabin's ceiling, turning this station into the opening. Built slabs and paving are consumed, never refunded. The finished shaft carries vehicles in both directions; pausing keeps openings and progress.</RL_VehicleDigHelp>
+  <RL_VehicleDigHelpUp>Open the floor above this station. Miners cut the covering slab, flooring or natural rock above one cell at a time (600 work for rock, 120 for built flooring) and clear the ceiling of this cabin, so the floor above becomes a supported lift opening. Build the upper station afterwards. Travel works in both directions once the shaft is complete.</RL_VehicleDigHelpUp>
+  <RL_VehicleDigNoLevel>There is no floor directly adjacent to this station to open a shaft into.</RL_VehicleDigNoLevel>
   <RL_VehicleDigProgress>Shaft below: {0}/{1} cells open</RL_VehicleDigProgress>
+  <RL_VehicleDigProgressUp>Shaft above: {0}/{1} cells open</RL_VehicleDigProgressUp>
   <RL_VehicleDigRoof>Remove the constructed roof over the lower cabin first.</RL_VehicleDigRoof>
+  <RL_VehicleDigStartUp>Open shaft above</RL_VehicleDigStartUp>
 </LanguageData>

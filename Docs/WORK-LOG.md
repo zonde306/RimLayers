@@ -966,3 +966,28 @@ WARN [RimLayers] Gravship facility has no engine link: PilotConsole at (131, 0, 
 - 管道网络跨层：化合燃料、深层化学品、螺旋气、营养膏四套管网在双层分别放置管道与端子时，两层管道成功合并入同一 `PipeNet`；拆除端子后两层管网正确拆分为独立网络。
 - 产物：`Tests/Artifacts/v1-vefpipes-20261026-132442`。
 
+## 2026-10-26：载具升降机上下行打通（实机反馈右键上不了楼 / 上方下不去）
+
+**反馈（实机）：** 载具坡道正常，载具能上下楼，但载具升降机站不正常——车辆右键上不了楼，上方也下不去。附带存档 `VF测试2`。
+
+**存档诊断：** 全场只有 1 座 `RL_VehicleLift`（地表 storage `(104,0,146)`），上层没有第二座；`RL_VehicleDeck` 出现 0 次；`structuralCells` 399 格全在 layer 1，且完整覆盖该站 81 格足迹（x100–108 / z142–150）。即"地表站上方盖着一整块玩家结构楼板、地表站自家 81 格还压着 `RoofConstructed`"。
+
+**根因（两处互锁）：**
+1. `VehicleShaftExcavation` 只认向下：`LowerShaftStation` 带 `owner.Elevation(at.LayerId)>0` 空返回，`ShaftExcavationGizmos()` 对 elevation>0 直接 `yield break`，所以地表站只能与下方层配对，**地表→上层没有任何开凿入口**。
+2. `VehicleFacilitySpace.Validate` 的上层分支要求 81 格地形已是 `RL_OpenAir`/deck 且下方无屋顶，而 `InstallDeck` 只把 `RL_OpenAir` 转成 deck，`CanDismantleSlab` 又清不掉内部 81 格洞——**上层站永远放不下**。
+3. 结果 `ShaftIntact` 恒 false → `FloorDestinations` 空 → `VehicleGizmos` 静默 `yield break`，玩家看不到任何按钮也没有原因，正合"右键没反应"。
+
+**修复：**
+- `Vehicles/VehicleShaftExcavation.cs` 重写为**方向参数化**：新增 `ShaftPartner(direction)` / `ShaftDeckRect(direction)`（平台格永远取井道较高一侧的 9×9）、`shaftDirection` 存档字段（默认 `-1`，旧档按向下读）、`ShaftWorkAt(cell)`（天然岩 600、人造铺装/楼板 120）、`NextShaftCell`、`StartShaftExcavation(int)`；向下仍要求接收舱存在（`RL_VehicleDigNeedStation`），**向上允许井口先于上层建站打通**。提交顺序固定为 `StructuralCells.Remove` → `SetRoof(below,null)` → `SetTerrain(RL_VehicleDeck)`，避免屋顶变更把新井口排进塌落队列。向下的"人工屋顶须先拆"契约保留（`RL_VehicleDigRoof`），向上则是唯一允许消耗玩家楼板/地表屋顶的路径。
+- `Vehicles/VehicleTraffic.Interface.cs`：`FloorDestinations` 改用 `ShaftIntact(...,powered:true)`，避免列出规划器会拒绝的楼层；`VehicleGizmos` 不再静默消失——车停在载车区内但无可达井道时给出**禁用态**"前往楼层"并附 `RL_VehicleNoFloorRoute` 原因。
+- `Vehicles/Building_VehicleConnector.cs`：`DrawGhost` 把已成形的 `RL_VehicleDeck` 视为合法，不再把已开挖的井口画成红色。
+- 文本键中英各 57 条（新增 `RL_VehicleDigStartUp` / `RL_VehicleDigCompleteUp` / `RL_VehicleDigProgressUp` / `RL_VehicleDigHelpUp` / `RL_VehicleDigNoLevel` / `RL_VehicleNoFloorRoute`）。
+- 夹具从"手动预挖洞"改为**真实玩家路径**：`V1VehicleLift.BeginVehicleLift` 造 9×9 `RL_StructuralFloor` + 地表 `RoofConstructed`，断言上层站先被拒绝，再走"开凿上层井段 → 上层变 deck / 地表屋顶清除 / 移出 StructuralCells → 上层站可放置 → 整车往返"。
+
+**验证：**
+- 上层方向 `Run-VehicleGround.ps1 -Scenario vehicle-lift`（`Tests/Artifacts/vehicle-ground-20261026-225512`）：generate **23/23**、load **23/23**、recover **7/7**，三阶段 `no-runtime-errors` 全绿。
+- 向下回归 `-Underground`（`Tests/Artifacts/vehicle-ground-20261026-225659`）：generate 20、first-load 20、excavate 19、recover 14，共 **73/73 / 0 失败**，地表→B1→B2 与拆站成真实井口等旧契约全部保持。
+- Release `net10.0` 构建 0 警告 / 0 错误。
+
+**顺带修复：** `Tests/Run-VehicleGround.ps1` 的退出码竞态——`Start-Process -PassThru` 在带超时的 `WaitForExit(ms)` 之后 `ExitCode` 可能仍为空，导致"Game exited with code :"误判失败；改为补一次无参 `WaitForExit()` 再读，并对空值放行。
+
