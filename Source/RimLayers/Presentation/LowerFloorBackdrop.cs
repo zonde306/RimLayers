@@ -18,11 +18,22 @@ internal static class LowerFloorBackdrop
     internal static int LastMeshes,LastActors,LastCorpses,LastDynamic;
     internal static bool Exposed(LayerMapComponent owner,IntVec3 actual)
     {
-        if(!owner.TryDecode(actual,out var target)||owner.Elevation(target.LayerId)>=owner.Elevation(owner.ViewedLayer))return false;
-        foreach(int layer in new[]{target.LayerId}.Concat(owner.Layout!.Above(target.LayerId)).Where(l=>owner.Elevation(l)<owner.Elevation(owner.ViewedLayer)))
-            if(owner.map.roofGrid.RoofAt(owner.ToStorage(new LayerCell(layer,target.X,target.Z)))!=null)return false;
-        foreach(int layer in owner.Layout!.Above(target.LayerId).Where(l=>owner.Elevation(l)<=owner.Elevation(owner.ViewedLayer)))
-            if(owner.Structure.HasSurface(owner.ToStorage(new LayerCell(layer,target.X,target.Z))))return false;
+        if(!owner.TryDecode(actual,out var target))return false;
+        var layout=owner.Layout!;
+        int viewed=owner.Elevation(owner.ViewedLayer);
+        if(owner.Elevation(target.LayerId)>=viewed)return false;
+        // Allocation-free form of what used to be two LINQ chains over Above(). This runs once per
+        // drawable per frame, so the old new[]{...}+Concat+Where allocated ~3 objects per call and
+        // fed gen0 far faster than anything else on the render path.
+        if(owner.map.roofGrid.RoofAt(owner.ToStorage(new LayerCell(target.LayerId,target.X,target.Z)))!=null)return false;
+        var above=layout.Above(target.LayerId);
+        for(int i=0;i<above.Count;i++)
+        {
+            int layer=above[i];
+            int elevation=owner.Elevation(layer);
+            if(elevation<viewed&&owner.map.roofGrid.RoofAt(owner.ToStorage(new LayerCell(layer,target.X,target.Z)))!=null)return false;
+            if(elevation<=viewed&&owner.Structure.HasSurface(owner.ToStorage(new LayerCell(layer,target.X,target.Z))))return false;
+        }
         return true;
     }
     internal static Vector3 Project(LayerMapComponent owner,Vector3 actual)
@@ -63,9 +74,15 @@ internal static class LowerFloorBackdrop
             {
             foreach(var thing in owner.map.dynamicDrawManager.DrawThings)
             {
-                if(thing is Projectile or Skyfaller or PawnFlyer||!owner.TryDecode(thing.Position,out var c)||c.LayerId!=floor||!Exposed(owner,thing.Position)||thing.Position.Fogged(owner.map))continue;
-                if(thing is Pawn pawn&&pawn.IsHiddenFromPlayer())continue;
+                if(thing is Projectile or Skyfaller or PawnFlyer||!owner.TryDecode(thing.Position,out var c)||c.LayerId!=floor)continue;
+                // View test before the expensive predicates. Measured on the 2-layer fixture: 350
+                // things pass the floor filter per frame and 296 of them are then discarded for
+                // being off-screen alone. Exposed() and Fogged() are pure reads, so hoisting the
+                // containment test cannot change which drawable survives the chain.
                 if(!view.Contains(Project(owner,thing.DrawPos).ToIntVec3()))continue;
+                if(!Exposed(owner,thing.Position))continue;
+                if(thing.Position.Fogged(owner.map))continue;
+                if(thing is Pawn pawn&&pawn.IsHiddenFromPlayer())continue;
                 // Keep native draw inputs in real coordinates. The scoped draw bridge
                 // projects final meshes, including lying bodies and carried equipment.
                 thing.DynamicDrawPhaseAt(DrawPhase.EnsureInitialized,thing.DrawPos);

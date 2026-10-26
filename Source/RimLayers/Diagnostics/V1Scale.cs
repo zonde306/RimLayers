@@ -22,7 +22,15 @@ internal static partial class V1Integration
     private static readonly List<Pawn> scaleActors=new();
     private static readonly Dictionary<string,HashSet<int>> scaleVisits=new();
     private static readonly List<double> scaleTickMs=new(),scalePathMs=new();
+    // Per-frame backdrop coverage, so the sample can be attributed to real work rather than to a
+    // pass that filtered everything out on c.LayerId!=floor before reaching the expensive checks.
+    private static readonly List<double> scaleBackdropDynamic=new(),scaleBackdropMeshes=new();
     private static readonly Dictionary<string,List<double>> scaleDrawMs=new();
+    // The fixture always switches the view to the top layer, so a plain average can never answer
+    // "is a higher viewed layer slower". These bucket the same-frame samples by viewed layer and
+    // the run alternates layers every ScaleViewDwell ticks to get both arms from one world.
+    private static readonly Dictionary<string,List<double>> scaleDrawByView=new();
+    private const int ScaleViewDwell=600;
     private static object scaleMemoryStart=null!;
     private static int ScaleArgument(string name,int fallback,int min,int max)
     {
@@ -43,7 +51,14 @@ internal static partial class V1Integration
             postfix:new HarmonyMethod(typeof(V1Integration),nameof(ScaleLoadEnded)));
         foreach(var method in new[]{AccessTools.Method(typeof(MapDrawer),nameof(MapDrawer.DrawMapMesh)),
             AccessTools.Method(typeof(DynamicDrawManager),nameof(DynamicDrawManager.DrawDynamicThings)),
-            AccessTools.Method(typeof(MapInterface),nameof(MapInterface.MapInterfaceUpdate))})
+            AccessTools.Method(typeof(MapInterface),nameof(MapInterface.MapInterfaceUpdate)),
+            // The backdrop runs from LowerFloorBackdropPatch, a Normal-priority Prefix on the very
+            // same MapDrawer.DrawMapMesh that is timed above. Harmony does not order two Normal
+            // prefixes, so that MapDrawer sample either contains this work or excludes it depending
+            // on registration order. Timing the entry points themselves is the only unambiguous read.
+            AccessTools.Method(typeof(LowerFloorBackdrop),nameof(LowerFloorBackdrop.Draw)),
+            AccessTools.Method(typeof(RoofSurfaces),nameof(RoofSurfaces.Draw)),
+            AccessTools.Method(typeof(DriftingMist),nameof(DriftingMist.Draw))})
             h.Patch(method,prefix:new HarmonyMethod(typeof(V1Integration),nameof(ScaleDrawBeginning)),
                 postfix:new HarmonyMethod(typeof(V1Integration),nameof(ScaleDrawEnded)));
     }
@@ -65,7 +80,19 @@ internal static partial class V1Integration
         if(__state==0)return;
         string key=__originalMethod.DeclaringType!.Name;
         if(!scaleDrawMs.TryGetValue(key,out var samples))scaleDrawMs[key]=samples=new();
-        samples.Add(ScaleMilliseconds(__state));
+        double ms=ScaleMilliseconds(__state);
+        samples.Add(ms);
+        // Same sample, second axis: which layer the player is looking at. Bucketing here (rather
+        // than at report time) keeps the two arms perfectly paired in time within one run. The first
+        // 60 ticks after a switch are dropped because the incoming layer pays one-off section
+        // regeneration that is not part of the steady-state cost being compared.
+        if(scaleElapsed%ScaleViewDwell>60)
+        {
+            string viewKey=key+"@view"+owner.ViewedLayer;
+            if(!scaleDrawByView.TryGetValue(viewKey,out var viewSamples))scaleDrawByView[viewKey]=viewSamples=new();
+            viewSamples.Add(ms);
+        }
+        if(key==nameof(LowerFloorBackdrop)){scaleBackdropDynamic.Add(LowerFloorBackdrop.LastDynamic);scaleBackdropMeshes.Add(LowerFloorBackdrop.LastMeshes);}
     }
     private static object ScaleMemory()
     {
@@ -162,6 +189,11 @@ internal static partial class V1Integration
     private static void ScaleStep()
     {
         scaleElapsed++;scaleSampling=scaleElapsed>=120;
+        // Alternate the viewed layer so the run yields a paired low-layer arm and high-layer arm
+        // from the same world. Without this the fixture only ever looks at the top layer and a
+        // "viewed layer is slower" question is unanswerable by construction.
+        if(scaleElapsed>=120&&scaleElapsed%ScaleViewDwell==0)
+            LayerView.Switch(owner,owner.ViewedLayer==scaleLayers-1?0:scaleLayers-1);
         ScaleProgress("before-native-tick");
         scaleIdentity&=scaleLord.Map==map&&scaleLord.ownedPawns.Count==scaleCount&&scaleLord.numPawnsLostViolently==0&&
             scaleActors.All(p=>p.Spawned&&!p.Dead&&p.GetLord()==scaleLord);
@@ -194,7 +226,9 @@ internal static partial class V1Integration
             Check("scale-no-actor-enters-storage-isolation",scaleCellsValid);
             Check("scale-native-cohort-ids-are-unique-on-map",scaleActors.All(p=>map.mapPawns.AllPawnsSpawned.Count(q=>q.ThingID==p.ThingID)==1));
             Check("scale-measurements-cover-simulation-and-native-drawing",scaleTickMs.Count>10000&&
-                new[]{nameof(MapDrawer),nameof(DynamicDrawManager),nameof(MapInterface)}.All(n=>scaleDrawMs.TryGetValue(n,out var a)&&a.Count>100));
+                new[]{nameof(MapDrawer),nameof(DynamicDrawManager),nameof(MapInterface),
+                    nameof(LowerFloorBackdrop),nameof(RoofSurfaces),nameof(DriftingMist)}.All(n=>scaleDrawMs.TryGetValue(n,out var a)&&a.Count>100),
+                string.Join(",",scaleDrawMs.Select(p=>$"{p.Key}={p.Value.Count}")));
             WriteScaleMetrics();
             LayerView.Switch(owner,0);Find.Selector.ClearSelection();Find.Selector.Select(scaleActors[0]);
             Find.CameraDriver.SetRootPosAndSize(destination.ToVector3Shifted(),22);
@@ -228,6 +262,13 @@ internal static partial class V1Integration
             elapsedTicks=scaleElapsed,completedTrips=scaleLegs,
             generationMs=mode=="generate"?(double?)scaleGenerationMs:null,loadMs=mode=="load"?(double?)scaleLoadMs:null,saveMs=mode=="generate"?(double?)scaleSaveMs:null,
             path=ScaleStats(scalePathMs),tick=ScaleStats(scaleTickMs),draw=scaleDrawMs.ToDictionary(p=>p.Key,p=>ScaleStats(p.Value)),
+            // Per-viewed-layer split of the same samples, for the "does a higher viewed layer cost
+            // more" question. Keys are Method@viewN.
+            drawByView=scaleDrawByView.ToDictionary(p=>p.Key,p=>ScaleStats(p.Value)),
+            // Without these the backdrop sample is unfalsifiable: a 0.6 ms average looks the same
+            // whether the below-floor pass drew nothing or drew everything. Dynamic is the count that
+            // survived every filter and was actually submitted on that frame.
+            backdrop=new {meshes=ScaleStats(scaleBackdropMeshes),dynamic=ScaleStats(scaleBackdropDynamic)},
             memoryStart=scaleMemoryStart,memoryEnd=ScaleMemory(),
             // Counters prove the optimisations actually engaged rather than merely not crashing.
             perf=new {
