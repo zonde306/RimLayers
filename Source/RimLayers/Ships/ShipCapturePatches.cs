@@ -192,11 +192,33 @@ internal static class LayerShipBoarding
             (desperate||cell.GetRoom(engine.Map)?.PsychologicallyOutdoors==false);return false;
     }
 }
-// LayerShipOnboardCell used to live here: a Prefix on Building_GravEngine.ValidSubstructureAt that
-// replaced the native answer with `Ships.Get(engine).Cells.Contains(cell) && Ships.InField(engine,cell)`.
-// It is gone for two reasons. It was redundant - with VGE active ShipEngineDeckView already widens
-// ValidSubstructure to every deck (ShipDeckTerrain.DeckCells), so the native `ValidSubstructure.Contains`
-// returns true for an upper-deck console's interaction cell on its own; and it was wrong - InField is
-// bounded by the engine's CompSubstructureFootprint radius (VGE_GravjumperEngine is 7.9) while facilities
-// allow maxDistance 200, so a console far from its engine lost the launch button. Without VGE the native
-// single-deck contract must stay intact, so there is nothing left for this patch to widen.
+// The onboard predicate is a separate contract from the ValidSubstructure set, and it must hold on
+// every deck in every configuration. ValidSubstructure (the HashSet) stays single-deck in native
+// play: Gravship..ctor feeds it to RemoveGravshipTerrainUnsafe, which is a flat operation, and the
+// native multi-ship scenario asserts that the footprint remains the core deck. But ValidSubstructureAt
+// answers "is this cell part of my hull", and the native consumers of that question walk pawn
+// positions: StageEndTrigger_RoleArrivedAndSpectatorsOnSubstructure, JobDriver_BoardOrLeaveGravship,
+// GravshipUtility.IsOnboardGravship_NewTemp / ConsideredKidnapped, CompPilotConsole.CanUseNow. A Pawn
+// standing on deck 2 of its own ship is aboard, whatever layer the engine sits on.
+//
+// This is a fail-open Postfix on purpose. It only ever turns a native false into true, and only for
+// cells the ship cache already assigned to this engine on a non-ambiguous ship, so it cannot make any
+// native-accepted case worse. It replaces an earlier Prefix that ALSO required Ships.InField, which
+// was wrong: InField is bounded by the engine's CompSubstructureFootprint radius (7.9 on
+// VGE_GravjumperEngine) while facilities are allowed maxDistance 200, so a console far from its
+// engine lost the launch button.
+[HarmonyPatch(typeof(Building_GravEngine),nameof(Building_GravEngine.ValidSubstructureAt))]
+internal static class LayerShipOnboardCell
+{
+    static void Postfix(Building_GravEngine __instance,IntVec3 cell,ref bool __result)
+    {
+        if(__result)return;
+        // Same core predicate the retired Prefix used, minus its InField radius term. Core() also pins
+        // Spawned/!Destroyed, so a despawned engine cannot answer from a stale cache entry.
+        if(!ShipStructureService.Core(__instance))return;
+        // The ship cache never queries native ValidSubstructure, so this cannot recurse through the
+        // engine's own regeneration. Get() is dirty-gated, so an unchanged map costs a dictionary hit.
+        if(LayerMapComponent.For(__instance.Map) is not {} o||o.Ships.Get(__instance) is not {Ambiguous:false} s)return;
+        __result=s.Cells.Contains(cell);
+    }
+}
