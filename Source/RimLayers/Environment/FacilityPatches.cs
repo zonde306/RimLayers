@@ -1,5 +1,6 @@
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Ships;
 using RimWorld;
 using Verse;
 
@@ -36,7 +37,11 @@ internal static class LayerFacilityScopePatch
         if(!Compatibility.VanillaGravshipCompatibility.EngineDef(myDef))return;
         if(LayerMapComponent.For(myMap) is not {} owner)return;
         if(facilityDef.GetCompProperties<CompProperties_Facility>() is not {} props)return;
-        if(props.linkableBuildings is not {} linkable||!linkable.Contains(myDef))return;
+        // Membership is ShipFacilities.LinksToDef, not props.linkableBuildings.Contains(myDef): a vanilla
+        // PilotConsole standing on a VGE hull declares only the vanilla GravEngine def, and VGE never adds
+        // vanilla PilotConsole to its own engines' linkableFacilities. An engine-list-only gate therefore
+        // drops exactly the pair the user builds (live log: allowed=False canLink=True belongs=True).
+        if(!ShipFacilities.LinksToDef(props,myDef))return;
         // Bed-head/adjacency variants are inherently same-deck; keep their native same-layer rule.
         if(props.mustBePlacedAdjacent||props.mustBePlacedAdjacentCardinalToBedHead||
             props.mustBePlacedAdjacentCardinalToAndFacingBedHead||props.mustBePlacedFacingThingLinear)return;
@@ -54,7 +59,7 @@ internal static class LayerFacilityActivePatch
         if(facility.TryGetComp<CompGravshipFacility>()!=null)return;
         // Plain-facility engine links (for example VGE_GravshipStructuralBeam) also span decks.
         if(__instance.parent is Building_GravEngine engine&&
-            facility.TryGetComp<CompFacility>() is {} f&&f.Props?.linkableBuildings?.Contains(engine.def)==true)return;
+            facility.TryGetComp<CompFacility>() is {} f&&ShipFacilities.LinksTo(f.Props,engine))return;
         if(__result && LayerMapComponent.For(map)!=null && (facility.Map!=map ||
             !PowerLinks.SameLayer(map,__instance.parent.Position,facility.Position) ||
             !PowerLinks.HasSurface(__instance.parent) || !PowerLinks.HasSurface(facility))) __result=false;

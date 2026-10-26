@@ -16,9 +16,25 @@ namespace RimLayers.Ships;
 internal static class ShipFacilities
 {
     internal static CompProperties_Facility? Props(Thing thing)=>thing.TryGetComp<CompFacility>()?.Props;
+    /// <summary>
+    /// The facility declares itself a facility of some gravship engine, even when the engine in hand
+    /// declares a different list. CompProperties_Facility.linkableBuildings is resolved from every
+    /// ThingDef whose CompProperties_AffectedByFacilities.linkableFacilities names the facility, so it
+    /// is the facility side statement of which engines it belongs to. VGE replaces the vanilla engine
+    /// with its own engine defs whose lists omit the vanilla PilotConsole, so a vanilla console on a
+    /// VGE hull names GravEngine while standing on VGE_GravjumperEngine. Native enumeration is driven
+    /// by the ENGINE list, so that console is never even a candidate; Player-prev.log recorded
+    /// allowed=False canLink=True belongs=True distance=3.6/200 engineFacilities=0, i.e. membership was
+    /// the only failing gate and the distance was already fine.
+    /// </summary>
+    internal static bool EngineFacilityDef(CompProperties_Facility? props)=>
+        props?.linkableBuildings is {} linkable&&linkable.Any(Compatibility.VanillaGravshipCompatibility.EngineDef);
+    /// <summary>Fail-open membership: the engine accepts the facility if either side list says so.</summary>
+    internal static bool LinksToDef(CompProperties_Facility? props,ThingDef engineDef)=>
+        props!=null&&(props.linkableBuildings?.Contains(engineDef)==true||EngineFacilityDef(props));
+    internal static bool LinksTo(CompProperties_Facility? props,Building_GravEngine engine)=>LinksToDef(props,engine.def);
     internal static bool IsEngineFacility(Building_GravEngine engine,Thing thing)=>
-        thing.TryGetComp<CompFacility>() is {} facility&&facility.CanLink()&&
-        facility.Props?.linkableBuildings is {} linkable&&linkable.Contains(engine.def);
+        thing.TryGetComp<CompFacility>() is {} facility&&facility.CanLink()&&LinksTo(facility.Props,engine);
     internal static int MaxSimultaneous(Thing thing)=>Props(thing)?.maxSimultaneous??1;
 }
 
@@ -41,15 +57,24 @@ internal static class ShipFacilityTrace
         var ship=owner.Ships.Get(engine);
         var props=facility.Props;
         var allowed=engine.def.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
+        // Thrusters have their own extra gates (deck substructure in the exhaust zone, and the
+        // outdoors room test). Without them in the line a thruster failure reads identically to a
+        // membership failure, which cost two rounds of guessing already.
+        var thruster=facility as CompGravshipThruster;
+        var outdoors=thruster==null?"-":(AccessTools.Field(typeof(CompGravshipThruster),"outdoors").GetValue(thruster) as bool?)
+            ?.ToString().ToLowerInvariant()??"unset";
         Log.Warning("[RimLayers] Gravship facility has no engine link: "+parent.def.defName+
             " at "+parent.Position+" engine="+engine.def.defName+"@"+engine.Position+
             " ship="+(ship==null?"null":ship.Ambiguous?"ambiguous":"cells="+ship.Cells.Count)+
             " allowed="+(allowed?.Contains(parent.def)==true)+
+            " linksTo="+ShipFacilities.LinksTo(props,engine)+
             " canLink="+(parent.TryGetComp<CompFacility>()?.CanLink().ToString()??"none")+
             " belongs="+owner.Ships.Belongs(engine,parent)+
             " distance="+owner.Ships.Distance(parent.Position,engine.Position).ToString("F1")+
             "/"+props.maxDistance.ToString("F0")+
             " loose="+props.onlyRequiresLooseConnection+
+            " blocked="+(thruster?.Blocked.ToString().ToLowerInvariant()??"-")+
+            " outdoors="+outdoors+
             " engineFacilities="+engine.AffectedByFacilities.LinkedFacilitiesListForReading.Count);
     }
 }
@@ -159,6 +184,19 @@ internal static class ShipFacilityInspectRange
     }
 }
 
+[HarmonyPatch(typeof(CompGravshipThruster),nameof(CompGravshipThruster.CompInspectStringExtra))]
+internal static class ShipThrusterInspectTrace
+{
+    // CompGravshipThruster overrides CompInspectStringExtra without calling base, so the base-class
+    // trace never runs for the one facility kind the user reported as "not connected".
+    static void Postfix(CompGravshipThruster __instance)
+    {
+        if(!__instance.parent.Spawned)return;
+        if(!__instance.LinkedBuildings.NullOrEmpty())return;
+        if(LayerMapComponent.For(__instance.parent.Map) is {} owner)ShipFacilityTrace.MissingLink(owner,__instance);
+    }
+}
+
 [HarmonyPatch(typeof(CompAffectedByFacilities),nameof(CompAffectedByFacilities.PotentialThingsToLinkTo))]
 internal static class ShipFacilityCandidates
 {
@@ -166,12 +204,16 @@ internal static class ShipFacilityCandidates
     {
         if(!Compatibility.VanillaGravshipCompatibility.EngineDef(myDef)||LayerMapComponent.For(myMap) is not {} owner)return true;
         var engine=myPos.GetThingList(myMap).OfType<Building_GravEngine>().FirstOrDefault();if(engine==null)return true;
-        var allowed=myDef.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
-        if(allowed==null)return true;
+        if(myDef.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities==null)return true;
         // Ownership is decided by CanLinkTo (fail-open, only vetoing a positively different ship),
         // not here: a partially filtered list would make the engine's RelinkAll drop links the
         // facility side had legitimately established.
-        var logical=myMap.listerThings.AllThings.Where(t=>allowed.Contains(t.def)&&ShipFacilities.IsEngineFacility(engine,t)&&
+        //
+        // Membership is ShipFacilities.LinksTo, not allowed.Contains: the engine list is VGE's, but a
+        // vanilla PilotConsole standing on a VGE hull is declared only for the vanilla GravEngine def,
+        // so an engine-list-only filter drops it exactly as native does (live log: allowed=False
+        // canLink=True belongs=True distance=3.6/200 engineFacilities=0).
+        var logical=myMap.listerThings.AllThings.Where(t=>ShipFacilities.IsEngineFacility(engine,t)&&
                 owner.Ships.Distance(myPos,t.Position)<=ShipFacilities.Props(t)!.maxDistance)
             .OrderBy(t=>owner.Ships.Distance(myPos,t.Position)).ThenBy(t=>t.thingIDNumber)
             .GroupBy(t=>t.def).SelectMany(g=>g.Take(ShipFacilities.MaxSimultaneous(g.First()))).ToArray();

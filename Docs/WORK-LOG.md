@@ -896,9 +896,36 @@ Release、纯几何/布局/环境测试、Core 地下、全 DLC 250 地下、原
 
 **收尾：第七个门也改成 Postfix。** `Environment/FacilityPatches.cs` 的 `LayerFacilityScopePatch`（`CanPotentiallyLinkTo_Static`）原来是 Prefix，引擎分支直接 `return true` 放行、非引擎分支在 `!PowerLinks.SameLayer` 时硬 `__result=false`。现在拆成「Prefix 只管非引擎的同层规则 + Postfix 只在原生为 false 时放宽」，放宽条件是 `props.linkableBuildings` 含该引擎 def、非 `mustBePlacedAdjacent*` 系列、且**解码后**的逻辑距离落在 `[minDistance, maxDistance]` 内。注意为什么放宽 `maxDistance` 拒绝是安全的而放宽 `minDistance` 拒绝不是：存储距离恒大于等于解码距离，所以原生因 maxDistance 拒绝时逻辑距离确实可能合格；反过来原生因 minDistance 拒绝说明存储距离偏小，而逻辑距离只会更小，不可能变合格。
 
-**顺带删掉一处冗余接管。** `Ships/ShipCapturePatches.cs` 里 `LayerShipOnboardCell`（`Building_GravEngine.ValidSubstructureAt` 的 Prefix）被整块删除。它本是「替换」型：`Cells.Contains(cell) && InField(cell)`，而 `InField` 受引擎 footprint 半径约束（`VGE_GravjumperEngine` 只有 7.9），设施却允许 `maxDistance 200` —— 离引擎远的控制台会白丢发射按钮。而且它根本不需要：`ValidSubstructure` 拓宽到全甲板后，原生 `ValidSubstructureAt` 就是 `ValidSubstructure.Contains(cell)`（`/tmp/rwdec/RimWorld/Building_GravEngine.cs:348`），上层控制台交互格天然为真；不装 VGE 时又必须保持单层语义，没东西可放宽。
+**顺带删掉一处冗余接管（后又部分补回，见下段）。** `Ships/ShipCapturePatches.cs` 里 `LayerShipOnboardCell`（`Building_GravEngine.ValidSubstructureAt` 的 Prefix）被整块删除。它本是「替换」型：`Cells.Contains(cell) && InField(cell)`，而 `InField` 受引擎 footprint 半径约束（`VGE_GravjumperEngine` 只有 7.9），设施却允许 `maxDistance 200` —— 离引擎远的控制台会白丢发射按钮。而且当时判断它根本不需要：`ValidSubstructure` 拓宽到全甲板后，原生 `ValidSubstructureAt` 就是 `ValidSubstructure.Contains(cell)`（`/tmp/rwdec/RimWorld/Building_GravEngine.cs:348`），上层控制台交互格天然为真；不装 VGE 时又必须保持单层语义，没东西可放宽。
+
+**删除判断错了一半：`ValidSubstructure` 与 `ValidSubstructureAt` 是两个契约。** 下次重跑原生 `ship-structure` 时冒出 5 条失败，全是「上层乘员不被当成在船上」：`upper-pawn-native-onboard-cell-is-recognized`、`native-launch-stage-accepts-boarded-crew-deck-1/2`、`native-launch-stage-waits-for-upper-deck-visitor-to-leave`、`native-upper-deck-gotoship-finish-keeps-required-passenger`。原因是我把 `ShipEngineDeckView`（`ValidSubstructure`/`ValidSubstructureNoRegen` 的 Postfix）在 `!VanillaGravshipCompatibility.Active` 时提前返回了——那是刻意的，因为原生 capture 与 `native-footprint-remains-core-deck-with-logical-cross-layer-ownership` 都要求原生模式下那个 HashSet 只有核心层。于是在无 VGE 的原生路径上，`ValidSubstructureAt` 退回单层，而它的原生消费者全是**走到 Pawn 位置**的判定。
+
+正确分工：**HashSet 按配置区分，谓词恒跨层。** `ValidSubstructure`（`Gravship..ctor` 喂给 `RemoveGravshipTerrainUnsafe`，那条原版操作是平的）在原生模式下必须保持单层；`ValidSubstructureAt` 回答的是「这格是不是我的船体」，原生消费者 `StageEndTrigger_RoleArrivedAndSpectatorsOnSubstructure.ArrivedCheck`、`JobDriver_BoardOrLeaveGravship`（`CheckFailedToBoardOrLeave` 里还有一段绕过谓词直接读 HashSet 的转译，由 `ShipBoardingMembership` 负责）、`GravshipUtility.IsOnboardGravship_NewTemp` / `ConsideredKidnapped`、`CompPilotConsole.CanUseNow` 全都只要谓词语义。自己船的 2 层甲板上站着的 Pawn 就是登船状态，和引擎在哪层无关。
+
+补回的 `LayerShipOnboardCell` 是 **fail-open Postfix**：`if(__result) return;` 之后才用 `ShipStructureService.Core(engine)`（Spawned/!Destroyed/引擎 def/玩家）与 `Ships.Get(engine) is {Ambiguous:false} s` 判一次 `s.Cells.Contains(cell)`，因此绝不可能把原生已为真的判定改成假，也彻底去掉了 `InField` 那个 7.9 半径。递归安全：船体缓存 `ShipStructureService.Refresh` 全程不碰原生 `ValidSubstructure`（只读 `terrainGrid.FoundationAt` 与自己的 `claims`），`Get()` 又是脏标记门控的。
+
+教训：拓宽一个原生答案之前先分清它是**集合**还是**谓词**。集合往往被灌进原版的平面操作（capture、地形移除、bounds），必须保持原样；谓词才承载新语义。把两者当成一件事，就会在「桥掉集合拓宽」的同时把谓词一起丢掉。
 
 **最后一版代码的完整验证**（两处改动落地之后重跑）：VGE Ch1 generate 98 / load 5，Ch2 generate 101 / load 5，均 0 失败、`errors=[]`，日志 `0.1.5 loaded (356 patch classes)`、`Gravship facility has no engine link` 计数 0；产物 `v1-ship-vge-20261026-071944`、`v1-ship-vge-20261026-072114`。原生回归：`ship-structure` 55 项、`structure` 32+16 项，均 0 失败；产物 `v1-ship-structure-20261026-071431`、`v1-structure-20261026-071507`。
+
+**第三层根因：成员资格是单边的。** 上面七道门全部改成 fail-open 之后，实机仍然有一条控制台连不上，日志给出了决定性证据（`Player-prev.log:75789`）：
+
+```
+WARN [RimLayers] Gravship facility has no engine link: PilotConsole at (131, 0, 406)
+  engine=VGE_GravjumperEngine@(134, 0, 149) ship=cells=198
+  allowed=False canLink=True belongs=True distance=3.6/200
+  loose=False engineFacilities=0
+```
+
+`distance=3.6/200` 说明距离完全够，`canLink=True`、`belongs=True` 都正常，唯一失败的就是 `allowed=False`——也就是引擎侧 `linkableFacilities` 的成员资格。原因是**成员资格天然单边**：VGE 的 `Patches/GravEngine.xml` 只把自家设施追加进原版 `GravEngine` 的清单，从来不把原版 `PilotConsole` 加进 `VGE_GravjumperEngine` / `VGE_GravhulkEngine`；而原版 `CompAffectedByFacilities.PotentialThingsToLinkTo` 的枚举完全由引擎的 `linkableFacilities` 驱动。所以「原版控制台 + VGE 引擎」这对玩家真实会用的组合永远进不了候选。
+
+修法是 `Ships/ShipFacilityPatches.cs` 新增共享谓词 `ShipFacilities.LinksToDef(props, engineDef)`：设施 def 的 `CompProperties_Facility.linkableBuildings` 含该引擎 def，**或**含任意被识别为引力引擎的 def，即视为可连（另外 `EngineFacilityDef` 兼容 VGE 那种「只声明 linkableBuildings、不声明具体引擎」的普通设施）。四个调用点统一改用这一个谓词：`ShipFacilityCandidates`、`ShipFacilities.IsEngineFacility`、`LayerFacilityScopePatch`、`LayerFacilityActivePatch`。
+
+决定性验证：`*-vanilla-console-links-to-this-engine-across-decks` 同时打印 `links=VGE_GravjumperEngine; declares=GravEngine; inEngineList=False; canLink=True`——原生清单里确实没有它（`inEngineList=False`），链接仍然成立，证明放宽发生在 RimLayers 这一侧，而不是靠改 VGE 的 Def。
+
+**最终验证（双边成员资格之后）**：VGE Ch1 generate **100** / load 5，Ch2 generate **103** / load 5，均 0 失败、`errors=[]`，日志 `0.1.5 loaded (366 patch classes)`、`Gravship facility has no engine link` 计数 0；产物 `v1-ship-vge-20261026-175351`、`v1-ship-vge-20261026-175616`。Ch2 那轮另过 `chapter2-remote-lock-still-vetoes-launch`、`chapter2-ground-jammer-blocks-upper-deck-landing`、`chapter2-jammer-removal-restores-landing`。截图复核 `vge-restored-platform.png`（Floor 2 空白板 + 顶部已拆解碎片）与 `vge-landed-upper-deck.png`（Floor 3 上旋转后的驾驶桥、银色货物、洋红真空屏障顶、地板屋顶正确）。
+
+**夹具坑（会白烧一轮）**：`Gravship..ctor` 抛 `NullReferenceException` 不是产品缺陷。`VGE_PilotBridge` 是 5×3 占 `x78..82,z74..76`，而夹具把 filler 银和 `VGE_GravshipStructuralBeam` spawn 在 `(81,76)` / `(81,75)`，都在 bridge footprint 内，`GenSpawn` 把 bridge 挤掉 → VGE 的 `Gravship_AddThing_Patch` 没机会设置 `pilotConsole` → `DetermineLaunchDirection()` 里 `pilotConsole.Rotation` 空引用。移到 `(81,77)` / `(77,74)` 后消失。
 
 ## Dubwise 五 mod 跨层兼容（DBH / DCH / Rimatomics / Rimefeller / Dubs Skylights）
 

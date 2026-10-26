@@ -88,6 +88,32 @@ internal static partial class V1Integration
         var text=console.GetComp<CompPilotConsole>().CompInspectStringExtra();
         Check(name+"-upper-facility-inspect-has-no-range-warning",
             !text.Contains("MessageMustBePlacedInRangeOfGravEngine".Translate().ToString()),text.Replace('\n','|'));
+        // 2b. The exact live pairing: the player builds the VANILLA PilotConsole on a VGE hull. VGE only
+        // adds its own facilities to the vanilla GravEngine list; nothing adds PilotConsole to a VGE
+        // engine. Native membership is engine-list only, so that console is never even a candidate and
+        // reports NotConnectedToGravEngine forever (Player-prev.log: allowed=False canLink=True
+        // belongs=True distance=3.6/200 engineFacilities=0). This asserts the fail-open rule end to end.
+        //
+        // Only for the VGE engines: when the engine under test IS the vanilla GravEngine the scenario
+        // console is already a PilotConsole holding the single PilotConsole slot (maxSimultaneous 1), so
+        // a second one is rejected by native capacity rather than by membership. That pairing is
+        // already covered by -upper-console-linked above.
+        if(DefDatabase<ThingDef>.GetNamedSilentFail("PilotConsole") is {} vanillaConsole&&console.def!=vanillaConsole)
+        {
+            var vanilla=(ThingWithComps)GenSpawn.Spawn(vanillaConsole,At(2,80,72),map,Rot4.North);
+            vanilla.SetFaction(Faction.OfPlayer);
+            owner.Ships.MarkDirty();owner.Ships.Tick();
+            var facility=vanilla.GetComp<CompFacility>();
+            var engineList=engine.def.GetCompProperties<CompProperties_AffectedByFacilities>()?.linkableFacilities;
+            Check(name+"-vanilla-console-links-to-this-engine-across-decks",
+                facility!=null&&facility.LinkedBuildings.Contains(engine)&&vanilla.GetComp<CompPilotConsole>().engine==engine,
+                $"links={string.Join(",",facility?.LinkedBuildings.Select(t=>t.def.defName)??Enumerable.Empty<string>())}; "+
+                $"declares={string.Join(",",facility?.Props.linkableBuildings?.Select(d=>d.defName)??Enumerable.Empty<string>())}; "+
+                $"engineList={string.Join(",",(engineList??new List<ThingDef>()).Select(d=>d.defName))}; "+
+                $"inEngineList={engineList?.Contains(vanillaConsole)==true}; canLink={facility?.CanLink()}");
+            // Destroy before the capture: Gravship.AddThing keeps the first CompPilotConsole it sees.
+            vanilla.Destroy(DestroyMode.Vanish);owner.Ships.MarkDirty();owner.Ships.Tick();
+        }
         // 3. A plain-facility engine link (VGE_GravshipStructuralBeam) is offered and accepted across decks.
         if(DefDatabase<ThingDef>.GetNamedSilentFail("VGE_GravshipStructuralBeam") is {} beamDef)
         {
