@@ -11,7 +11,7 @@
   </ThingDef>
   <ThingDef ParentName="RL_VehicleConnectorBase" MayRequireAnyOf="Baal.VehicleFramework,SmashPhil.VehicleFramework">
     <defName>RL_VehicleLift</defName><label>vehicle lift station</label>
-    <description>A powered 9 脳 9 vehicle cabin. Aligned stations form a continuous shaft. Transports one fully boarded vehicle at a time; power loss pauses the cabin. A recovery command retrieves held vehicles if a station fails.</description>
+    <description>A powered 9x9 vehicle cabin. A lift needs a station on both the upper and lower floor: aligned stations form one shaft, and with a single station there is no "choose floor" command. Transports one fully boarded vehicle at a time; power loss pauses the cabin. The open-shaft order only cuts the floor and consumes the covering slab or roof; it never builds a station, so add the matching one on the opposite floor. A recovery command retrieves held vehicles if a station fails.</description>
     <designationCategory>Structure</designationCategory><size>(9,9)</size><rotatable>false</rotatable>
     <graphicData><texPath>Things/Building/RimLayers/VehicleLift</texPath><graphicClass>Graphic_Single</graphicClass><drawSize>(9,9)</drawSize></graphicData>
     <costList><Steel>900</Steel><Plasteel>120</Plasteel><ComponentIndustrial>12</ComponentIndustrial></costList>

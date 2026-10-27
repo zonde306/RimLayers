@@ -4,7 +4,7 @@
 <RL_CargoCallDesc>选择一名 Pawn 到本站操作并等待吊篮。</RL_CargoCallDesc>
 <RL_CargoNoOperator>没有可用操作员。</RL_CargoNoOperator>
 <RL_CargoTake>搬出{0}</RL_CargoTake>
-<RL_CargoDisconnected>井道不连通</RL_CargoDisconnected>
+<RL_CargoDisconnected>井道不连通：本站这一层没接上提升机本体，或已超出提升机覆盖的楼层。请先在同一竖井建好提升机主体，再在需要停靠的每层建取货站。</RL_CargoDisconnected>
 <RL_CargoStatus>篮子位置：{0}\n堆栈：{1}/{2} | 排队：{3}</RL_CargoStatus>
 <RL_CargoMoving>目的地：{0} | 剩余：{1} tick</RL_CargoMoving>
 <RL_CargoNoPower>断电</RL_CargoNoPower>

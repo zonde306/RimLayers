@@ -153,9 +153,13 @@ public sealed partial class Building_VehicleConnector
             if(deck.Area==0)continue;
             // A finished shaft needs no order; the inspect string already reports it.
             if(deck.All(ShaftCellOpen))continue;
+            // Say up front that the order only opens the floor. A player who expects the shaft to
+            // finish the lift builds one station and then wonders why nothing travels.
+            string help=(direction<0?"RL_VehicleDigHelp":"RL_VehicleDigHelpUp").Translate()+"\n\n"+
+                "RL_VehicleDigHelpTwoEnds".Translate();
             var command=new Command_Action{
                 defaultLabel=(direction<0?"RL_VehicleDigStart":"RL_VehicleDigStartUp").Translate(),
-                defaultDesc=(direction<0?"RL_VehicleDigHelp":"RL_VehicleDigHelpUp").Translate(),icon=TexCommand.Install,
+                defaultDesc=help,icon=TexCommand.Install,
                 action=()=>StartShaftExcavation(direction)};
             if(ShaftConditions(direction) is var report&&!report.Accepted)command.Disable(report.Reason);
             yield return command;
@@ -169,7 +173,14 @@ public sealed partial class Building_VehicleConnector
         int completed=deck.Count(ShaftCellOpen);
         // Silence for an untouched station: the two order buttons already carry the reason.
         if(!ExcavatingShaft&&shaftWork<=0f&&completed==0)return "";
-        if(completed==deck.Area)return (shaftDirection<0?"RL_VehicleDigComplete":"RL_VehicleDigCompleteUp").Translate();
+        bool paired=ShaftPartner(shaftDirection)!=null;
+        if(completed==deck.Area)
+        {
+            string done=(shaftDirection<0?"RL_VehicleDigComplete":"RL_VehicleDigCompleteUp").Translate();
+            // The opening alone is half the facility. Without this line a finished shaft looks like
+            // a finished lift, and the second station never gets built.
+            return paired?done:done+"\n"+"RL_VehicleDigCompleteNeedStation".Translate();
+        }
         var status=(shaftDirection<0?"RL_VehicleDigProgress":"RL_VehicleDigProgressUp").Translate(completed,deck.Area).ToString();
         if(ExcavatingShaft&&ShaftConditions(shaftDirection) is var report&&!report.Accepted)status+="\n"+report.Reason;
         return status;

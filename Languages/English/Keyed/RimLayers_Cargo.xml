@@ -4,7 +4,7 @@
 <RL_CargoCallDesc>Choose a pawn to operate this station and wait for the basket.</RL_CargoCallDesc>
 <RL_CargoNoOperator>No available operator.</RL_CargoNoOperator>
 <RL_CargoTake>Haul {0} out</RL_CargoTake>
-<RL_CargoDisconnected>Shaft disconnected</RL_CargoDisconnected>
+<RL_CargoDisconnected>Shaft not connected: this station is not attached to a hoist body, or it sits outside the floors that hoist serves. Build the hoist body in the same shaft first, then a station on each floor that should stop here.</RL_CargoDisconnected>
 <RL_CargoStatus>Basket: {0}\nStacks: {1}/{2} | Queued: {3}</RL_CargoStatus>
 <RL_CargoMoving>Destination: {0} | Remaining: {1} ticks</RL_CargoMoving>
 <RL_CargoNoPower>No power</RL_CargoNoPower>

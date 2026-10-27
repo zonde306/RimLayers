@@ -10,9 +10,9 @@
   <RL_TopLayer>这里已经是顶层。</RL_TopLayer>
   <RL_BlockedLanding>楼梯落脚处被阻挡。</RL_BlockedLanding>
   <RL_RequiresLayerMap>需要 RimLayers 地图。</RL_RequiresLayerMap>
-  <RL_PowerNoPeer>相邻楼层的对应位置没有启用的电力端子。</RL_PowerNoPeer>
+  <RL_PowerNoPeer>相邻楼层的同一位置没有启用的电力端子，本层电网未与邻层连通。每层各建一个并都打开开关。</RL_PowerNoPeer>
   <RL_PowerPeers>连接楼层：{0}</RL_PowerPeers>
-  <RL_PipeNoPeer>相邻楼层的对应位置没有同类管道。</RL_PipeNoPeer>
+  <RL_PipeNoPeer>相邻楼层的同一位置没有同类管道端子，本层管网未与邻层连通。每层各建一个；每根只跨一层，三层竖井需每层都建。</RL_PipeNoPeer>
   <RL_PipePeers>连接楼层：{0}</RL_PipePeers>
   <RL_StairMapUnsupported>此地图不支持创建上层（口袋或地下地图）。</RL_StairMapUnsupported>
   <RL_StairExpansionFailed>上层创建失败，请查看日志。未完成的楼梯框架与材料仍保留。</RL_StairExpansionFailed>

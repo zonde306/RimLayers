@@ -40,6 +40,9 @@ public sealed partial class Building_VehicleConnector:Building
         var text=base.GetInspectString()+"\n"+(IsLift?(Powered?"RL_VehicleLiftPowered":"RL_VehicleLiftPaused"):"RL_VehicleRampWidth").Translate();
         if(Spawned&&IsLift&&Traffic.StationStatus(this) is {Length:>0} status)text+="\n"+status;
         if(Spawned&&IsLift&&Traffic.CabinStatus(this) is {Length:>0} cabin)text+="\n"+cabin;
+        // A lone station with no vehicle parked used to say nothing at all, which is exactly the
+        // state right after building the first one: the floor order is simply absent.
+        if(Spawned&&IsLift&&ShaftPartner(-1)==null&&ShaftPartner(1)==null)text+="\n"+"RL_VehicleLiftOneEnd".Translate();
         if(Spawned&&IsLift)text+="\n"+ShaftExcavationStatus();
         return text.Trim();
     }

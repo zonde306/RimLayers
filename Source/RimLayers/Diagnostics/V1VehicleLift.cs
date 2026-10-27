@@ -47,6 +47,14 @@ internal static partial class V1Integration
         vehicleStations=new[]{lowerStation,null!};
         Check("station-refuses-uncleared-upper-floor",!owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
         Check("upward-excavation-order-visible-on-ground-station",lowerStation.GetGizmos().OfType<Command_Action>().Any(g=>g.defaultLabel=="RL_VehicleDigStartUp".Translate().ToString()));
+        // A single station cannot travel, and the player must be told why instead of seeing nothing.
+        Check("lone-station-reports-the-missing-second-end",
+            lowerStation.GetInspectString().Contains("RL_VehicleLiftOneEnd".Translate().ToString()),
+            lowerStation.GetInspectString());
+        Check("upward-excavation-order-says-a-second-station-is-needed",
+            lowerStation.GetGizmos().OfType<Command_Action>()
+                .Where(g=>g.defaultLabel=="RL_VehicleDigStartUp".Translate().ToString())
+                .Any(g=>g.defaultDesc.Contains("RL_VehicleDigHelpTwoEnds".Translate().ToString())));
         var digger=ShaftMinerFixture();
         GenSpawn.Spawn(digger,LiftAt(0,80,85),map);digger.skills.GetSkill(SkillDefOf.Mining).Level=20;
         Check("upward-excavation-order-accepted",lowerStation.StartShaftExcavation(1));
@@ -55,6 +63,10 @@ internal static partial class V1Integration
         Check("upward-excavation-converts-covering-slab-to-deck",upper.All(c=>map.terrainGrid.TerrainAt(LiftAt(1,c.x,c.z)).defName=="RL_VehicleDeck"));
         Check("upward-excavation-clears-roof-under-the-opening",upper.All(c=>map.roofGrid.RoofAt(LiftAt(0,c.x,c.z))==null));
         Check("upward-excavation-drops-covering-slab-from-structural-set",upper.All(c=>!owner.StructuralCells.Contains(LiftAt(1,c.x,c.z))));
+        // The opening is only half the facility: without the second station, say so on the station.
+        Check("finished-shaft-without-a-second-station-asks-for-one",
+            lowerStation.GetInspectString().Contains("RL_VehicleDigCompleteNeedStation".Translate().ToString()),
+            lowerStation.GetInspectString());
         digger.Destroy(DestroyMode.Vanish);
         Check("station-accepts-excavated-supported-opening",owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
         DamageVehicleFixture(testVehicle);

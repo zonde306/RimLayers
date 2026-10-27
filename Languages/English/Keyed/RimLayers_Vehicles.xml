@@ -9,6 +9,7 @@
   <RL_VehicleRecoverHelp>Unload a held vehicle at this station in the same shaft, if its entire footprint is clear.</RL_VehicleRecoverHelp>
   <RL_VehicleLiftPowered>Vehicle lift powered</RL_VehicleLiftPowered>
   <RL_VehicleLiftPaused>Vehicle lift paused: no power</RL_VehicleLiftPaused>
+  <RL_VehicleLiftOneEnd>Only one end exists. Build a second lift station directly above or below at the same position.</RL_VehicleLiftOneEnd>
   <RL_VehicleRampWidth>Aligned modules beside this ramp form its usable width.</RL_VehicleRampWidth>
   <RL_VehicleDeckSupport>Each corner of the nine-cell cabin needs an existing supported platform alongside it.</RL_VehicleDeckSupport>
   <RL_VehicleShaftClear>This cell is not part of a finished lift opening. Open the shaft from the station on the floor below first.</RL_VehicleShaftClear>
@@ -62,4 +63,6 @@
   <RL_VehicleDigProgressUp>Shaft above: {0}/{1} cells open</RL_VehicleDigProgressUp>
   <RL_VehicleDigRoof>Remove the constructed roof over the lower cabin first.</RL_VehicleDigRoof>
   <RL_VehicleDigStartUp>Open shaft above</RL_VehicleDigStartUp>
+  <RL_VehicleDigCompleteNeedStation>The shaft has only one end. Build a second lift station on the opposite floor at the same position; the "choose floor" command appears once both ends are aligned.</RL_VehicleDigCompleteNeedStation>
+  <RL_VehicleDigHelpTwoEnds>A lift needs a station on both the upper and lower floor. With one end missing there is no "choose floor" command. The shaft only opens the floor; it never builds a station.</RL_VehicleDigHelpTwoEnds>
 </LanguageData>

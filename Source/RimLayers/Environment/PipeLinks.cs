@@ -108,7 +108,7 @@ public sealed class PipeLinks
     }
 
     /// <summary>True when the cell holds a built, spawned cross-deck connector.</summary>
-    private static bool CarriesResourceAt(Map map,IntVec3 cell)
+    internal static bool CarriesResourceAt(Map map,IntVec3 cell)
     {
         if(!cell.InBounds(map))return false;
         foreach(var thing in map.thingGrid.ThingsListAt(cell))
@@ -136,4 +136,31 @@ public sealed class CompProperties_ResourcePort : CompProperties
 
 public sealed class CompResourcePort : ThingComp
 {
+    /// <summary>
+    /// A riser only bridges one deck, and only when the layer above or below carries a riser of
+    /// its own. Nothing else in the game says so: an unpaired riser looks identical to a working
+    /// one until a network silently fails to merge. Report the paired layers, or the absence.
+    /// </summary>
+    public override string CompInspectStringExtra()
+    {
+        var owner=LayerMapComponent.For(parent.Map);
+        if(owner==null)return "RL_RequiresLayerMap".Translate();
+        if(!parent.Spawned)return "";
+        var paired=new List<string>();
+        bool placedAnywhere=false;
+        foreach(int direction in new[]{-1,1})
+        {
+            var other=owner.Adjacent(parent.Position,direction);
+            if(!other.IsValid)continue;
+            placedAnywhere=true;
+            if(!PipeLinks.CarriesResourceAt(parent.Map,other))continue;
+            if(!owner.TryDecode(other,out var at))continue;
+            paired.Add(owner.LevelName(at.LayerId));
+        }
+        // A riser on the outermost layer has nowhere to go; that is not a player mistake.
+        if(!placedAnywhere)return "";
+        return paired.Count==0
+            ? "RL_PipeNoPeer".Translate()
+            : "RL_PipePeers".Translate(string.Join(", ",paired.Distinct().OrderBy(x=>x)));
+    }
 }
