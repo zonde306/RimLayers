@@ -47,7 +47,7 @@ internal static partial class V1Integration
         vehicleStations=new[]{lowerStation,null!};
         Check("station-refuses-uncleared-upper-floor",!owner.Structure.Validate(DefDatabase<ThingDef>.GetNamed("RL_VehicleLift"),LiftAt(1,85,85),Rot4.North,true).Accepted);
         Check("upward-excavation-order-visible-on-ground-station",lowerStation.GetGizmos().OfType<Command_Action>().Any(g=>g.defaultLabel=="RL_VehicleDigStartUp".Translate().ToString()));
-        var digger=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfPlayer);
+        var digger=ShaftMinerFixture();
         GenSpawn.Spawn(digger,LiftAt(0,80,85),map);digger.skills.GetSkill(SkillDefOf.Mining).Level=20;
         Check("upward-excavation-order-accepted",lowerStation.StartShaftExcavation(1));
         for(int guard=0;lowerStation.ExcavatingShaft&&guard<200;guard++)lowerStation.WorkShaft(digger,Building_VehicleConnector.ShaftCellWork);
@@ -210,6 +210,16 @@ internal static partial class V1Integration
             {if(ticks>2400)throw new Exception("Vehicle did not park fully inside cabin for floor command.");return;}
             var gizmos=((IEnumerable<Gizmo>)FrameworkVehicleAdapter.Method(testVehicle.GetType(),"GetGizmos",typeof(IEnumerable<Gizmo>)).Invoke(testVehicle,null)!).ToArray();
             Check("parked-vehicle-shows-floor-command",gizmos.OfType<Command_Action>().Any(g=>g.defaultLabel=="RL_VehicleChooseFloor".Translate().ToString()));
+            Check("parked-vehicle-reports-no-route-problem",traffic.FloorRouteProblem(testVehicle,VehicleCompatibility.Adapter!.Heading(testVehicle),vehicleStations[1]).Length==0);
+            // A chassis still hanging over the platform edge used to lose the command with no explanation.
+            var offCabin=vehicleStations[1].Position+new IntVec3(6,0,0);
+            VehicleTraffic.Command(()=>VehicleCompatibility.Adapter!.Commit(testVehicle,offCabin,0));
+            var offGizmos=((IEnumerable<Gizmo>)FrameworkVehicleAdapter.Method(testVehicle.GetType(),"GetGizmos",typeof(IEnumerable<Gizmo>)).Invoke(testVehicle,null)!).OfType<Command_Action>().ToArray();
+            Check("vehicle-near-cabin-is-reported-as-not-fully-parked",
+                offGizmos.Any(g=>g.defaultLabel=="RL_VehicleChooseFloor".Translate().ToString()&&
+                    g.disabledReason=="RL_VehicleParkedOutside".Translate().ToString()),
+                string.Join("|",offGizmos.Select(g=>g.defaultLabel+":"+g.disabledReason)));
+            VehicleTraffic.Command(()=>VehicleCompatibility.Adapter!.Commit(testVehicle,destination,0));
             BindManualTest();Find.Selector.ClearSelection();Find.Selector.Select(testVehicle);
             LayerView.Switch(owner,LiftLayer(1));manualToggle.Invoke(null,new object[]{testVehicle});
             Check("manual-driver-can-select-elevator-floor",SteelManualAdapter.Active(testVehicle));

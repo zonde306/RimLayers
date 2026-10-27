@@ -39,6 +39,7 @@ public sealed partial class Building_VehicleConnector:Building
     {
         var text=base.GetInspectString()+"\n"+(IsLift?(Powered?"RL_VehicleLiftPowered":"RL_VehicleLiftPaused"):"RL_VehicleRampWidth").Translate();
         if(Spawned&&IsLift&&Traffic.StationStatus(this) is {Length:>0} status)text+="\n"+status;
+        if(Spawned&&IsLift&&Traffic.CabinStatus(this) is {Length:>0} cabin)text+="\n"+cabin;
         if(Spawned&&IsLift)text+="\n"+ShaftExcavationStatus();
         return text.Trim();
     }

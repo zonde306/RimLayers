@@ -197,6 +197,10 @@ public sealed class WorkGiver_VehicleShaft:WorkGiver_Scanner
     public override bool HasJobOnThing(Pawn pawn,Thing t,bool forced=false)
     {
         if(t is not Building_VehicleConnector s||!s.ExcavatingShaft||s.Faction!=pawn.Faction)return false;
+        // MiningSpeed is disabled for pawns without the Mining tag; asking for it logs a
+        // vanilla consistency error, so the scanner must refuse them before the driver starts.
+        // A deliberately forced order stays possible: it is accepted and then ended by the driver.
+        if(!forced&&pawn.WorkTagIsDisabled(WorkTags.Mining))return false;
         if(s.IsForbidden(pawn)||!s.ShaftConditions(s.ShaftDirection,pawn).Accepted)return false;
         if(s.ShaftPartner(s.ShaftDirection) is {} end&&(end.IsForbidden(pawn)||!pawn.CanReserve(end)))return false;
         return pawn.CanReserveAndReach(s,PathEndMode.Touch,Danger.Deadly);
@@ -220,6 +224,8 @@ public sealed class JobDriver_VehicleShaft:JobDriver
     {
         this.FailOnDespawnedNullOrForbidden(TargetIndex.A);
         if(job.targetB.HasThing)this.FailOnDespawnedNullOrForbidden(TargetIndex.B);
+        // A forced job on a pawn that cannot mine must end, not read a disabled stat every tick.
+        this.FailOn(()=>pawn.WorkTagIsDisabled(WorkTags.Mining));
         this.FailOn(()=>job.targetA.Thing is not Building_VehicleConnector s||!s.ExcavatingShaft||
             job.targetB.HasThing&&s.ShaftPartner(s.ShaftDirection)!=job.targetB.Thing||
             !s.ShaftConditions(s.ShaftDirection,pawn).Accepted);
@@ -232,6 +238,7 @@ public sealed class JobDriver_VehicleShaft:JobDriver
         toil.tickIntervalAction=delta=>
         {
             var station=(Building_VehicleConnector)job.targetA.Thing;
+            if(pawn.WorkTagIsDisabled(WorkTags.Mining)){EndJobWith(JobCondition.Incompletable);return;}
             if(!station.WorkShaft(pawn,pawn.GetStatValue(StatDefOf.MiningSpeed)*delta)){EndJobWith(JobCondition.Incompletable);return;}
             pawn.skills?.Learn(SkillDefOf.Mining,.07f*delta);
             if(!station.ExcavatingShaft)ReadyForNextToil();

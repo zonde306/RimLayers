@@ -33,15 +33,52 @@ public sealed partial class VehicleTraffic
         SteelManualAdapter.Release(vehicle);
         return vehicle.jobs.TryTakeOrderedJob(JobMaker.MakeJob(JobDefOf.Goto,target.Position));
     }
+    /// <summary>The whole hull must sit on one cabin, corners included. The provider's own cells are
+    /// checked first because they decide collision, then the oriented hull so a chassis hanging over
+    /// the platform edge counts as "not parked" instead of as a broken shaft.</summary>
+    internal bool InsideCabin(Pawn vehicle,double heading,Building_VehicleConnector station)
+    {
+        var adapter=VehicleCompatibility.Adapter;
+        if(adapter==null||!vehicle.Spawned||vehicle.Map!=map||LayerMapComponent.For(map) is not {} owner||
+            !owner.TryDecode(station.Position,out var at))return false;
+        var rect=station.OccupiedRect();
+        foreach(var native in adapter.OccupiedCells(vehicle,vehicle.Position,heading))
+            if(!owner.TryDecode(native,out var cell)||cell.LayerId!=at.LayerId||!rect.Contains(owner.ToStorage(cell)))return false;
+        var hull=adapter.Hull(vehicle);
+        if(!hull.Valid)return false;
+        foreach(var cell in VehicleGeometry.Footprint(hull,VehicleSpace.Pose(owner,vehicle,vehicle.Position,heading)))
+            if(!rect.Contains(owner.ToStorage(new(at.LayerId,cell.X,cell.Z))))return false;
+        return true;
+    }
+    private bool NearCabin(Pawn vehicle,double heading)
+    {
+        var adapter=VehicleCompatibility.Adapter;
+        if(adapter==null)return false;
+        var cells=adapter.OccupiedCells(vehicle,vehicle.Position,heading).ToArray();
+        return connectors.Any(b=>b.Spawned&&b.IsLift&&cells.Any(c=>b.OccupiedRect().ExpandedBy(3).Contains(c)));
+    }
+    /// <summary>Why this parked cabin offers no floor. Empty when at least one target is reachable,
+    /// so the caller never has to guess between "no shaft" and "vehicle not parked".</summary>
+    internal string FloorRouteProblem(Pawn vehicle,double heading,Building_VehicleConnector source)
+    {
+        if(LayerMapComponent.For(map) is not {} owner)return "RL_VehicleNoFloorRoute".Translate();
+        var targets=connectors.Where(b=>b!=source&&b.Spawned&&b.IsLift&&!b.IsForbidden(vehicle)).ToArray();
+        if(targets.Length==0)return "RL_VehicleNoPairedStation".Translate();
+        if(targets.Any(t=>VehicleRoutePlanner.ShaftIntact(this,owner,source,t,true)&&VehicleFacilitySpace.FitsCabin(owner,vehicle,t,heading)))return "";
+        // The open, aligned shaft separates a power refusal from a cabin-fit refusal.
+        if(targets.Any(t=>VehicleRoutePlanner.ShaftIntact(this,owner,source,t,false)))
+            return targets.Any(t=>VehicleRoutePlanner.ShaftIntact(this,owner,source,t,true))
+                ?"RL_VehicleCabinTooSmall".Translate():"RL_VehicleShaftNoPower".Translate();
+        return "RL_VehicleNoFloorRoute".Translate();
+    }
     internal IEnumerable<Building_VehicleConnector> FloorDestinations(Pawn vehicle)
     {
         var owner=LayerMapComponent.For(map);var adapter=VehicleCompatibility.Adapter;
         if(owner==null||adapter==null||!vehicle.Spawned||vehicle.Map!=map||Trip(vehicle)!=null)yield break;
         var heading=adapter.Heading(vehicle);
-        var occupied=adapter.OccupiedCells(vehicle,vehicle.Position,heading).ToArray();
         foreach(var source in connectors.Where(b=>b.Spawned&&b.IsLift&&!b.IsForbidden(vehicle)))
         {
-            if(!occupied.All(source.OccupiedRect().Contains))continue;
+            if(!InsideCabin(vehicle,heading,source))continue;
             foreach(var target in connectors.Where(b=>b!=source&&b.Spawned&&b.IsLift&&!b.IsForbidden(vehicle)))
                 // Powered is part of the offer: an unpowered column must not advertise a floor
                 // the route planner will refuse.
@@ -61,15 +98,17 @@ public sealed partial class VehicleTraffic
         if(destinations.Count==0)
         {
             // Silence is only correct when the vehicle is nowhere near a cabin. Parked in one
-            // without a usable shaft, the player needs to know why the order is missing.
+            // without a usable shaft, the player needs to know why the order is missing - and a
+            // chassis left straddling the platform edge is the most common cause.
             var adapter=VehicleCompatibility.Adapter;
             if(adapter==null)yield break;
             var headingAt=adapter.Heading(vehicle);
-            var footprint=adapter.OccupiedCells(vehicle,vehicle.Position,headingAt).ToArray();
-            bool parked=connectors.Any(b=>b.Spawned&&b.IsLift&&footprint.All(b.OccupiedRect().Contains));
-            if(!parked)yield break;
+            var parked=connectors.Where(b=>b.Spawned&&b.IsLift&&InsideCabin(vehicle,headingAt,b)).ToArray();
+            string? reason=parked.Length>0?FloorRouteProblem(vehicle,headingAt,parked[0]):
+                NearCabin(vehicle,headingAt)?"RL_VehicleParkedOutside".Translate():null;
+            if(reason==null)yield break;
             var blocked=new Command_Action{defaultLabel="RL_VehicleChooseFloor".Translate(),defaultDesc="RL_VehicleChooseFloorHelp".Translate(),icon=TexCommand.Install};
-            blocked.Disable("RL_VehicleNoFloorRoute".Translate());
+            blocked.Disable(reason);
             yield return blocked;
             yield break;
         }
@@ -118,6 +157,22 @@ public sealed partial class VehicleTraffic
         if(RecoveryCount==0)return;
         if(Widgets.ButtonText(rect,"RL_VehicleRecoveryCount".Translate(RecoveryCount)))Find.WindowStack.Add(new FloatMenu(RecoveryOptions()));
         TooltipHandler.TipRegion(rect,"RL_VehicleRestoreSource".Translate());
+    }
+    /// <summary>A vehicle parked in this cabin but unable to travel reports its blocker on the
+    /// station as well, so the player is not left guessing which end is wrong.</summary>
+    internal string CabinStatus(Building_VehicleConnector station)
+    {
+        var adapter=VehicleCompatibility.Adapter;
+        if(adapter==null||!station.Spawned||LayerMapComponent.For(map)==null)return "";
+        foreach(var vehicle in map.mapPawns.AllPawnsSpawned)
+        {
+            if(!adapter.IsVehicle(vehicle)||Trip(vehicle)!=null)continue;
+            var heading=adapter.Heading(vehicle);
+            if(!InsideCabin(vehicle,heading,station))continue;
+            var problem=FloorRouteProblem(vehicle,heading,station);
+            if(problem.Length>0)return "RL_VehicleCabinBlocked".Translate(vehicle.LabelShortCap,problem);
+        }
+        return "";
     }
     internal string StationStatus(Building_VehicleConnector station)
     {

@@ -15,6 +15,18 @@ internal static partial class V1Integration
     private static IntVec3 LiftAt(int index,int x,int z)=>At(LiftLayer(index),x,z);
     private static Pawn shaftMiner=null!;
     private static Building_VehicleConnector middleStation=null!;
+    // A random colonist can carry a backstory or trait that disables Mining, and then the native
+    // shaft job can never start. The fixture needs a pawn that can actually mine.
+    private static Pawn ShaftMinerFixture()
+    {
+        for(int attempt=0;attempt<200;attempt++)
+        {
+            var pawn=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfPlayer);
+            if(!pawn.WorkTagIsDisabled(WorkTags.Mining))return pawn;
+            pawn.Destroy(DestroyMode.Vanish);
+        }
+        throw new Exception("No generated colonist could mine; the fixture cannot build a shaft.");
+    }
     private static WorkGiver_VehicleShaft ShaftMinerWork=>(WorkGiver_VehicleShaft)DefDatabase<WorkGiverDef>.GetNamed("RL_ExcavateVehicleShaft").Worker;
     private static Building_VehicleConnector MakeUndergroundStation(int elevation)
     {
@@ -45,7 +57,7 @@ internal static partial class V1Integration
                 if(x!=85||z!=85)GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Column,ThingDefOf.Steel),At(layer,x,z),map);
         }
         map.roofCollapseBuffer.CellsMarkedToCollapse.RemoveAll(c=>owner.TryDecode(c,out var l)&&new CellRect(74,74,23,23).Contains(new(l.X,0,l.Z)));
-        shaftMiner=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfPlayer);
+        shaftMiner=ShaftMinerFixture();
         GenSpawn.Spawn(shaftMiner,LiftAt(0,80,85),map);shaftMiner.skills.GetSkill(SkillDefOf.Mining).Level=20;
         shaftMiner.health.AddHediff(DefDatabase<HediffDef>.GetNamed("RL_TestShaftMiner")); // Accelerates work, not the production job/commit.
         vehicleStations=new[]{MakeUndergroundStation(0),MakeUndergroundStation(-2)};

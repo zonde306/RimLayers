@@ -19,6 +19,11 @@
   <RL_VehicleChooseFloor>Go to floor</RL_VehicleChooseFloor>
   <RL_VehicleChooseFloorHelp>Choose a stop in this lift shaft. The vehicle must be fully inside the cabin and ready to drive.</RL_VehicleChooseFloorHelp>
   <RL_VehicleNoFloorRoute>No opened lift shaft reaches another floor from this cabin. Both stations must be aligned, powered and the shaft fully excavated.</RL_VehicleNoFloorRoute>
+  <RL_VehicleNoPairedStation>No second lift station exists in this shaft yet. Build an aligned station directly above or below this one.</RL_VehicleNoPairedStation>
+  <RL_VehicleShaftNoPower>The shaft is open, but not every station in it is powered. Check power and the breaker switch.</RL_VehicleShaftNoPower>
+  <RL_VehicleCabinTooSmall>The vehicle does not fit the destination cabin: the whole hull must sit inside the 9x9 platform with enough clearance.</RL_VehicleCabinTooSmall>
+  <RL_VehicleParkedOutside>The vehicle is not fully parked in the cabin. Drive the whole hull, tail included, onto the 9x9 platform and choose a floor again.</RL_VehicleParkedOutside>
+  <RL_VehicleCabinBlocked>{0} is parked here but cannot reach another floor: {1}</RL_VehicleCabinBlocked>
   <RL_VehicleNotReady>The vehicle is not ready to drive. Check ignition, crew, fuel and damage.</RL_VehicleNotReady>
   <RL_VehicleCancel>Cancel vehicle transit</RL_VehicleCancel>
   <RL_VehicleCancelHelp>Cancel the trip. A vehicle on a ramp backs down to its entry; a lift returns it to a legal source station. If unloading is blocked, the original vehicle stays in custody.</RL_VehicleCancelHelp>

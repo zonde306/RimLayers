@@ -119,8 +119,20 @@ internal static partial class V1Integration
                 finalizer:new HarmonyMethod(typeof(V1Integration),nameof(MechRenderEnded)));
         }
         h.Patch(AccessTools.Method(typeof(Skyfaller),"Impact"),prefix:new HarmonyMethod(typeof(V1Integration),nameof(SkyImpactObserved)));
-        h.Patch(AccessTools.Method(typeof(Log), nameof(Log.Error), new[] { typeof(string) }),
-            postfix: new HarmonyMethod(typeof(V1Integration), nameof(Error)));
+        // Patch only after the play scene exists. Def/XML loading happens earlier, on the entry
+        // scene thread: an unrelated mod's failed PatchOperation there is not this scenario's
+        // runtime error, and counting it turned every third-party XML bug into a false failure.
+        h.Patch(AccessTools.Method(typeof(Root_Play),nameof(Root_Play.Start)),
+            postfix:new HarmonyMethod(typeof(V1Integration),nameof(CaptureRuntimeErrors)){priority=Priority.First});
+    }
+
+    private static bool capturingErrors;
+    private static void CaptureRuntimeErrors()
+    {
+        if(capturingErrors)return;
+        capturingErrors=true;
+        new Harmony("rimlayers.core.v1test.errors").Patch(AccessTools.Method(typeof(Log),nameof(Log.Error),new[]{typeof(string)}),
+            postfix:new HarmonyMethod(typeof(V1Integration),nameof(Error)));
     }
 
     private static bool AllowTestTick() => !GenCommandLine.CommandLineArgPassed("rimlayerscorpsefixture") && (mode != "load" || stage != 0);

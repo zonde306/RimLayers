@@ -19,6 +19,11 @@
   <RL_VehicleChooseFloor>前往楼层</RL_VehicleChooseFloor>
   <RL_VehicleChooseFloorHelp>选择同一井道的停靠楼层。车辆必须完全进入载车区并具备行驶条件。</RL_VehicleChooseFloorHelp>
   <RL_VehicleNoFloorRoute>本载车区没有通向其他楼层的已开凿井道。两端升降机站必须对齐、通电，且井道全部贯通。</RL_VehicleNoFloorRoute>
+  <RL_VehicleNoPairedStation>井道里还没有第二座升降机站。请在正上方或正下方的同一位置建一座对齐的站台。</RL_VehicleNoPairedStation>
+  <RL_VehicleShaftNoPower>井道已贯通，但两端站台未全部通电。请检查供电和断路开关。</RL_VehicleShaftNoPower>
+  <RL_VehicleCabinTooSmall>车辆放不进对方楼层的载车区：整车必须完整落在 9×9 平台内，且净空足够。</RL_VehicleCabinTooSmall>
+  <RL_VehicleParkedOutside>车辆没有完全停进载车区。请把整车（含车尾）开进 9×9 平台内，再选择楼层。</RL_VehicleParkedOutside>
+  <RL_VehicleCabinBlocked>{0} 停在此处，但无法前往其他楼层：{1}</RL_VehicleCabinBlocked>
   <RL_VehicleNotReady>车辆无法行驶，请检查征召、乘员、燃料和损伤。</RL_VehicleNotReady>
   <RL_VehicleCancel>取消载具运输</RL_VehicleCancel>
   <RL_VehicleCancelHelp>取消行程。坡道车辆退回入口；升降机返回合法出发站。无法卸载时继续保管原车，可清理出口后恢复。</RL_VehicleCancelHelp>
