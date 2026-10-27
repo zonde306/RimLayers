@@ -16,7 +16,13 @@ public sealed class ShipStructureService
     private readonly Dictionary<Building_GravEngine,ShipStructure> ships=new();
     // cell -> owning core, maintained alongside ships so OwnerAt is O(1) instead of a per-cell scan.
     private readonly Dictionary<IntVec3,Building_GravEngine> cellOwners=new();
-    private bool dirty=true,flushing;
+    private bool dirty=true,flushing,adopting;
+    // Cores whose "unknown to the clean cache" test already forced one Refresh. Without this, a core
+    // that legitimately cannot seed (its footprint sits inside another live ship's deck cells, so the
+    // seed loop clears it) would force a full map rescan on EVERY Get - and Get is called per facility
+    // per frame by the inspect panel and the placement UI. One retry per Refresh is enough: the retry
+    // either fixes the cache or proves the core is genuinely unresolvable until something changes.
+    private readonly HashSet<int> probed=new();
     private static readonly Action<CompAffectedByFacilities> Relink=AccessTools.MethodDelegate<Action<CompAffectedByFacilities>>(AccessTools.Method(typeof(CompAffectedByFacilities),"RelinkAll"));
     public ShipStructureService(LayerMapComponent owner){this.owner=owner;owner.Changed+=(_,kind)=>{if((kind&LayerChangeKind.Structure)!=0)MarkDirty();};}
     public void MarkDirty()=>dirty=true;
@@ -38,7 +44,19 @@ public sealed class ShipStructureService
     private void Refresh()
     {
         if(!dirty||!owner.Managed||!ModsConfig.OdysseyActive)return;
-        dirty=false;ships.Clear();cellOwners.Clear();
+        // Adoption lives here, not only in Tick(). A player who dismantles an engine and builds a new one
+        // leaves every deck cell claimed by the dead engine's thingIDNumber. The seed loop below rejects
+        // any footprint cell whose claim is a foreign id, so the replacement could never seed, Refresh
+        // produced no ship at all, every deck rendered native-red (SubstructureGrid draws "no engine
+        // answers for this cell" in red) and the upper-deck console lost its launch button. Tick() cannot
+        // be the repair point because it early-returns on !dirty while Refresh() clears that flag: any
+        // same-frame cache read (placement UI, roof rebuild, facility trace) consumed the MarkDirty that
+        // Building.SpawnSetup issued, and the orphan id survived into the save. Every cache recompute now
+        // adopts first, so the first reader repairs the map and no reader can observe the stale id. The
+        // guard is not redundant: Refresh clears dirty before doing work and adoption runs ahead of that
+        // line, so an engine that adopts during a nested read would otherwise re-enter itself.
+        if(!adopting){adopting=true;try{AdoptRebuiltCores();}finally{adopting=false;}}
+        dirty=false;ships.Clear();cellOwners.Clear();probed.Clear();
         var engines=Compatibility.VanillaGravshipCompatibility.Engines(owner.map).Where(Core).ToArray();
         if(engines.Length==0)return;
         var decks=new Dictionary<LayerCell,int>();var barriers=new HashSet<LayerCell>();
@@ -88,7 +106,16 @@ public sealed class ShipStructureService
             foreach(var cell in cells)cellOwners[cell]=engine;
         }
     }
-    public ShipStructure? Get(Building_GravEngine engine){Refresh();return ships.GetValueOrDefault(engine);}
+    public ShipStructure? Get(Building_GravEngine engine)
+    {
+        // A core the clean cache does not know about means something changed without notifying us.
+        // GenSpawn calls SpawnSetup (which issues MarkDirty), but a builder's SetFaction comes *after*
+        // it, so the region/roof rebuild inside SpawnSetup consumes the flag while the engine is still
+        // factionless; the cache then finishes clean while the brand-new core is missing from it.
+        // Asking about an unknown, fully-decked player core is therefore itself evidence of staleness.
+        if(!dirty&&!ships.ContainsKey(engine)&&Core(engine)&&engine.OccupiedRect().All(Deck)&&probed.Add(engine.thingIDNumber))MarkDirty();
+        Refresh();return ships.GetValueOrDefault(engine);
+    }
     public Building_GravEngine? OwnerAt(IntVec3 cell)
     {
         Refresh();
@@ -147,17 +174,47 @@ public sealed class ShipStructureService
     private void AdoptRebuiltCores()
     {
         var existing=Compatibility.VanillaGravshipCompatibility.Engines(owner.map).ToArray();
+        var live=new HashSet<int>(existing.Select(e=>e.thingIDNumber));
+        // A claim naming no living core is the remains of a dismantled engine. It must be inherited, never
+        // simply purged: a minified engine keeps its thingIDNumber, so dropping the claims would make an
+        // uninstall/reinstall lose the rest of the hull.
+        var orphans=claims.Values.Where(id=>id!=0&&!live.Contains(id)).Distinct().ToArray();
+        if(orphans.Length==0)return;
+        var orphanCells=claims.Where(p=>p.Value!=0&&!live.Contains(p.Value)).Select(p=>p.Key).ToHashSet();
         foreach(var core in existing.Where(Core))
         {
             // A newly built replacement may inherit one orphan hull; an existing ship may not annex it.
             if(claims.Values.Contains(core.thingIDNumber)||!core.OccupiedRect().All(Deck))continue;
-            var ids=core.OccupiedRect().Select(ClaimAt).Distinct().ToArray();
-            if(ids.Length!=1||ids[0]==0||existing.Any(e=>e.thingIDNumber==ids[0]))continue;
-            int oldId=ids[0];
-            foreach(var cell in claims.Where(p=>p.Value==oldId).Select(p=>p.Key).ToArray())claims[cell]=core.thingIDNumber;
+            // The replacement is nearly always a different size or rotation, so its own footprint rarely
+            // covers cells the dead core used to own (a 1x1 VGE core replaced by a 3x3 vanilla engine is
+            // the everyday case). The hull, not the footprint, is what identifies the ship.
+            int oldId=NearestOrphan(core,orphanCells);
+            if(oldId==0)continue;
+            var adopted=claims.Where(p=>p.Value==oldId).Select(p=>p.Key).ToArray();
+            foreach(var cell in adopted)claims[cell]=core.thingIDNumber;
             owner.Underlays.RebindCore(oldId,core.thingIDNumber);
             if(SelectedCore==oldId)SelectedCore=core.thingIDNumber;
+            Log.Message("[RimLayers] Ship core "+core.thingIDNumber+" inherited "+adopted.Length+" deck cells from dead core "+oldId+".");
         }
+    }
+    private int NearestOrphan(Building_GravEngine core,HashSet<IntVec3> orphanCells)
+    {
+        // A replacement can be reachable from more than one dismantled hull (the player scrapped two
+        // ships side by side). Refusing to adopt whenever two are in range left both all-red, which is
+        // worse than picking one: one core can only inherit one hull, so take the nearest.
+        foreach(var c in core.OccupiedRect())if(orphanCells.Contains(c))return claims.GetValueOrDefault(c);
+        // Flood the connected deck outward from the footprint and stop at the first cell the dead core
+        // owned. Bounded so a mis-placed engine on a huge substructure cannot stall a cache recompute.
+        var seen=new HashSet<IntVec3>();
+        var queue=new Queue<IntVec3>(core.OccupiedRect());
+        while(queue.TryDequeue(out var cell))
+        {
+            if(!seen.Add(cell))continue;
+            if(seen.Count>4096||!cell.InBounds(owner.map)||!Deck(cell))continue;
+            if(orphanCells.Contains(cell))return claims.GetValueOrDefault(cell);
+            foreach(var d in GenAdj.CardinalDirections)queue.Enqueue(cell+d);
+        }
+        return 0;
     }
     public void Tick()
     {
@@ -167,7 +224,6 @@ public sealed class ShipStructureService
         {
             foreach(var stale in claims.Keys.Where(c=>owner.map.terrainGrid.FoundationAt(c)?.IsSubstructure!=true&&
                 !c.GetThingList(owner.map).Any(t=>t is Blueprint or Frame&&t.def.entityDefToBuild is TerrainDef {IsSubstructure:true})).ToArray())claims.Remove(stale);
-            AdoptRebuiltCores();
             Refresh();
             foreach(var ship in ships.Values.Where(s=>!s.Ambiguous).ToArray())
             {

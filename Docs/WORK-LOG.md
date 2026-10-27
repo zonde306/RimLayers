@@ -1075,3 +1075,42 @@ RimWorld.CompGravshipThruster CompInspectStringExtra ended with whitespace: Max 
 
 **顺带修复：** `Tests/Run-VehicleGround.ps1` 的退出码竞态——`Start-Process -PassThru` 在带超时的 `WaitForExit(ms)` 之后 `ExitCode` 可能仍为空，导致"Game exited with code :"误判失败；改为补一次无参 `WaitForExit()` 再读，并对空值放行。
 
+## 2026-10-27：拆掉引擎换新的，全甲板变红、控制台发射不了
+
+实机反馈（`VGE测试2`）：把引擎拆掉换个新的，结果地板全红，控制台也发射不了。提示 `禁用：驾驶台未连接逆重飞船`（`PilotConsoleInaccessible`）。
+
+**存档取证。** `shipCellOwners` 里有 **198 格**，全部标着 `51239`；但存档里唯一的引擎是 `GravEngine57697`（`(137,0,147)`）。也就是说整艘 11×9 双层船体的每一格，都还挂在**一台已经不存在**的引擎的 `thingIDNumber` 上。`shipBuildTarget` 为 0，说明玩家也没有手动选中任何核心。
+
+红色本身不是 RimLayers 画的：`GravshipUtility.ConnectedSubstructureColor = ColorLibrary.Cyan`、`DisconnectedSubstructureColor = ColorLibrary.Red`，`SubstructureGrid.CellBoolDrawerGetExtraColorInt` 只在「某个小人阵营的 `Building_GravEngine.ValidSubstructureAt(cell)` 为真」时给 Cyan，否则 Red。**红 = 没有任何引擎回答这一格。**
+
+**根因（时序竞态，不是判断错误）。** `Refresh()` 的播种循环里：
+
+```csharp
+if(decks[l]!=0&&decks[l]!=engine.thingIDNumber){set.Clear();break;}
+```
+
+足迹里只要有一格被别人的 id 占着，这台引擎就**整台**放弃播种。新引擎的足迹压在旧 id 的甲板上 → 一台船都产不出来 → `Refresh` 空手而归 → 全红、控制台交互格 `ValidSubstructureAt` 为假。
+
+而当时收养逻辑（`AdoptRebuiltCores`）**只在 `Tick()` 里**调用，`Tick()` 又开头 `if(!dirty)return`；偏偏 `Refresh()` 自己会清掉 `dirty`。于是同一帧里任何一次缓存读（放置 UI、屋顶重建、设施诊断）都会先把 `Building.SpawnSetup` 发出的 `MarkDirty()` 消费掉，`Tick()` 再进来时 `dirty` 已是 false，收养永远不执行，孤儿 id 就这样活进了存档。
+
+**修法三处：**
+
+1. **收养前移到 `Refresh()` 开头**，用 `private bool dirty=true,flushing,adopting;` 里的 `adopting` 做重入保护。现在**每个缓存重算都先收养**，所以第一个读者就会把地图修好，任何读者都不可能观察到过期 id。
+2. **孤儿 id 必须继承、绝不清理。** 迷你化的引擎保留自己的 `thingIDNumber`，如果只是把这些 claim 删掉，玩家"收起来再放回去"就会丢半艘船。所以判定的是「这个 id 不对应任何**活着的**玩家核心」。
+3. **判据从"足迹重叠"改成"沿甲板泛洪触碰"**（`NearestOrphan`）。玩家最常见的情形是 1×1 的 VGE 核心换成 3×3 的原版引擎——新足迹根本盖不住旧核心的格子。改成从新核心足迹出发、沿 `Deck()` 做有界（4096 格）泛洪，撞到第一个孤儿格就认领那一整套 id。存在多个孤儿时**取最近的**：一台核心只能继承一艘船，宁可认领最近的那艘，也不能因为"周围有两艘"就两个都不救（原本 `touched.Length!=1 → continue` 会让并排拆掉的两艘船一起全红）。
+
+**夹具自己错了两轮，两次都值得记。** 第一版把替换引擎摆在 `(114,0,94)`，而旧引擎足迹是 `(113,93)` 起的 3×3——**两者重叠 2×2**。于是即使收养规则只在"足迹重叠"时才生效，这条断言也会绿。
+
+第二版改成 `(110,0,90)`，仍然红，而且红得莫名其妙：日志里那台替换核心 `decked=False`。原因是 **`GenSpawn` 的 `IntVec3` 是足迹的「中心格」**（奇数尺寸正好是正中；偶数尺寸取中央 2×2 的左上格）——`(110,90)` 生成出来是 `(109,89)~(111,91)`，往左上岔出去一格，整个掉在我搭的 `CellRect(110,90,7,7)` 甲板外面，`Deck()` 自然为假，收养按设计跳过它。**是夹具的坐标谎报，不是规则的错。** 最终把甲板放大到 `CellRect(108,88,11,11)`（够放两台互不重叠的 3×3），替换核心摆 `(109,0,89)`，旧核心摆 `(113,0,93)`。
+
+另一个自欺的断言：第一版写的是 `replacement.OccupiedRect().All(c=>ClaimAt(c)!=deadId)`，但**死核心的 claim 本来就覆盖整片甲板**（这正是要修的东西），所以它测的其实是"甲板上有孤儿 claim"的反面，恒假。改成直接比较两个 `CellRect` 是否 `Overlaps`，并在 detail 里把两个矩形都打出来。
+
+补一条防呆：`replacement-fixture-does-not-overlap-the-dead-footprint` — 用自己的夹具先证明测的是真场景；`replacement-core-does-not-annex-a-distant-dead-hull` — 远处 `(140,0,90)` 放一个假孤儿 `999999`，泛洪不能顺手把它吞了。
+
+这正是之前 VGE 那一轮踩过的同一个坑：**夹具必须落在失败的参数区间里**，否则测试通过只是因为条件恰好不成立。
+
+**还有一条产品侧的竞态。** `GenSpawn.Spawn` → `SpawnSetup` 里 `Building.SpawnSetup` 就发出 `MarkDirty`，但 `SetFaction(OfPlayer)` 在它**之后**才调。`SpawnSetup` 内部会重建区域/屋顶，这些读取会先把 `dirty` 消费掉，于是缓存"干净地"算完，却少了一台还没成为玩家核心的引擎——收养再也不会触发。修法：`Get(engine)` 在缓存干净但不认识这台引擎、而它确实是玩家核心且足迹全在甲板上时，先 `MarkDirty()` 再 `Refresh()`。**"问我一个我不认识的核心"本身就是数据过期的证据**，比继续指望某个通知可靠。
+
+这个自愈必须限次：`Get` 会被检查面板和放置 UI 按设施、按帧调用，如果一台核心**合理地**无法播种（它的足迹落在另一艘活船已占的甲板格里，播种循环会 `set.Clear()` 放弃它），无条件的 `MarkDirty` 就等于每帧全图重扫。`private readonly HashSet<int> probed` 只允许每轮 `Refresh` 重试一次——重试要么修好缓存，要么证明在状态变化前它本来就无解。
+
+**新增断言（`Diagnostics/V1ShipRebuild.cs`，6 条）：** `replacement-fixture-seeds-every-deck-of-its-hull`（11×11 甲板 × 3 层，一台核心播种出 363 格）、`destroyed-core-leaves-its-deck-claims-behind`、`replacement-fixture-does-not-overlap-the-dead-footprint`、`replacement-core-adopts-orphan-decks-on-first-read`（**刻意不调 `MarkDirty`/`Tick`**，走玩家放置 UI 的同帧路径）、`replacement-core-does-not-annex-a-distant-dead-hull`、`replacement-core-restores-native-onboard-cell`。

@@ -189,7 +189,7 @@ internal static partial class V1Integration
             Check("partial-upper-building-is-classified-without-preview-destruction",ShipLayers.Prepare(shipEngine,out var splitReport) is {} splitCapture&&splitReport.Accepted&&splitCapture.Straddlers.Contains(split)&&split.Spawned&&shipPawn.Spawned&&shipItem.Spawned);split.Destroy(DestroyMode.Vanish);
             CheckIndependentShipLinks();
             CheckCargoShipBoundary();
-            if(scenario=="ship-structure"){CheckShipBoarding();CheckSingleElevatedDeck();Finish();return;}
+            if(scenario=="ship-structure"){CheckShipBoarding();CheckSingleElevatedDeck();CheckCoreReplacementAdoption();Finish();return;}
             if(ShipDecks>3)ExtendShipTestDecks();
             shipExpected=map.listerThings.AllThings.Where(t=>t is not Mote && t.def.bringAlongOnGravship && t is not Skyfaller &&
                 (shipEngine.OnValidSubstructure(t)||t==shipEngine)).Distinct().ToList();
