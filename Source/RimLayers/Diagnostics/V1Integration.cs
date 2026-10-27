@@ -156,7 +156,11 @@ internal static partial class V1Integration
         // storage z (layer*stride+z), so on a 250 map a facility one deck above its engine sits 255
         // cells away and VGE's pilot-console maxDistance of 200 can never be satisfied. Testing only on
         // 120 hid that; ship-vge therefore defaults to the realistic 250.
-        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:scenario=="ship-vge"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var vgeSize)?int.Parse(vgeSize):120;
+        // presentation honours -MapSize too: a 120 map caps zoom at rootSize ~32.6 through
+        // CameraClampPatch, so the camera never rises above ~37 and the native far plane happens to
+        // suffice. Only a large map reaches the native maximum (rootSize 60, camera y 65) where the
+        // projected backdrop fell outside the frustum; the scenario must be able to reproduce that.
+        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:scenario=="ship-vge"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var vgeSize)?int.Parse(vgeSize):scenario=="presentation"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var presentationSize)?int.Parse(presentationSize):120;
         foreach (var tile in Find.WorldGrid.Tiles)
             if (tile.PrimaryBiome == BiomeDefOf.TemperateForest && tile.hilliness == Hilliness.Flat &&
                 RimWorld.Planet.TileFinder.IsValidTileForNewSettlement(tile.tile))

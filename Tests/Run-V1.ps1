@@ -49,7 +49,11 @@ $ErrorActionPreference = 'Stop'
 # tests run on storage z = layer*stride + z. A 120 map gives stride 136; a 250 map gives 255, which
 # exceeds VGE's 200 maxDistance for pilot consoles the moment they sit one deck above the engine.
 # ship-vge therefore defaults to the player's real 250 so the suite reproduces live geometry.
+# presentation follows for a second reason: CameraClampPatch caps the zoom to the map size, so a
+# 120 map stops at rootSize ~32.6 (camera y ~37) where the vanilla far plane is still enough. Only a
+# large map reaches the native ceiling (rootSize 60, camera y 65) that exposed the clipped backdrop.
 if($Scenario -eq 'ship-vge' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
+if($Scenario -eq 'presentation' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
 $modRoot = Split-Path -Parent $PSScriptRoot
 $runRoot = Join-Path $PSScriptRoot (('Artifacts/v1-' + $Scenario + '-') + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null

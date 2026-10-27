@@ -100,6 +100,7 @@ V1 默认 Core + Harmony + RimLayers；范围盾另加 Royalty，机体另加 Bi
 - [飞船与普通楼层共存](SHIP-COLONY-COEXISTENCE.md)、[验收与复现](SHIP-COLONY-VALIDATION.md)
 - [地下两层、地形限制和虫巢](UNDERGROUND.md)；[地下验收](UNDERGROUND-VALIDATION.md)
 - [山体多层、矿脉与旧层迁移](MOUNTAINS.md)
+- [0.1.5 高层背景黑屏：相机远裁剪面](CAMERA-DEPTH-FIX.md)
 - [0.1.4 原版命令输入修复](COMMAND-INPUT-VALIDATION.md)
 - [0.1.3 可达性与卡顿修复](REACHABILITY-VALIDATION.md)
 - [0.1.2 显示验收](DISPLAY-VALIDATION.md)、[雾素材与提示词](../Textures/Atmosphere/README.md)

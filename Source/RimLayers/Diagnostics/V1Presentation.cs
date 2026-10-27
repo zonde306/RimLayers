@@ -127,6 +127,7 @@ internal static partial class V1Integration
         {
             var root=(Vector3)AccessTools.Field(typeof(CameraDriver),"rootPos").GetValue(Find.CameraDriver)!;
             Check("visual-camera-remains-centered-after-real-camera-updates",Math.Abs(root.x-65.5f)<.1f&&Math.Abs(root.z-At(2,65,60).z-.5f)<.1f,root.ToString());
+            CheckProjectedFloorsSurviveMaxZoom();
             Check("native-upper-and-background-lower-weapon-draws-have-correct-angle",weaponAngles.TryGetValue("high",out var high)&&weaponAngles.TryGetValue("low",out var low)&&Math.Abs(Mathf.DeltaAngle(high,90))<1&&Math.Abs(Mathf.DeltaAngle(low,270))<1,string.Join(";",weaponAngles.Select(p=>$"{p.Key}={p.Value}"))+$"; stances={displayHigh.stances.curStance.GetType().Name}/{displayLow.stances.curStance.GetType().Name}");
             if(displayHigh.def.defName=="NST_Nanami")Check("real-nanami-custom-render-worker-draws-cross-floor-equipped-weapon",nanamiWorkerDrawn);
             Check("background-weapon-final-mesh-is-projected-once-and-behind-floor",projectedWeapon);
@@ -136,7 +137,49 @@ internal static partial class V1Integration
         }
         else if(displayPicture==1&&Time.realtimeSinceStartup-displayStarted>9)
         {
-            pendingScreenshot=Path.Combine(directory,mode+"-presentation-b.png");screenshotHold=3;displayPicture=2;stage=11;ticks=0;
+            ShotMaxZoomBackdrop("presentation-maxzoom-a.png");displayPicture=2;
         }
+        else if(displayPicture==2&&Time.realtimeSinceStartup-displayStarted>13)
+        {
+            ShotMaxZoomBackdrop("presentation-maxzoom-b.png");displayPicture=3;stage=11;ticks=0;
+        }
+    }
+    /// <summary>
+    /// Reproduce the reported view exactly: top layer, camera left to the driver's own maximum zoom.
+    /// Native farClipPlane 65.5 lets the camera sit at y = 65 and still only see down to -0.5, which
+    /// clipped the whole projected background into a black screen once the camera was zoomed out.
+    /// </summary>
+    private static void CheckProjectedFloorsSurviveMaxZoom()
+    {
+        var driver=Find.CameraDriver;driver.SetRootSize(driver.config.sizeRange.max);
+        for(int i=0;i<8;i++)driver.Update();
+        var camera=Find.Camera;
+        float height=camera.transform.position.y;
+        int floors=CameraDepth.FloorsBelow(owner);
+        float far=camera.farClipPlane;
+        Check("layer-map-has-a-projected-floor-to-check",floors>0,$"floorsBelow={floors}");
+        // The patch must contain every projected face at whatever height this map's zoom cap allows.
+        bool allInside=true;
+        for(int depth=1;depth<=floors;depth++)allInside&=CameraDepthMath.SeesFace(height,far,depth);
+        Check("patched-far-plane-covers-every-projected-floor",allInside,
+            $"height={height}, far={far}, floorsBelow={floors}, deepest={CameraDepthMath.FaceY(floors)}, bottom={CameraDepthMath.VisibleBottom(height,far)}");
+        // Only widen: the native value is never clamped down, so vanilla framing is untouched.
+        Check("patched-far-plane-never-narrows-the-vanilla-frustum",far>=CameraDepthMath.NativeFar-1e-3f,
+            $"far={far}, nativeFar={CameraDepthMath.NativeFar}");
+        // On a large map the camera reaches its native ceiling (rootSize 60 => y 65) and the vanilla
+        // plane provably clips the backdrop: this is the exact configuration the player reported.
+        if(height>=CameraDepthMath.MaxCameraHeight-1f)
+            Check("vanilla-far-plane-would-have-clipped-the-backdrop-at-max-zoom",
+                !CameraDepthMath.SeesFace(height,CameraDepthMath.NativeFar,floors),
+                $"height={height}, nativeFar={CameraDepthMath.NativeFar}, deepest={CameraDepthMath.FaceY(floors)}");
+        else Log.Message($"[RimLayers] presentation max zoom stayed at y={height} (rootSize={driver.RootSize}); the vanilla plane is still sufficient for {floors} floor(s) below on this map size.");
+        Check("backdrop-is-still-submitted-at-max-zoom",LowerFloorBackdrop.LastMeshes>0&&DriftingMist.LastPatches>0,
+            $"meshes={LowerFloorBackdrop.LastMeshes}, patches={DriftingMist.LastPatches}");
+    }
+    private static void ShotMaxZoomBackdrop(string name)
+    {
+        var driver=Find.CameraDriver;driver.SetRootSize(driver.config.sizeRange.max);
+        for(int i=0;i<6;i++)driver.Update();
+        pendingScreenshot=Path.Combine(directory,mode+"-"+name);screenshotHold=3;
     }
 }
