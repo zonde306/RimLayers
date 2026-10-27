@@ -25,10 +25,18 @@ internal static partial class V1Integration
         var storage=tank.AllComps.First(c=>c.GetType().Name=="CompResourceStorage");
         Check("vge-upper-fuel-provider-links-to-engine",tank.GetComp<CompGravshipFacility>().engine==engine);
         Check("vge-dry-upper-thruster-remains-disabled",!facility.CanBeActive);
+        string dry=thruster.GetInspectString();
+        Check("vge-dry-thruster-does-not-blame-the-engine-link",
+            !facility.LinkedBuildings.NullOrEmpty()&&!facility.CanBeActive
+            &&!dry.Contains("ThrusterNotConnected".Translate().ToString()),
+            $"linked={facility.LinkedBuildings.Count}; active={facility.CanBeActive}; text={dry.Replace("\n"," | ")}");
         AccessTools.Method(storage.GetType(),"AddResource").Invoke(storage,new object[]{200f});
         var net=AccessTools.PropertyGetter(resource.GetType(),"AstrofuelNet").Invoke(resource,null);
         if(net!=null)AccessTools.Method(net.GetType(),"PipeSystemTick").Invoke(net,null);
         Check("vge-real-pipe-network-enables-upper-thruster",net!=null&&facility.CanBeActive,$"net={net}; linked={facility.engine}; canLink={facility.CanLink()}");
+        string wet=thruster.GetInspectString();
+        Check("vge-fueled-thruster-inspect-is-clean",
+            facility.CanBeActive&&!wet.Contains("ThrusterNotConnected".Translate().ToString()),wet.Replace("\n"," | "));
         Find.ResearchManager.gravEngineInspected=true;
         var console=engine.GravshipComponents.OfType<CompPilotConsole>().Single();
         var ready=engine.CanLaunch(console);

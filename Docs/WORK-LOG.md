@@ -959,6 +959,58 @@ allowed=False linksTo=True engineCanLinkTo=True canLink=True belongs=True
 
 **夹具坑（会白烧一轮）**：`Gravship..ctor` 抛 `NullReferenceException` 不是产品缺陷。`VGE_PilotBridge` 是 5×3 占 `x78..82,z74..76`，而夹具把 filler 银和 `VGE_GravshipStructuralBeam` spawn 在 `(81,76)` / `(81,75)`，都在 bridge footprint 内，`GenSpawn` 把 bridge 挤掉 → VGE 的 `Gravship_AddThing_Patch` 没机会设置 `pilotConsole` → `DetermineLaunchDirection()` 里 `pilotConsole.Rotation` 空引用。移到 `(81,77)` / `(77,74)` 后消失。
 
+## 2026-10-27：VGE 气燃料推进器「未连接引擎」是误报文案
+
+实机反馈（`VF测试3`）：需要宇航燃料的小/大/巨型推进器显示「未正常运作: 未连接至逆重引擎」，电推进器正常。
+
+**取证结论：链接是好的，油罐是空的。** 判定依据不是猜测，而是截图里同时存在的三行：
+
+```text
+未正常运作: 未连接至逆重引擎。
+需要接入宇航燃料管道网络才能正常运作，且管道网络内至少要有一个宇航燃料贮罐。   ← VGE_DisabledNoFuel
+PipeNet: 宇航燃料 Stored: 0 AvailableCapacity: 2050                            ← dev mode 专有
+```
+
+`AvailableCapacity 2050` 非零 ⇒ 储罐已注册进网络、容量聚合成立；`Stored 0` ⇒ 罐里没燃料。`AstrofuelPipeNet.PipeSystemTick()` 里 `HasFuel = Stored > 1f` → false → VGE 的 `CompGravshipThruster_CanBeActive_Patch`（Postfix）把 `CanBeActive` 压成 false。
+
+原生 `CompGravshipThruster.CompInspectStringExtra` 最后一行：
+
+```csharp
+if(text.NullOrEmpty() && parent.Spawned && (LinkedBuildings.NullOrEmpty() || !CanBeActive))
+    text += "ThrusterNotConnected".Translate();
+```
+
+`|| !CanBeActive` 是缺陷所在：**燃料耗尽与真的没链接打出完全相同的字**。玩家看到「未连接至逆重引擎」只会去查连接，而连接本来是对的。
+
+电/气燃料的分裂也由此解释：`CompElectricThruster : CompGravshipThruster`（vge2dec）**继承**原生推进器，`CanBeActive` 走原生链；气燃料用 `VanillaGravshipExpanded.CompResourceThruster : PipeSystem.CompResource`，是完全不同的基类，才踩到 `CanBeActive` 这一支。
+
+**修法**（`Ships/ShipFacilityPatches.cs` 的 `ShipThrusterInspectTrace`，原为无 `__result` 的纯 trace，现加 `ref string __result`）：
+
+三个条件同时成立才动文案，缺一不可：
+1. `LinkedBuildings` 非空（确已链接）；
+2. `__instance.engine != null`（链接确实解析到了引擎）；
+3. 该 thing 有 `CompResourceThruster` 且 `HasFuel == false`。
+
+满足则从 `__result` 里**删掉**那行「未功能：未连接至逆重引擎」，并追加自己的 `RL_GravThrusterNeedsFuel`（英 `Out of astrofuel` / 中 `缺少宇航燃料`）。VGE 自己的 `VGE_DisabledNoFuel` 行本来就在（`ThingWithComps.InspectStringPartsFromComps` 会聚合所有 comp），所以玩家最终看到的是「缺燃料」而不是「没连接」。
+
+真没链接时（条件 1 或 2 不成立）完全不动，仍走原生文案 + `ShipFacilityTrace.MissingLink` 诊断。
+
+**一次被推翻的假设，记下来免得重犯**：我曾认为「`CompGravshipThruster` 的 override 不调 base，所以 VGE 的燃料行丢失」。错。`ThingWithComps.GetInspectString` → `InspectStringPartsFromComps` 会遍历**所有** comp 的 `CompInspectStringExtra` 再拼接，燃料行一直都在。真正需要的只是别让未连接那行喧宾夺主。
+
+**新断言**（`Diagnostics/V1Vge.cs` 的 `CheckVgeFuel`）：
+- `vge-dry-thruster-does-not-blame-the-engine-link` — 干罐状态下断言 `LinkedBuildings` 非空 **且** `!CanBeActive` **且** 文案不含 `ThrusterNotConnected`。
+- `vge-fueled-thruster-inspect-is-clean` — 加燃料后断言 `CanBeActive` 且文案无 `ThrusterNotConnected`。
+
+两条都用 `thruster.GetInspectString()` 取真实聚合文本，而不是直接调某个 comp，避免又只测到单层。
+
+**行拼接坑（白白烧了一轮）**：原生 `CompGravshipThruster` 用 `stringBuilder.AppendLine()`，在 Windows 上是 `\r\n`。我第一版按 `'\n'` 切分后只过滤空串，被删掉的是最后一行时，剩下那行末尾的 `\r` 就裸露成了返回值结尾，随即被 `ThingWithComps.InspectStringPartsFromComps` 的 dev 检查拄住：
+
+```text
+RimWorld.CompGravshipThruster CompInspectStringExtra ended with whitespace: Max per gravship: 10\r
+```
+
+改成 `Split(new[]{"\r\n","\n"})` + `TrimEnd('\r')`。教训：**改写原生字符串结果时，换行符不是 `\n`**；只有 DevMode 下才会报，正式版会默默带个 CR 进 UI。
+
 ## Dubwise 五 mod 跨层兼容（DBH / DCH / Rimatomics / Rimefeller / Dubs Skylights）
 
 > 完整方案与逐 mod 细节见 `Docs/DUBS-COMPATIBILITY-PLAN.md`。这里只记结论、坑与验证。

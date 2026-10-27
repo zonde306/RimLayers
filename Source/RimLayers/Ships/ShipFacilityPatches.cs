@@ -195,11 +195,51 @@ internal static class ShipThrusterInspectTrace
 {
     // CompGravshipThruster overrides CompInspectStringExtra without calling base, so the base-class
     // trace never runs for the one facility kind the user reported as "not connected".
-    static void Postfix(CompGravshipThruster __instance)
+    static void Postfix(CompGravshipThruster __instance,ref string __result)
     {
         if(!__instance.parent.Spawned)return;
-        if(!__instance.LinkedBuildings.NullOrEmpty())return;
-        if(LayerMapComponent.For(__instance.parent.Map) is {} owner)ShipFacilityTrace.MissingLink(owner,__instance);
+        if(__instance.LinkedBuildings.NullOrEmpty())
+        {
+            if(LayerMapComponent.For(__instance.parent.Map) is {} traced)ShipFacilityTrace.MissingLink(traced,__instance);
+            return;
+        }
+        // Native appends ThrusterNotConnected when LinkedBuildings is empty OR CanBeActive is false,
+        // and VGE forces CanBeActive false on a dry astrofuel thruster. A linked-but-dry thruster
+        // therefore reads "not connected to grav engine" and sends the player chasing a link that is
+        // fine. Only the fuel comp can tell the two apart, and it already renders its own reason, so
+        // drop the misleading line. Gated on a real engine link so a genuine link failure keeps it.
+        if(__instance.engine==null)return;
+        if(DryFuel(__instance.parent) is not {} fuel)return;
+        string? reason=null;
+        try { reason=fuel.CompInspectStringExtra(); } catch(Exception e) { Log.Warning("[RimLayers] fuel comp inspect failed: "+e.Message); }
+        string notFunctional="ThrusterNotFunctional".Translate().ToString();
+        string notConnected="ThrusterNotConnected".Translate().ToString();
+        // Native builds the lines with AppendLine(), i.e. \r\n. Splitting on '\n' alone would leave the
+        // '\r' behind on every kept line, so a removed trailing line would leave the result ending in a
+        // bare carriage return - which ThingWithComps then reports as "ended with whitespace".
+        var lines=__result.Split(new[]{"\r\n","\n"},StringSplitOptions.None)
+            .Select(line=>line.TrimEnd('\r'))
+            .Where(line=>line.Length>0)
+            .Where(line=>!(line.Contains(notFunctional)&&line.IndexOf(notConnected,StringComparison.OrdinalIgnoreCase)>=0)).ToList();
+        if(string.IsNullOrWhiteSpace(reason))lines.Add("RL_GravThrusterNeedsFuel".Translate().Colorize(ColorLibrary.RedReadable));
+        __result=string.Join("\n",lines);
+    }
+
+    private static Type? fuelType;
+    private static PropertyInfo? hasFuel;
+
+    /// <summary>The astrofuel comp of this thing, but only while it reports no usable fuel.</summary>
+    private static ThingComp? DryFuel(ThingWithComps parent)
+    {
+        var comp=parent.AllComps.FirstOrDefault(c=>c.GetType().Name=="CompResourceThruster");
+        if(comp==null)return null;
+        if(fuelType!=comp.GetType())
+        {
+            fuelType=comp.GetType();
+            hasFuel=AccessTools.Property(fuelType,"HasFuel");
+        }
+        if(hasFuel==null)return null;
+        return hasFuel.GetValue(comp) is bool fueled&&!fueled?comp:null;
     }
 }
 

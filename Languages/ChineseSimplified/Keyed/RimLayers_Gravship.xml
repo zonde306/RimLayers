@@ -8,4 +8,5 @@
   <RL_ShipUpperBlocked>上层甲板将与现有楼面、屋顶或物体重叠。</RL_ShipUpperBlocked>
   <RL_ShipDestinationUnsupported>此目的地图不支持安全扩层（口袋或地下地图）。</RL_ShipDestinationUnsupported>
   <RL_ShipExpansionFailed>目的地图准备失败，已取消出发。详情请查看日志。</RL_ShipExpansionFailed>
+  <RL_GravThrusterNeedsFuel>缺少宇航燃料</RL_GravThrusterNeedsFuel>
 </LanguageData>

@@ -8,4 +8,5 @@
   <RL_ShipUpperBlocked>An upper deck would overlap an existing floor, roof or object.</RL_ShipUpperBlocked>
   <RL_ShipDestinationUnsupported>This destination cannot safely acquire RimLayers floors (pocket or underground map).</RL_ShipDestinationUnsupported>
   <RL_ShipExpansionFailed>The destination could not be prepared. Departure was cancelled; see the log for details.</RL_ShipExpansionFailed>
+  <RL_GravThrusterNeedsFuel>Out of astrofuel</RL_GravThrusterNeedsFuel>
 </LanguageData>
