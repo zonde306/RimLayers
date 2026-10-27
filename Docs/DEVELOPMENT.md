@@ -89,6 +89,10 @@ pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario scale -MapSize 2
 
 工程用 `RimWorldDir` / `HarmonyDll` MSBuild 属性覆盖引用路径，输出仅含自己的 DLL 与辅助文件，不复制游戏或 Harmony DLL。测试只使用 `Tests/Artifacts/<run>` 的独立配置和存档，启动、退出自己的隐藏进程；等待游戏退出释放 DLL 后再构建，修改代码后必须重启。
 
+**提交二进制与可复现性。** 工程设置了 `<SuppressImplicitGitSourceLink>true</SuppressImplicitGitSourceLink>` 和 `<Deterministic>true</Deterministic>`，版本戳固定为 `0.1.5`。不要移除这两项：SDK 默认会把当前 HEAD 的 commit hash 拼进 `InformationalVersion`（`0.1.5+<sha>`），而 hash 是编译输入，于是程序集哈希取决于构建那一刻的 git 状态而不是源码。这会让「提交了的二进制」在原理上无法复现——DLL 只能嵌它自己那笔提交**之前**的 sha，所以「提交后在 HEAD 重建并比对」永远不成立，换目录、换时间 checkout 也会得到不同 MVID。关掉 source link 之后，同一份源码树的任意两次 Release 构建逐字节一致，且与 HEAD 无关。
+
+因此提交顺序是：源码 commit → `rm -rf obj bin` → Release 重建 → `chore(build)` 单独提交 DLL；提交后可在该 HEAD 上重建验证与已提交的那颗逐字节相同。仅把 `-p:OutputPath` 指到别处不影响结果，也不再需要「必须在真实模块路径构建」这类限制。
+
 V1 默认 Core + Harmony + RimLayers；范围盾另加 Royalty，机体另加 Biotech，衣架容器另加 Odyssey；`-AllDlc` 启用全部官方 DLC。JSON 记录实际加载列表。其他场景见测试脚本的 Scenario 列表与验收文档。
 
 ## 文档与研究入口
