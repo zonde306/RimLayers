@@ -3,6 +3,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>RimLayers</AssemblyName>
     <Version>0.1.5</Version>
+    <!--
+      The SDK appends the current HEAD to InformationalVersion ("0.1.5+<sha>"), so the assembly
+      hash depends on git state instead of on source. That makes a committed binary impossible to
+      reproduce: the DLL can only embed the commit that precedes its own commit, so "rebuild HEAD
+      and compare" never passes and any later checkout produces a different MVID.
+      The build must be a pure function of the sources, so drop the implicit source link and keep
+      the stamp at plain "0.1.5".
+    -->
+    <SuppressImplicitGitSourceLink>true</SuppressImplicitGitSourceLink>
+    <Deterministic>true</Deterministic>
     <RootNamespace>RimLayers</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
