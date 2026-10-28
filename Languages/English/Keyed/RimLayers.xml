@@ -3,6 +3,7 @@
   <RL_Layer>Layer {0}/{1}</RL_Layer>
   <RL_Development>Build an artificial roof below, then stairs and structural floors. Alt + ↑ / ↓ switches layers.</RL_Development>
   <RL_NoSurface>No valid floor at this location.</RL_NoSurface>
+  <RL_AreaOffLayer>Only cells on the layer you are viewing can be marked.</RL_AreaOffLayer>
   <RL_UpperOnly>Structural floors are for upper layers.</RL_UpperOnly>
   <RL_DeepResourceGroundOnly>Deep resources exist only on the ground layer and in dug underground layers.</RL_DeepResourceGroundOnly>
   <RL_NeedsRoof>A completed artificial roof is required directly below every occupied cell.</RL_NeedsRoof>

@@ -3,6 +3,7 @@
   <RL_Layer>楼层 {0}/{1}</RL_Layer>
   <RL_Development>先建下层人工屋顶，再建楼梯与结构楼板。Alt + ↑ / ↓ 切换楼层。</RL_Development>
   <RL_NoSurface>此处没有有效楼面。</RL_NoSurface>
+  <RL_AreaOffLayer>只能标记当前查看楼层上的格子。</RL_AreaOffLayer>
   <RL_UpperOnly>结构楼板只能建在上层。</RL_UpperOnly>
   <RL_DeepResourceGroundOnly>深层资源只存在于地表层和已开挖的地下层。</RL_DeepResourceGroundOnly>
   <RL_NeedsRoof>每个占地格的紧邻下层都需要已建成的人工屋顶。</RL_NeedsRoof>

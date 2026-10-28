@@ -14,6 +14,15 @@ public sealed class RimLayersMod : Mod
     public override void DoSettingsWindowContents(UnityEngine.Rect inRect) => menu.Draw(inRect);
     public override void WriteSettings() { Settings.Normalize(); base.WriteSettings(); }
     public const string HarmonyId = "rimlayers.core";
+    /// <summary>
+    /// How many <c>[HarmonyPatch]</c> classes installed, and which ones threw and were skipped.
+    /// A failed class is only reported to the log, so the mod keeps running with the gate silently
+    /// missing; Harmony binds patch arguments by NAME, so one wrong parameter name is enough to
+    /// disable a whole gate. The opt-in acceptance scenarios assert this stays empty.
+    /// </summary>
+    internal static int PatchClassCount { get; private set; }
+    internal static IReadOnlyList<string> FailedPatchClasses => failedPatches;
+    private static readonly List<string> failedPatches = new();
     public RimLayersMod(ModContentPack content) : base(content)
     {
         SettingsContent=content;
@@ -32,7 +41,8 @@ public sealed class RimLayersMod : Mod
         Compatibility.DubsCompatibility.Install(harmony);
         Compatibility.VEPipeSystemCompatibility.Install(harmony);
         int patchClasses=0;
-        var failed=new List<string>();
+        var failed=failedPatches;
+        failed.Clear();
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())
             if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length != 0)
             {
@@ -51,6 +61,7 @@ public sealed class RimLayersMod : Mod
                     Log.Error($"[RimLayers] Patch class {type.Name} failed and was skipped; the rest of the mod keeps working.\n{exception}");
                 }
             }
+        PatchClassCount=patchClasses;
         Compatibility.VanillaGravshipCompatibility.Install(harmony);
         M1Integration.Configure();
         V1Integration.Configure();

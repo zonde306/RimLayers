@@ -39,6 +39,16 @@ public static class LayerRouter
         try
         {
             var connectors = owner.Connectors.MovementEdges(parms);
+            // Vanilla treats the allowed area as a COST, not a wall: PathGridJob.CostForCell adds
+            // Cost_OutsideAllowedArea (600) to every cell outside PathRequest.area instead of
+            // refusing it. A connector crossing is one step in flat storage space that jumps a whole
+            // layer band, so the native grid never prices it and a restricted pawn would leave its
+            // area for free. Price the landing cell the way vanilla prices any cell.
+            // Reachability deliberately stays unfiltered: vanilla Reachability.CanReach ignores
+            // areas as well, and only the path job prices them.
+            var allowed = PathUtility.GetAllowedArea(parms.pawn);
+            int LandingPenalty(IntVec3 cell) =>
+                allowed is { TrueCount: > 0 } && !allowed[cell] ? PathGridJob.Cost_OutsideAllowedArea : 0;
             // Goal remains a distinct virtual node, preserving the caller's target and Touch/InteractionCell mode.
             // Index by cell so node discovery is O(1); the previous Skip/Contains scan was O(E*N).
             var nodes = new List<IntVec3> { target.Cell, start };
@@ -56,12 +66,13 @@ public static class LayerRouter
             }
             float CrossingCost(ConnectorEdge edge)
             {
-                if (customizer == null) return edge.Ticks;
+                int penalty = LandingPenalty(edge.To);
+                if (customizer == null) return edge.Ticks + penalty;
                 var offsets = customizer.GetOffsetGrid();
-                if (offsets.Length == 0) return edge.Ticks;
+                if (offsets.Length == 0) return edge.Ticks + penalty;
                 if (offsets.Length != owner.map.cellIndices.NumGridCells)
                     throw new ArgumentException("Path customizer must cover the complete storage Map.");
-                return edge.Ticks + offsets[owner.map.cellIndices.CellToIndex(edge.To)];
+                return edge.Ticks + penalty + offsets[owner.map.cellIndices.CellToIndex(edge.To)];
             }
             var crossing = new Dictionary<(int, int), ConnectorEdge>();
             foreach (var edge in connectors)
@@ -88,7 +99,13 @@ public static class LayerRouter
             if (direct != null && customizer == null && connectors.Count != 0)
             {
                 float cheapest = float.PositiveInfinity;
-                foreach (var edge in connectors) if (edge.Ticks < cheapest) cheapest = edge.Ticks;
+                foreach (var edge in connectors)
+                {
+                    // The lower bound must include the same landing penalty the route pays, or a
+                    // penalised crossing could look cheaper than it is and mis-prove optimality.
+                    float price = edge.Ticks + LandingPenalty(edge.To);
+                    if (price < cheapest) cheapest = price;
+                }
                 directProven = RouteBounds.DirectIsOptimal(bound, cheapest);
             }
 
