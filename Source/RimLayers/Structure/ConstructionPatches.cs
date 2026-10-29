@@ -1,5 +1,6 @@
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Diagnostics;
 using RimLayers.Ships;
 using RimWorld;
 using Verse;
@@ -36,15 +37,23 @@ internal static class ConstructionCommitPatch
     static bool Prefix(Frame __instance, Pawn worker)
     {
         bool stair=ConnectorDefs.IsAdjacent(__instance.def.entityDefToBuild);
-        if(stair&&!StairLayerBootstrap.Prepare(__instance.Map,__instance.Position,__instance.Rotation,__instance.def.entityDefToBuild))
+        // Only a colonist's own build is a player action; a raider's frame is not worth a window.
+        bool playerBuild=worker.Faction==Faction.OfPlayer;
+        if(stair&&!StairLayerBootstrap.Prepare(__instance.Map,__instance.Position,__instance.Rotation,__instance.def.entityDefToBuild,report:playerBuild))
         {
             if(worker.CurJob?.targetA.Thing==__instance)worker.jobs.curDriver?.EndJobWith(JobCondition.Incompletable);
             return false;
         }
         if(stair&&RimLayers.Mountains.VerticalMining.BlockCommit(__instance,worker))return false;
         var owner = LayerMapComponent.For(__instance.Map);
-        if (owner == null || owner.Structure.Validate(__instance.def.entityDefToBuild, __instance.Position, __instance.Rotation).Accepted)
-            return true;
+        if (owner == null) return true;
+        var refused = owner.Structure.Validate(__instance.def.entityDefToBuild, __instance.Position, __instance.Rotation);
+        if (refused.Accepted) return true;
+        // A player-directed build the layers refuse. Say so: the job just ends otherwise.
+        if(playerBuild)
+            RejectionReporter.Reject(RejectionAction.Build, refused.Reason, true,
+                __instance.def.entityDefToBuild.defName, __instance.def.entityDefToBuild.LabelCap,
+                __instance.Map, __instance.Position, RejectionReporter.ElevationAt(__instance.Map, __instance.Position));
         // No resources, signals, products or Frame destruction have been committed.
         if (worker.CurJob?.targetA.Thing == __instance) worker.jobs.curDriver?.EndJobWith(JobCondition.Incompletable);
         return false;

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_Reject_Title>RimLayers refused this action</RL_Reject_Title>
+  <RL_Reject_Reason>Reason</RL_Reject_Reason>
+  <RL_Reject_CulpritMod>Involved mod</RL_Reject_CulpritMod>
+  <RL_Reject_CulpritType>Involved type (no mod matched)</RL_Reject_CulpritType>
+  <RL_Reject_Map>Map</RL_Reject_Map>
+  <RL_Reject_Cell>Cell</RL_Reject_Cell>
+  <RL_Reject_Elevation>Layer</RL_Reject_Elevation>
+  <RL_Reject_Def>Definition</RL_Reject_Def>
+  <RL_Reject_Exception>Exception</RL_Reject_Exception>
+  <RL_Reject_Copy>Copy error report</RL_Reject_Copy>
+  <RL_Reject_Copied>Copied to clipboard</RL_Reject_Copied>
+  <RL_Reject_OpenLog>Open log</RL_Reject_OpenLog>
+  <RL_Reject_Close>Close</RL_Reject_Close>
+
+  <RL_Reject_Action_Build>Building</RL_Reject_Action_Build>
+  <RL_Reject_Action_Stairs>Creating a floor</RL_Reject_Action_Stairs>
+  <RL_Reject_Action_LiftShaft>Extending a lift shaft</RL_Reject_Action_LiftShaft>
+  <RL_Reject_Action_ShipLanding>Ship landing</RL_Reject_Action_ShipLanding>
+  <RL_Reject_Action_ShipTakeoff>Ship takeoff</RL_Reject_Action_ShipTakeoff>
+  <RL_Reject_Action_Expansion>Expanding the map layers</RL_Reject_Action_Expansion>
+
+  <RL_SettingsRejectionDialogs>Explain refused actions in a window</RL_SettingsRejectionDialogs>
+  <RL_SettingsRejectionHelp>When creating a floor, extending a lift shaft or landing/taking off a ship is refused, a native window explains why and names the other mod involved. Its "Copy error report" button puts the version, mod list, reason and exception on the clipboard, ready to paste into a bug report.</RL_SettingsRejectionHelp>
+</LanguageData>

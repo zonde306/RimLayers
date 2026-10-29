@@ -43,6 +43,8 @@ internal sealed class SettingsMenu
                     body.Check("Mist",ref settings.Mist);
                     body.Check("CombatInfo",ref settings.CombatInfo);
                     body.Check("Trajectory",ref settings.Trajectory);
+                    body.Check("RejectionDialogs",ref settings.RejectionDialogs);
+                    body.Note("RejectionHelp");
                     body.Note("HiddenPanelHelp");
                     break;
                 case 1:

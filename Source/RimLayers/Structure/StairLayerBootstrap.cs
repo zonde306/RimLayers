@@ -1,4 +1,5 @@
 using RimLayers.Core;
+using RimLayers.Diagnostics;
 using RimLayers.Generation;
 using RimWorld;
 using Verse;
@@ -27,11 +28,18 @@ internal static class StairLayerBootstrap
     }
 
     // Frame completion calls this BEFORE native material destruction and Frame replacement.
-    internal static bool Prepare(Map map,IntVec3 position,Rot4 rotation,BuildableDef? definition=null)
+    // report: the failure was caused by a player action, so explain it instead of failing silently.
+    internal static bool Prepare(Map map,IntVec3 position,Rot4 rotation,BuildableDef? definition=null,bool report=false)
     {
         definition??=RimLayersDefOf.RL_Stairs;
-        var report=Validate(map,position,rotation,definition);
-        if(!report.Accepted)return false;
+        var check=Validate(map,position,rotation,definition);
+        if(!check.Accepted)
+        {
+            if(report)
+                RejectionReporter.Reject(RejectionAction.Stairs,check.Reason,true,definition.defName,definition.LabelCap,
+                    map,position,RejectionReporter.ElevationAt(map,position));
+            return false;
+        }
         try
         {
             int elevation=LayerMapComponent.For(map) is {} owner&&owner.TryDecode(position,out var here)?owner.Elevation(here.LayerId):0;
@@ -40,6 +48,9 @@ internal static class StairLayerBootstrap
         catch(Exception e)
         {
             Log.Error($"[RimLayers] Stair-triggered map expansion failed on map {map.uniqueID}: {e}");
+            if(report)
+                RejectionReporter.Reject(RejectionAction.Stairs,e,true,"RL_StairExpansionFailed".Translate(),
+                    definition.defName,definition.LabelCap,map,position);
             Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
             return false;
         }

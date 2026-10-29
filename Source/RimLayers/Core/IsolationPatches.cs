@@ -1,4 +1,5 @@
 using HarmonyLib;
+using RimLayers.Diagnostics;
 using RimWorld;
 using Verse;
 
@@ -13,6 +14,10 @@ internal static class PlacementBoundaryPatch
         if (component == null) return true;
         var report = component.Structure.Validate(entDef, center, rot, planning: true);
         if (report.Accepted) return true;
+        // The placement ghost revalidates every frame; only a real click is worth a window.
+        if (RejectionReporter.PlayerClickInProgress)
+            RejectionReporter.Reject(RejectionAction.Build, report.Reason, true, entDef.defName, entDef.LabelCap,
+                map, center, RejectionReporter.ElevationAt(map, center));
         __result = report;
         return false;
     }

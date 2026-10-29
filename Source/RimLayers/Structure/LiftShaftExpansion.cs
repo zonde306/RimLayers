@@ -1,4 +1,5 @@
 using RimLayers.Core;
+using RimLayers.Diagnostics;
 using RimLayers.Generation;
 using RimLayers.Underground;
 using RimWorld;
@@ -88,22 +89,39 @@ public sealed partial class Building_Elevator
     internal bool StartExtension(int direction)
     {
         if(Expanding(direction))return false;
+        int? sourceElevation=RejectionReporter.ElevationAt(Map,Position);
         var report=CanExpandShaft(direction);
-        if(!report.Accepted){Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);return false;}
+        if(!report.Accepted)
+        {
+            RejectionReporter.Reject(RejectionAction.LiftShaft,report.Reason,true,def.defName,LabelCap,Map,Position,sourceElevation);
+            Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);
+            return false;
+        }
         try
         {
             var o=LayerMapComponent.For(Map);int elevation=o!=null&&o.TryDecode(Position,out var at)?o.Elevation(at.LayerId):0;
             LiveMapExpansion.EnsureElevation(Map,elevation+direction);
             // Recheck generated geology and support before opening any access.
             report=CanExpandShaft(direction);
-            if(!report.Accepted){Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);return false;}
+            if(!report.Accepted)
+            {
+                RejectionReporter.Reject(RejectionAction.LiftShaft,report.Reason,true,def.defName,LabelCap,Map,Position,elevation);
+                Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);
+                return false;
+            }
             LayerMapComponent.For(Map)!.Structure.EnsureLanding(ExtensionExit(direction));
             SetExtension(direction,new(){WorkOffset=PickWorkOffset(direction)});
             LayerMapComponent.For(Map)!.Structure.EnsureLanding(WorkingCell(direction));
             TickExtensions();return true;
         }
         catch(Exception e)
-        {Log.Error($"[RimLayers] Lift shaft expansion failed: {e}");Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);return false;}
+        {
+            Log.Error($"[RimLayers] Lift shaft expansion failed: {e}");
+            RejectionReporter.Reject(RejectionAction.LiftShaft,e,true,"RL_StairExpansionFailed".Translate(),
+                def.defName,LabelCap,Map,Position);
+            Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
+            return false;
+        }
     }
     internal void CancelExtension(int direction)
     {

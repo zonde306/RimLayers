@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_Reject_Title>操作被 RimLayers 拒绝</RL_Reject_Title>
+  <RL_Reject_Reason>原因</RL_Reject_Reason>
+  <RL_Reject_CulpritMod>相关 MOD</RL_Reject_CulpritMod>
+  <RL_Reject_CulpritType>相关类型（未能对应到 MOD）</RL_Reject_CulpritType>
+  <RL_Reject_Map>地图</RL_Reject_Map>
+  <RL_Reject_Cell>坐标</RL_Reject_Cell>
+  <RL_Reject_Elevation>层</RL_Reject_Elevation>
+  <RL_Reject_Def>定义</RL_Reject_Def>
+  <RL_Reject_Exception>异常详情</RL_Reject_Exception>
+  <RL_Reject_Copy>复制错误信息</RL_Reject_Copy>
+  <RL_Reject_Copied>已复制到剪贴板</RL_Reject_Copied>
+  <RL_Reject_OpenLog>打开日志</RL_Reject_OpenLog>
+  <RL_Reject_Close>关闭</RL_Reject_Close>
+
+  <RL_Reject_Action_Build>建造</RL_Reject_Action_Build>
+  <RL_Reject_Action_Stairs>创建楼层</RL_Reject_Action_Stairs>
+  <RL_Reject_Action_LiftShaft>扩建电梯井</RL_Reject_Action_LiftShaft>
+  <RL_Reject_Action_ShipLanding>飞船降落</RL_Reject_Action_ShipLanding>
+  <RL_Reject_Action_ShipTakeoff>飞船起飞</RL_Reject_Action_ShipTakeoff>
+  <RL_Reject_Action_Expansion>扩展地图层</RL_Reject_Action_Expansion>
+
+  <RL_SettingsRejectionDialogs>操作被拒绝时显示说明窗口</RL_SettingsRejectionDialogs>
+  <RL_SettingsRejectionHelp>创建楼层、扩建电梯井、飞船起降被拒绝时，用原生窗口说明原因，并标出相关的其他 MOD。窗口里的“复制错误信息”按钮会把版本、MOD 列表、原因和异常一次性复制到剪贴板，方便直接贴到反馈帖。</RL_SettingsRejectionHelp>
+</LanguageData>

@@ -1,5 +1,6 @@
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Diagnostics;
 using RimLayers.Generation;
 using RimLayers.Layout;
 using RimLayers.Presentation;
@@ -350,6 +351,10 @@ internal static class LayerShipDestination
         if(report.Accepted&&ShipLayers.Eligible(engine))report=LayerExpansionQuota.Current?.Reserve(engine.thingIDNumber,tile,RequiredTop(engine))??true;
         if(report.Accepted)return true;
         LayerExpansionQuota.Current?.Release(engine.thingIDNumber);
+        // Departure is a confirmed player action; a bare red line does not say which mod is at fault.
+        RejectionReporter.Reject(RejectionAction.ShipTakeoff,report.Reason,true,
+            engine?.def.defName,engine?.def.LabelCap,engine?.Map,engine?.Position,
+            RejectionReporter.ElevationAt(engine?.Map,engine?.Position??IntVec3.Invalid));
         Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);return false;
     }
 }
@@ -437,16 +442,25 @@ internal static class LayerShipConfirmLanding
     {
         if(!ShipLayers.IsLayerShip(__instance.gravship))return true;
         var report=ShipLanding.Check(__instance.gravship,__instance.Position,__instance.Map);
+        Exception? failure=null;
         if(report.Accepted)
         {
             if(LayerMapComponent.For(__instance.Map) is {} owner)
             {
                 try{ShipLanding.EnsureCapacity(__instance.gravship,__instance.Map,ShipLanding.RequiredAt(__instance.gravship,__instance.Position,owner)-1);}
-                catch(Exception e){Log.Error("[RimLayers] Landing expansion failed: "+e);report="RL_ShipExpansionFailed".Translate();}
+                catch(Exception e){failure=e;Log.Error("[RimLayers] Landing expansion failed: "+e);report="RL_ShipExpansionFailed".Translate();}
             }
             if(report.Accepted)return true;
         }
         if(ShipConfirmationState.Active is {} state)state.Rejected=__instance;
+        // A player pressed "land" and the layers refused; explain why instead of only a red line.
+        if(failure!=null)
+            RejectionReporter.Reject(RejectionAction.ShipLanding,failure,true,"RL_ShipExpansionFailed".Translate(),
+                __instance.gravship?.def.defName,__instance.gravship?.def.LabelCap,__instance.Map,__instance.Position);
+        else
+            RejectionReporter.Reject(RejectionAction.ShipLanding,report.Reason,true,
+                __instance.gravship?.def.defName,__instance.gravship?.def.LabelCap,__instance.Map,__instance.Position,
+                RejectionReporter.ElevationAt(__instance.Map,__instance.Position));
         Messages.Message(report.Reason,MessageTypeDefOf.RejectInput,false);return false;
     }
 }
