@@ -1,6 +1,7 @@
 using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Diagnostics;
 using RimLayers.Generation;
 using RimLayers.Environment;
 using RimLayers.Structure;
@@ -218,6 +219,18 @@ public sealed class UndergroundService
         var spawn=AccessTools.Method(typeof(GenStep_CaveHives),"TrySpawnHive");
         int count=GenMath.RoundRandom((owner.Environment.Enabled?candidates.Count:caveCells.Count)/1000f*
             (owner.Environment.Enabled?RimLayers.Environment.LayerEnvironment.Settings.InitialHiveDensity:1));
-        for(int i=0;i<count;i++)spawn.Invoke(step,new object[]{owner.map});
+        // Hive spawning is the only part of layer generation that calls into arbitrary third-party code
+        // (Pawn.SpawnSetup patches, storyteller hooks). A mod that breaks on one pawn must not cost the
+        // player the whole new floor, so a failed hive is skipped and reported instead of rethrown.
+        for(int i=0;i<count;i++)
+        {
+            try{spawn.Invoke(step,new object[]{owner.map});}
+            catch(Exception e)
+            {
+                Log.Warning($"[RimLayers] Skipped one cave hive on layer {owner.Elevation(id)}: {e}");
+                RejectionReporter.Reject(RejectionAction.Expansion,e,true,
+                    "RL_HiveSpawnSkipped".Translate(),null,null,owner.map,null,owner.Elevation(id));
+            }
+        }
     }
 }

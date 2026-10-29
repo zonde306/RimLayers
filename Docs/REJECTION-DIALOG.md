@@ -63,6 +63,21 @@ System.NotSupportedException: Unmapped native per-cell buffer: ...
 
 设置 → RimLayers → 显示 → **操作被拒绝时显示说明窗口**（默认开），对应 `RimLayersSettings.RejectionDialogs`，存盘字段 `rejectionDialogs`。
 
+## 失败不会自动重试
+
+第一版有一个真实事故：玩家完成一个向下楼梯的框架，扩层在生成虫巢时被第三方 MOD 打断，扩层回滚，`Prepare` 返回 false。原版的工作分配器下一次扫描又把同一个框架派给殖民者（框架仍然 `CanConstruct`），于是每轮都重跑一次完整扩层 + 完整回滚——`EnsureElevation` 会重建区域、寻路、地图绘制器和气候，一轮就很重——玩家看到的就是"一直提示创建失败，游戏卡死"。
+
+现在的处理：
+
+- `LayerMapComponent.BlockedStairs`（`HashSet<IntVec3>`，会存盘）记下扩层失败的楼梯格。首次失败也记得住，因为记账走 `LayerMapComponent.Raw(map)`——`For(map)` 对还没扩层的地图故意返回 null，用它会静默丢记录。
+- `StairLayerBootstrap.Prepare` 入口先查 `IsBlocked`，已记录的格子直接返回 false，不会隐式重试。
+- `ConstructionSupport.Validate` 对已记录的格子返回 `RL_StairExpansionBlocked`，于是 `GenConstruct.CanConstruct` 变 false，原生 `JobDriver_ConstructFinishFrame` 的 `build.FailOn(()=>!GenConstruct.CanConstruct(Frame,pawn))` 立刻结束任务，`WorkGiver_ConstructFinishFrames.JobOnThing` 也不再派活——循环断开。
+- `StairLayerBootstrap.Process` 扫描时跳过已记录的格子。
+- 玩家想再试：选中框架或楼梯会看到 **重试创建楼层** 按钮（`Structure/BlockedStairGizmos.cs`），点它会清掉记录并重新走一次真实扩层，成功给 `RL_StairRetryOk` 消息。拆掉楼梯也会清记录。
+- 虫巢生成单独兜底：`UndergroundService.SpawnCaveHives` 逐个 hive try/catch。虫巢生成是整条扩层链里唯一会执行任意第三方代码的地方，一个 MOD 崩掉不该让玩家丢掉整层，所以只跳过那一个 hive 并弹窗说明（`RL_HiveSpawnSkipped`），扩层继续。
+
+`Tests/Run-V1.ps1 -Scenario blocked-stair` 用一个 Harmony 前缀往 `LiveMapExpansion.EnsureElevation` 注入失败，断言：失败后框架与材料完整、地图没扩层、格子被记录、只弹一个窗口、工作分配器与 `CanConstruct` 都拒绝该框架、10 个 tick 内没有任何重试、重试按钮存在且可用、点完重试真的建成楼层并清掉记录。
+
 ## 接入的拒绝点
 
 | 位置 | 动作 | 何时 |
@@ -73,6 +88,7 @@ System.NotSupportedException: Unmapped native per-cell buffer: ...
 | `Structure/LiftShaftExpansion.cs` `StartExtension` | `LiftShaft` | 电梯井扩建被拒 / 抛异常 |
 | `Ships/ShipLandingPatches.cs` `LayerShipConfirmLanding` | `ShipLanding` | 降落确认被拒 / 扩层抛异常 |
 | `Ships/ShipLandingPatches.cs` `LayerShipDestination.TryPrepare` | `ShipTakeoff` | 出发前目的地图被拒 |
+| `Underground/UndergroundService.cs` `SpawnCaveHives` | `Expansion` | 单个虫巢生成被第三方 MOD 打断（跳过该虫巢，扩层继续） |
 
 ## 已知限制
 

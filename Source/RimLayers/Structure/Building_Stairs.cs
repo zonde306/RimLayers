@@ -57,6 +57,8 @@ public class Building_Stairs : Building
     public override void DeSpawn(DestroyMode mode = DestroyMode.Vanish)
     {
         Map?.GetComponent<LayerMapComponent>()?.Connectors.Remove(this);
+        // Removing the stair removes the reason it was stuck: a rebuild must be allowed to try again.
+        StairLayerBootstrap.ClearBlocked(Map, Position);
         // An independently supported landing is structural floor, not a disposable teleport marker.
         base.DeSpawn(mode);
     }

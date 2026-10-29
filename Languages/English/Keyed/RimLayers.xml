@@ -16,6 +16,11 @@
   <RL_PipeNoPeer>No matching riser on the adjacent layer at this position, so this deck's network is not joined to it. Build one on each layer; a riser spans a single deck, so a three-layer shaft needs one on every layer.</RL_PipeNoPeer>
   <RL_PipePeers>Connected layers: {0}</RL_PipePeers>
   <RL_StairMapUnsupported>This map cannot acquire upper floors (pocket or underground map).</RL_StairMapUnsupported>
+  <RL_StairExpansionBlocked>This stair already failed to create the upper floor, so it is no longer retried automatically. Fix the cause, then use "Retry upper floor" on the stair.</RL_StairExpansionBlocked>
+  <RL_StairRetry>Retry upper floor</RL_StairRetry>
+  <RL_StairRetryHelp>The failed attempt rolled the whole map back, so the stair itself is intact. Fix the cause (for example disable the mod named in the report, or move the stair) and press this. Every attempt rebuilds the entire map, so it is never repeated automatically.</RL_StairRetryHelp>
+  <RL_StairRetryOk>Upper floor created.</RL_StairRetryOk>
+  <RL_HiveSpawnSkipped>Spawning a cave hive failed; it was skipped and the floor was still created.</RL_HiveSpawnSkipped>
   <RL_StairExpansionFailed>Upper floors could not be created. Check the log; unfinished stair frames and their materials are retained.</RL_StairExpansionFailed>
   <RL_ShipMultipleCores>Multiple grav engines share this structure. Separate the ships before using cross-floor links.</RL_ShipMultipleCores>
   <RL_ShipOverCapacity>Ship substructure exceeds capacity: {0} / {1}.</RL_ShipOverCapacity>

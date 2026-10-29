@@ -14,7 +14,12 @@ internal static class ConstructionSupport
     {
         if(map==null)return true; // Preserve native handling of unspawned construction queries.
         if(LayerMapComponent.For(map) is {} owner)return owner.Structure.Validate(buildable,position,rotation);
-        return ConnectorDefs.IsAdjacent(buildable)?StairLayerBootstrap.Validate(map,position,rotation,buildable):true;
+        if(!ConnectorDefs.IsAdjacent(buildable))return true;
+        // A stair whose expansion already failed stays refused. Native FailOn polls CanConstruct every
+        // tick, and the work giver re-offers the frame the moment the job ends, so without this the
+        // same failing expansion (and its full map rollback) repeats forever.
+        if(StairLayerBootstrap.IsBlocked(map,position))return "RL_StairExpansionBlocked".Translate();
+        return StairLayerBootstrap.Validate(map,position,rotation,buildable);
     }
 }
 

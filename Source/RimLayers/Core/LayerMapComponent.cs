@@ -22,6 +22,13 @@ public sealed class LayerMapComponent : MapComponent
     private List<int> elevations = new();
     public LayerLayout? Layout { get; private set; }
     internal bool StairBootstrapPending; // Derived request; loaded stairs re-request it in SpawnSetup.
+    /// <summary>
+    /// Cells whose layer expansion already failed. A failed expansion rolls the whole map back, so an
+    /// automatic retry would repeat the identical expensive failure every tick. Persisted, because the
+    /// cause (a third-party mod) usually outlives the session that hit it. Cleared only by an explicit
+    /// player retry or by removing the stairs.
+    /// </summary>
+    public HashSet<IntVec3> BlockedStairs = new();
     public bool Managed => Layout != null;
     public int ViewedLayer => viewedLayer;
     public long Revision { get; private set; }
@@ -147,11 +154,13 @@ public sealed class LayerMapComponent : MapComponent
         Scribe_Collections.Look(ref elevations, "layerElevations", LookMode.Value);
         Scribe_Collections.Look(ref StructuralCells, "structuralCells", LookMode.Value);
         Scribe_Collections.Look(ref PendingCollapse, "pendingCollapse", LookMode.Value);
+        Scribe_Collections.Look(ref BlockedStairs, "blockedStairs", LookMode.Value);
         Environment.ExposeData();Combat.ExposeData();Returns.ExposeData();Mountains.ExposeData();Underground.ExposeData();Ships.ExposeData();Underlays.ExposeData();Recovery.ExposeData();
         if (Scribe.mode == LoadSaveMode.PostLoadInit)
         {
             StructuralCells ??= new();
             PendingCollapse ??= new();
+            BlockedStairs ??= new();
         }
         if (Scribe.mode == LoadSaveMode.PostLoadInit) RestoreLayout();
     }
@@ -224,6 +233,12 @@ public sealed class LayerMapComponent : MapComponent
     public static long ForCalls { get; private set; }
     public static long ForScans { get; private set; }
     public static void ResetForStatistics() { ForCalls = 0; ForScans = 0; }
+
+    /// <summary>
+    /// The component even when the map still has no layers. For() hides unmanaged maps on purpose, so
+    /// bookkeeping that must survive a *failed first expansion* cannot use it.
+    /// </summary>
+    internal static LayerMapComponent? Raw(Map? map) => map?.GetComponent<LayerMapComponent>();
 
     public static LayerMapComponent? For(Map? map)
     {

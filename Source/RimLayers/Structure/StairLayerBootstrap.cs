@@ -27,6 +27,21 @@ internal static class StairLayerBootstrap
         return true;
     }
 
+    /// <summary>
+    /// True when this stair already failed to expand the map. Nothing retries it automatically: a failed
+    /// expansion rolls the entire map back, so repeating it every tick is a freeze, not a repair. The
+    /// player retries from the stair's own button once the cause is gone.
+    /// </summary>
+    internal static bool IsBlocked(Map? map,IntVec3 position)=>position.IsValid&&
+        LayerMapComponent.Raw(map) is {} owner&&owner.BlockedStairs.Contains(position);
+
+    /// <summary>Forgets a recorded failure so the next completion attempt runs the real expansion.</summary>
+    internal static void ClearBlocked(Map? map,IntVec3 position)
+    {
+        if(!position.IsValid||LayerMapComponent.Raw(map) is not {} owner)return;
+        owner.BlockedStairs.Remove(position);
+    }
+
     // Frame completion calls this BEFORE native material destruction and Frame replacement.
     // report: the failure was caused by a player action, so explain it instead of failing silently.
     internal static bool Prepare(Map map,IntVec3 position,Rot4 rotation,BuildableDef? definition=null,bool report=false)
@@ -40,6 +55,9 @@ internal static class StairLayerBootstrap
                     map,position,RejectionReporter.ElevationAt(map,position));
             return false;
         }
+        // A recorded failure is never retried implicitly: every attempt resizes the whole map and then
+        // rolls it back. Only the player's own retry button clears the record first.
+        if(IsBlocked(map,position))return false;
         try
         {
             int elevation=LayerMapComponent.For(map) is {} owner&&owner.TryDecode(position,out var here)?owner.Elevation(here.LayerId):0;
@@ -47,11 +65,16 @@ internal static class StairLayerBootstrap
         }
         catch(Exception e)
         {
+            // Remember the failure before reporting it: without this the work giver hands the same
+            // frame back to a colonist the moment the job ends, and every attempt re-runs the whole
+            // expansion and its rollback.
+            LayerMapComponent.Raw(map)?.BlockedStairs.Add(position);
             Log.Error($"[RimLayers] Stair-triggered map expansion failed on map {map.uniqueID}: {e}");
             if(report)
                 RejectionReporter.Reject(RejectionAction.Stairs,e,true,"RL_StairExpansionFailed".Translate(),
                     definition.defName,definition.LabelCap,map,position);
-            Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
+            else
+                Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
             return false;
         }
     }
@@ -63,7 +86,9 @@ internal static class StairLayerBootstrap
         component.StairBootstrapPending=false;
         var stairs=component.map.listerThings.AllThings.OfType<Building_Stairs>().Where(s=>s.ConnectsAdjacent).ToArray();
         {
-            var trigger=stairs.FirstOrDefault(s=>!s.UpperCell.IsValid&&Validate(component.map,s.Position,s.Rotation,s.def).Accepted);
+            // Never retry a stair that already failed: one attempt per stair until the player asks again.
+            var trigger=stairs.FirstOrDefault(s=>!s.UpperCell.IsValid&&!component.BlockedStairs.Contains(s.Position)
+                &&Validate(component.map,s.Position,s.Rotation,s.def).Accepted);
             if(trigger!=null&&!Prepare(component.map,trigger.Position,trigger.Rotation,trigger.def))return;
         }
         foreach(var stair in stairs)stair.InitializeConnection(createLanding:true);

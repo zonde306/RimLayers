@@ -451,6 +451,7 @@ internal static class PairedLayerGizmosPatch
         var extra = new List<Gizmo>();
         extra.AddRange(__instance is Building ? PairedLayerGizmos.For(__instance) : PairedLayerGizmos.ForPlan(__instance));
         extra.AddRange(DevLayerGizmos.For(__instance));
+        extra.AddRange(BlockedStairGizmos.For(__instance));
         if (extra.Count == 0) return;
         __result = (__result ?? Enumerable.Empty<Gizmo>()).Concat(extra);
     }

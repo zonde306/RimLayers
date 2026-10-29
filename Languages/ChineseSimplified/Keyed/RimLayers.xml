@@ -16,6 +16,11 @@
   <RL_PipeNoPeer>相邻楼层的同一位置没有同类管道端子，本层管网未与邻层连通。每层各建一个；每根只跨一层，三层竖井需每层都建。</RL_PipeNoPeer>
   <RL_PipePeers>连接楼层：{0}</RL_PipePeers>
   <RL_StairMapUnsupported>此地图不支持创建上层（口袋或地下地图）。</RL_StairMapUnsupported>
+  <RL_StairExpansionBlocked>这座楼梯上次创建楼层时失败，已停止自动重试。修复原因后点楼梯上的「重试创建楼层」。</RL_StairExpansionBlocked>
+  <RL_StairRetry>重试创建楼层</RL_StairRetry>
+  <RL_StairRetryHelp>上次创建楼层失败时，整张地图已完整回滚，楼梯本身没有损坏。修好冲突（例如关闭报错的 MOD 或换一块位置）后按此键重新尝试。每次尝试都会重建整张地图，因此不会自动重复。</RL_StairRetryHelp>
+  <RL_StairRetryOk>楼层创建成功。</RL_StairRetryOk>
+  <RL_HiveSpawnSkipped>生成虫巢时出错，已跳过该虫巢并继续创建楼层。</RL_HiveSpawnSkipped>
   <RL_StairExpansionFailed>上层创建失败，请查看日志。未完成的楼梯框架与材料仍保留。</RL_StairExpansionFailed>
   <RL_ShipMultipleCores>同一船体连接了多个逆重引擎，请先拆分船体。</RL_ShipMultipleCores>
   <RL_ShipOverCapacity>飞船基架超出承载量：{0} / {1}。</RL_ShipOverCapacity>

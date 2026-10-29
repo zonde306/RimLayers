@@ -1137,3 +1137,24 @@ if(decks[l]!=0&&decks[l]!=engine.thingIDNumber){set.Clear();break;}
 **验证**：`Tests/PairingTests` 127 项坐标换算断言（含"目标带只算一次"的反向断言）；`Run-V1.ps1 -Scenario pairing` 游戏内场景覆盖按钮可用性、原生蓝图、缺层/缺楼面拒绝、电梯对位、吊篮存取口补回、开发者按钮显隐与成品化。
 
 测试过程中 `Run-V1.ps1` 那 14 条"赋值表达式无效"是**非 PowerShell 分析器的误报**（报的是 `param()` 块里的合法参数声明）。判据用 `[System.Management.Automation.Language.Parser]::ParseFile` 跑 AST 解析：0 错误，`git diff --numstat` 只有 1 行。这类误报别当真去"修"。
+
+## 2026-10-29：扩层失败不再被无限重试
+
+**事故**：玩家报告"触发错误会无限循环卡死游戏"。截图里的拒绝报告是 `Action: 创建楼层`、`Definition: 向下楼梯 (RL_StairsDown)`，异常栈顶是 `SuperSword.LifeSupportStateCache.InvalidateNegativeCache` 里无锁 `HashSet.Remove` 抛"non-concurrent collections must have exclusive access"，中间经过 `wowgag.guiperformancepatch` 的 `GppParallel.MainOnlySpawnSetup` 前缀。
+
+**根因是两层，产品这一层是我们自己的错。** 第三方那一层：扩层生成虫巢时会走 `GenStep_CaveHives.TrySpawnHive` → `HiveUtility.SpawnHive` → `Pawn.SpawnSetup`，而 `Pawn.SpawnSetup` 被并行化补丁挪到了池线程，`SuperSword` 的静态缓存没有加锁，于是并发写坏。我们的那一层：`StairLayerBootstrap.Prepare` 失败后只 `EndJobWith(JobCondition.Incompletable)`，框架仍然 `CanConstruct`，`WorkGiver_ConstructFinishFrames.JobOnThing` 下一次扫描立刻把同一个框架再派给殖民者，于是每轮都完整跑一次 `EnsureElevation`（重建区域、寻路、地图绘制器、气候）再完整回滚——一轮就够重，重复起来就是卡死。窗口的 250 tick 冷却只是挡住了刷屏，挡不住重跑。
+
+**修法：把"失败"变成一等状态。** `LayerMapComponent.BlockedStairs`（`HashSet<IntVec3>`，存盘）记录扩层失败的楼梯格；`Prepare` 入口查表直接拒绝；`ConstructionSupport.Validate` 对记录过的格子返回 `RL_StairExpansionBlocked`，于是 `CanConstruct` 变 false，原生 `JobDriver_ConstructFinishFrame` 的 `build.FailOn(()=>!GenConstruct.CanConstruct(Frame,pawn))` 立刻结束任务，`JobOnThing` 也不再派活——循环断开。重试入口是框架/楼梯上的 **重试创建楼层** 按钮（`Structure/BlockedStairGizmos.cs`），点了清记录并重跑真实扩层；拆掉楼梯也清记录。
+
+**记账必须走 `LayerMapComponent.Raw`，不是 `For`。** `For()` 对还没扩层的地图故意返回 null（那是"这张图还没有楼层"的语义），而首次扩层失败恰恰发生在地图还没扩层的时候。我第一版用 `For()`，记录会静默丢失——`BlockedStairs` 加进去的瞬间组件根本不存在。为此加了 `internal static LayerMapComponent? Raw(Map? map) => map?.GetComponent<LayerMapComponent>();`，并在 doc 注释里写清为什么不能用 `For`。
+
+**虫巢单独兜底。** `UndergroundService.SpawnCaveHives` 逐个 hive try/catch：虫巢生成是整条扩层链里唯一会执行任意第三方代码的地方，一个 MOD 崩掉不该让玩家丢掉整层，所以只跳过那一个 hive 并弹窗说明（`RL_HiveSpawnSkipped`），扩层继续。这条是"降低第三方伤害面"，不是"容忍第三方 bug"。
+
+**新增场景 `blocked-stair`（`Diagnostics/V1BlockedStair.cs`，14 条断言）**：用 Harmony 前缀往 `LiveMapExpansion.EnsureElevation` 注入失败，跑真实的提交/回滚路径。断言覆盖：失败后框架与材料完整、地图没扩层、格子被记录、只弹一个窗口、`WorkGiver_ConstructFinishFrames.JobOnThing` 与 `GenConstruct.CanConstruct` 都拒绝该框架、10 个 tick 内没有任何重试、重试按钮存在、点完重试真的建成楼层并清掉记录、记录跨存档保留。
+
+**夹具又踩了三次，都记下来：**
+
+1. `V1Integration.Update` 有一道 `owner==null → throw new Exception("No layer map.")` 的通用守卫，而本场景**必须**在未扩层地图上跑，得把 scenario 加进白名单。
+2. `stage==600` 已经被 `pairing` 占用，我先加了一条重复的 `if(stage==600)`，被前面那条抢先命中，`BlockedStairStep` 一次都没执行，表现是场景 30 tick 后自己 `Finish()`。改用 `stage==601`。
+3. 场景是"自动化运行"，`RejectionReporter` 的 `automatedRun` 默认把窗口静音；断言"弹了窗口"必须先 `RejectionReporter.DialogGateOverride=true`。这是同一个开关 `rejection-dialog` 场景用的。
+4. 注入的失败会走 `Log.Error`，被 `Error()` 收进错误清单打红 `no-runtime-errors`。加 `suppressInjectedExpansionError` 只在注入调用期间过滤那一条 `Stair-triggered map expansion failed`，其余日志照旧计入。
