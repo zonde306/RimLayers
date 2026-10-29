@@ -1114,3 +1114,26 @@ if(decks[l]!=0&&decks[l]!=engine.thingIDNumber){set.Clear();break;}
 这个自愈必须限次：`Get` 会被检查面板和放置 UI 按设施、按帧调用，如果一台核心**合理地**无法播种（它的足迹落在另一艘活船已占的甲板格里，播种循环会 `set.Clear()` 放弃它），无条件的 `MarkDirty` 就等于每帧全图重扫。`private readonly HashSet<int> probed` 只允许每轮 `Refresh` 重试一次——重试要么修好缓存，要么证明在状态变化前它本来就无解。
 
 **新增断言（`Diagnostics/V1ShipRebuild.cs`，6 条）：** `replacement-fixture-seeds-every-deck-of-its-hull`（11×11 甲板 × 3 层，一台核心播种出 363 格）、`destroyed-core-leaves-its-deck-claims-behind`、`replacement-fixture-does-not-overlap-the-dead-footprint`、`replacement-core-adopts-orphan-decks-on-first-read`（**刻意不调 `MarkDirty`/`Tick`**，走玩家放置 UI 的同帧路径）、`replacement-core-does-not-annex-a-distant-dead-hull`、`replacement-core-restores-native-onboard-cell`。
+
+## 2026-10-29：上下层对位建造按钮 + 开发者快速打通
+
+**需求**：电力端子、竖直管道、电梯站点这类"上下两层同一格都建成才生效"的建筑，玩家得在两个楼层各画一次蓝图、靠肉眼对齐。加一个按钮，选中这一端就能把另一端排进蓝图队列。顺带要开发者模式下的"立即打通楼层"。
+
+**主干做法**：`DefModExtension LayerPairProperties` 只声明配对关系（`partner` / `directions` / `companion`），按钮放在 `Thing.GetGizmos` 的 postfix 里统一产出。放下去的是**原生蓝图**（`GenConstruct.PlaceBlueprintForBuild` + `def.blueprintDef`），不是凭空生成的成品——另一端照样要花材料、被搬运、被施工。这一条是刻意的：自动生成的成品等于送玩家半个建筑，而且会绕过本 mod 的提交闸门。
+
+`PlaceBlueprintForBuild` 自己**不做任何合法性检查**（反编译确认：只 `MakeThing` + `SetFactionDirect` + `GenSpawn.Spawn`），所以合法性全部前移到 `Check()`：层存在 → 目标带内每格 `HasSurface` → 无同 def 成品/蓝图 → 最后整条 `GenConstruct.CanPlaceBlueprintAt(..., godMode:false, ...)`。**先在查询里跑完再落一次实**，按钮的灰显原因和被拒时的消息是同一句话，两边不会漂移。
+
+蓝图 def 由 `ThingDefGenerator_Buildings.NewBlueprintDef_Thing` 生成时会 `new List<Type>(def.placeWorkers)` 复制 placeWorkers，所以自动蓝图照样会经过 `PlaceWorker_LayerSupport` / `PlaceWorker_Cargo`——不用额外补校验。
+
+**没做的两件事，都是故意的。** 一是不替玩家开辟楼层：需求写的是"确保层已创建"，新开的带是 `RL_OpenAir`，得先铺落脚楼面才有意义，那是楼梯 bootstrap 的活儿，绕过它就等于跳过挖掘节奏。缺层时按钮直接灰掉并提示"先造通往该层的楼梯或竖井"。二是吊篮**不产生蓝图**：它的存取口是 mod 自己拥有的结构件，主机造价已含两端，所以 `companion=true` 走"直接生成成品"，和主机自己完工时的行为一致。
+
+**两个真踩到的坑：**
+
+1. **`ThingDef.HasComp(Type)` 比的是 `comps[i].compClass`，也就是 `Comp` 类型，不是 `CompProperties` 类型。** 我先写成 `HasComp(typeof(CompProperties_PowerRiser))`，编译通过、单测通过、日志还照样报 `4 def(s) registered`——因为吊篮那 4 个 def 是靠 `CargoProperties` 命中的，竖直件的匹配全落空。只有游戏内场景才暴露：电力端子的按钮一个都不出现。改成 `typeof(CompPowerRiser)` / `typeof(CompLayerPort)` / `typeof(CompResourcePort)` 才对。**顺带发现竖直管道有两条独立实现**（Dubs 系用 `CompLayerPort`，Vanilla Expanded 系用 `CompResourcePort`），只登记一个会漏掉整族 riser。
+2. **`source.def.rotatable && ...` 写反了语义**：不可旋转的建筑反而被改成 `Rot4.North`/`Rot4.East`。矩形占地要"长边同轴"，方形占地要沿用原朝向（保住交互格），判据应是 `!rotatable || size.x == size.z → source.Rotation`。
+
+**夹具又自欺了一次。** 第一版 `ThingMaker.MakeThing(def, ThingDefOf.Steel)` 直接抛 `Log.Error`：`RL_PowerRiser` / `RL_LiftVertical` / `RL_CargoManualUp` 都**没有** `madeFromStuff`，传 stuff 是非法的。这些 `Log.Error` 被场景的 `Error()` 收进错误清单，把 `no-runtime-errors` 断言打红——而这跟功能一点关系都没有。**给不可选材质的 def 传 stuff 是夹具的错，不是产品的错。**
+
+**验证**：`Tests/PairingTests` 127 项坐标换算断言（含"目标带只算一次"的反向断言）；`Run-V1.ps1 -Scenario pairing` 游戏内场景覆盖按钮可用性、原生蓝图、缺层/缺楼面拒绝、电梯对位、吊篮存取口补回、开发者按钮显隐与成品化。
+
+测试过程中 `Run-V1.ps1` 那 14 条"赋值表达式无效"是**非 PowerShell 分析器的误报**（报的是 `param()` 块里的合法参数声明）。判据用 `[System.Management.Automation.Language.Parser]::ParseFile` 跑 AST 解析：0 错误，`git diff --numstat` 只有 1 行。这类误报别当真去"修"。

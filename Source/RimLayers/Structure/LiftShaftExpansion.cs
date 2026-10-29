@@ -26,6 +26,8 @@ public sealed partial class Building_Elevator
     internal bool Expanding(int direction)=>Extension(direction)!=null;
     internal IntVec3 ExtensionExit(int direction)=>LayerMapComponent.For(Map)?.Adjacent(Position,direction)??IntVec3.Invalid;
     private IntVec3 WorkingCell(int direction)=>ExtensionExit(direction) is var exit&&exit.IsValid?exit+(Extension(direction)?.WorkOffset??IntVec3.West):IntVec3.Invalid;
+    /// <summary>Construction cell of a pending extension, for callers outside this class.</summary>
+    internal IntVec3 WorkCell(int direction)=>WorkingCell(direction);
     private IntVec3 PickWorkOffset(int direction)
     {
         var o=LayerMapComponent.For(Map);var exit=ExtensionExit(direction);

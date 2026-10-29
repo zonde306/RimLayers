@@ -14,4 +14,5 @@
  <graphicData><texPath>Things/Building/RimLayers/LiftVertical</texPath><graphicClass>Graphic_Single</graphicClass></graphicData>
  <statBases><MaxHitPoints>450</MaxHitPoints><WorkToBuild>4000</WorkToBuild><Mass>35</Mass><Flammability>0</Flammability></statBases><costList><Steel>160</Steel><Plasteel>30</Plasteel><ComponentIndustrial>4</ComponentIndustrial></costList>
  <researchPrerequisites><li>Autodoors</li><li>MicroelectronicsBasics</li></researchPrerequisites><constructionSkillPrerequisite>6</constructionSkillPrerequisite>
- <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>300</basePowerConsumption></li></comps></ThingDef></Defs>
+ <comps><li Class="CompProperties_Power"><compClass>CompPowerTrader</compClass><basePowerConsumption>300</basePowerConsumption></li></comps>
+ <modExtensions><li Class="RimLayers.Structure.LayerPairProperties"><partner>RL_LiftVertical</partner><directions><li>1</li><li>-1</li></directions></li></modExtensions></ThingDef></Defs>

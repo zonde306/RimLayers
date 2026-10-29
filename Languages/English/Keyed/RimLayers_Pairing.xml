@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_PairBuildUp>Build the matching end above</RL_PairBuildUp>
+  <RL_PairBuildDown>Build the matching end below</RL_PairBuildDown>
+  <RL_PairBuildHelp>Places a normal blueprint for {0} on {1}, at this building's position. It costs, hauls and completes like any other construction. Nothing changes if that spot cannot take it.</RL_PairBuildHelp>
+  <RL_PairNotPaired>This building has no matching end.</RL_PairNotPaired>
+  <RL_PairLayerMissing>{0} does not exist yet. Build the stairs or shaft that reach it first.</RL_PairLayerMissing>
+  <RL_PairBottomLayer>There is no layer below the deepest one.</RL_PairBottomLayer>
+  <RL_PairNeedsFloor>{0} has open air here, with no floor to build on.</RL_PairNeedsFloor>
+  <RL_PairBlueprintExists>The matching end already has a blueprint here.</RL_PairBlueprintExists>
+  <RL_PairBuilt>The matching end is already built here.</RL_PairBuilt>
+  <RL_PairBlocked>That spot cannot take the matching end: {0}</RL_PairBlocked>
+  <RL_PairPortBlocked>The access port has no room here: it needs a clear cell beside it for the operator.</RL_PairPortBlocked>
+  <RL_PairPlaceFailed>The matching end could not be placed.</RL_PairPlaceFailed>
+  <RL_PairNeedsWorker>No free colonist can complete this construction.</RL_PairNeedsWorker>
+</LanguageData>

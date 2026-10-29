@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_PairBuildUp>在上层建造对应端</RL_PairBuildUp>
+  <RL_PairBuildDown>在下层建造对应端</RL_PairBuildDown>
+  <RL_PairBuildHelp>在本建筑所在的位置，于 {1} 放置一个普通的 {0} 蓝图。它会照常消耗材料、需要搬运和施工才能完成。若那个位置放不下，则什么都不会改变。</RL_PairBuildHelp>
+  <RL_PairNotPaired>这个建筑没有对应端。</RL_PairNotPaired>
+  <RL_PairLayerMissing>{0}还不存在。请先建造通往该层的楼梯或竖井。</RL_PairLayerMissing>
+  <RL_PairBottomLayer>最深层之下没有楼层。</RL_PairBottomLayer>
+  <RL_PairNeedsFloor>{0} 这里是空旷空气，没有可以建造的楼面。</RL_PairNeedsFloor>
+  <RL_PairBlueprintExists>对应端在此处已经有蓝图了。</RL_PairBlueprintExists>
+  <RL_PairBuilt>对应端在此处已经建好了。</RL_PairBuilt>
+  <RL_PairBlocked>该位置放不下对应端：{0}</RL_PairBlocked>
+  <RL_PairPortBlocked>存取口在这里没有位置：它旁边需要一个可站立的空格。</RL_PairPortBlocked>
+  <RL_PairPlaceFailed>无法放置对应端。</RL_PairPlaceFailed>
+  <RL_PairNeedsWorker>没有空闲殖民者能完成这项施工。</RL_PairNeedsWorker>
+</LanguageData>
