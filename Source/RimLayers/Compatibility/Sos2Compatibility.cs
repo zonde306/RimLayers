@@ -100,12 +100,24 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2PlacementPatches));
         Patch(harmony, typeof(Sos2DeckRegistryPatches));
         Patch(harmony, typeof(Sos2DeckMovePatch));
+        Patch(harmony, typeof(Sos2RepowerPatches));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
     }
 
+    /// <summary>
+    /// Patch classes this adapter already installed. <c>RimLayersMod</c> walks every
+    /// <c>[HarmonyPatch]</c> type in the assembly, so without this list each SOS2 class would be
+    /// processed twice and every prefix/postfix would run twice per call.
+    /// </summary>
+    private static readonly HashSet<Type> installed = new();
+
+    /// <summary>True when <paramref name="type"/> was already patched by this adapter.</summary>
+    internal static bool AlreadyInstalled(Type type) => installed.Contains(type);
+
     private static void Patch(Harmony harmony, Type type)
     {
+        if (!installed.Add(type)) return;
         try
         {
             harmony.CreateClassProcessor(type).Patch();

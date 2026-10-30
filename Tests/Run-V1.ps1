@@ -57,6 +57,11 @@ $ErrorActionPreference = 'Stop'
 # large map reaches the native ceiling (rootSize 60, camera y 65) that exposed the clipped backdrop.
 if($Scenario -eq 'ship-vge' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
 if($Scenario -eq 'presentation' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
+# SOS2 launches from the player's map into a space map generated from `originMap.Size`, and the adapter
+# derives that map's layer bands from that same size. On a 120 map the hull sits inside one band with a
+# 136 stride; the real ship is a 250 map (stride 255), and the launch bug only reproduced there because
+# a two-deck hull's storage z crossed the band boundary. Run the sos2 fixture at the real size.
+if($Scenario -eq 'sos2' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
 $modRoot = Split-Path -Parent $PSScriptRoot
 $runRoot = Join-Path $PSScriptRoot (('Artifacts/v1-' + $Scenario + '-') + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null

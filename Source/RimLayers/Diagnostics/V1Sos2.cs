@@ -46,6 +46,22 @@ internal static partial class V1Integration
     private static int sos2Phase;
     private static bool sos2AdapterExpected;
 
+    /// <summary>True once the launch fixture has reached the orbiting map and the checks below ran.</summary>
+    private static bool sos2LaunchStarted;
+    private static bool sos2FlightReported;
+    private static bool sos2EngineReported;
+    private static Map? sos2SpaceMap;
+    private static Map? sos2GroundMap;
+    /// <summary>
+    /// The launch pad's own band-0/band-1 cells, so "did the ship come back" can be asked about
+    /// this hull instead of about the map. Earlier phases leave their own pads behind in
+    /// <c>ShipsOnMap</c>, and a map-wide "any ship at all" test can therefore never pass.
+    /// </summary>
+    private static IntVec3[] sos2LaunchCells = System.Array.Empty<IntVec3>();
+    /// <summary>The launch fixture's engine, kept so the flight window can be inspected later.</summary>
+    private static Building? sos2LaunchEngine;
+    private static int sos2LaunchTicks;
+
     private static void BeginSos2()
     {
         sos2AdapterExpected = ModsConfig.IsActive("kentington.saveourship2");
@@ -390,6 +406,14 @@ internal static partial class V1Integration
         if (sos2Phase == 9)
         {
             Sos2StairStep();
+            sos2Phase = 10;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 10)
+        {
+            Sos2LaunchStep();
+            if (sos2Phase == 10) return;
             sos2Phase = 6;
             ticks = 0;
             return;
@@ -1016,6 +1040,443 @@ internal static partial class V1Integration
         Check("sos2-deck-is-allowed-under-a-downgraded-roof",
             downgradedDeck.Accepted,
             $"reason={downgradedDeck.Reason}, roof={map.roofGrid.RoofAt(downgraded)?.defName}");
+    }
+
+    /// <summary>
+    /// The end-to-end launch. Everything before this point proved a piece: the layout, the centring,
+    /// the deck plumbing, the heat net. This step builds a two-deck hull with a bridge on the upper
+    /// deck, hands it to SOS2's own ShipInteriorMod2.LaunchShip, and then watches what the flight
+    /// state machine does to it. That is the only path a player actually walks when they press launch,
+    /// and it is the one that kept sending the ship back down.
+    /// </summary>
+    private static void Sos2LaunchStep()
+    {
+        if (!sos2LaunchStarted)
+        {
+            sos2LaunchStarted = true;
+            sos2GroundMap = map;
+            LaunchTheShip();
+            return;
+        }
+        sos2LaunchTicks++;
+        if (sos2LaunchTicks < 240)
+        {
+            ObserveFlight();
+            return;
+        }
+        FinishFlight();
+        sos2Phase = 6;
+    }
+
+    private static void LaunchTheShip()
+    {
+        Type? interior = AccessTools.TypeByName("SaveOurShip2.ShipInteriorMod2");
+        Type? countdown = AccessTools.TypeByName("RimWorld.ShipCountdown");
+        if (interior == null || countdown == null)
+        {
+            Check("sos2-launch-types-resolve", false, $"interior={interior != null}, countdown={countdown != null}");
+            return;
+        }
+        var component = LayerMapComponent.For(map);
+        if (component?.Layout is not { LayerCount: >= 2 })
+        {
+            Check("sos2-launch-fixture-has-two-decks", false, $"layout={component?.Layout}");
+            return;
+        }
+        Building? bridge = BuildLaunchShip(component);
+        if (bridge == null)
+        {
+            Check("sos2-launch-fixture-builds", false, "no upper-deck bridge");
+            return;
+        }
+        RecacheSos2();
+        object? cache = Sos2ShipCache();
+        int shipIndex = Sos2Compatibility.ShipIndexAt(map, component.AtElevation(0, 104, 104));
+        // Everything this fixture owns, so later checks can ask about this hull rather than about the
+        // map. The pads left behind by earlier phases are still in ShipsOnMap, which makes every
+        // map-wide "is there a ship here" test useless.
+        sos2LaunchCells = (from c in component.LayerRect(0).Cells
+                           where Sos2Compatibility.ShipIndexAt(map, c) == shipIndex
+                           select c).ToArray();
+        // ShipsOnMap holds every hull the map has ever carried, including the pads the earlier phases
+        // built and then tore down. The launch only concerns the ship whose hull the bridge sits in, so
+        // the cache is resolved by index - picking "the first one" reads a dead hull and reports an
+        // engine with no net that has nothing to do with the flight under test.
+        object? launchCache = shipIndex >= 0 ? Sos2ShipCache(map, shipIndex) : null;
+        Check("sos2-launch-fixture-joins-one-ship", shipIndex >= 0 && launchCache != null,
+            $"index={shipIndex}, deckCell={component.AtElevation(0, 104, 104)}, cache={launchCache != null}, all={Sos2ShipCount()}");
+        if (shipIndex < 0 || launchCache == null) return;
+        int engineCount = CacheCount(launchCache, "Engines");
+        Check("sos2-launch-fixture-carries-an-engine", engineCount >= 1, $"engines={engineCount}, index={shipIndex}");
+        // The flight loop only ever asks two questions of the ship: can it move, and does an engine
+        // fire. Both answers come from the cache the move hands over, so they are read here, before
+        // the map changes, to keep a post-move failure attributable.
+        Check("sos2-launch-fixture-can-move-before-launch", CanMoveOf(launchCache), Details(launchCache));
+        // LaunchShip does not take the core from its argument: it moves whatever ShipCountdown.shipRoot
+        // holds. A fixture that forgets this line gets a silent no-op with no error at all, because
+        // MoveShip bails on a null core before it touches anything.
+        AccessTools.Field(countdown, "shipRoot")?.SetValue(null, bridge);
+        var launch = AccessTools.Method(interior, "LaunchShip");
+        if (launch == null)
+        {
+            Check("sos2-launch-method-resolves", false, "ShipInteriorMod2.LaunchShip missing");
+            return;
+        }
+        try
+        {
+            launch.Invoke(null, new object[] { bridge });
+            Check("sos2-launch-does-not-throw", true, "LaunchShip returned");
+        }
+        catch (Exception ex)
+        {
+            Check("sos2-launch-does-not-throw", false, $"{ex.GetType().Name}: {ex.InnerException?.Message ?? ex.Message}");
+            return;
+        }
+        sos2SpaceMap = SpaceMap();
+        Check("sos2-launch-created-a-space-map", sos2SpaceMap != null,
+            $"maps={string.Join(",", Find.Maps.Select(m => m.ToString()))}");
+        if (sos2SpaceMap == null) return;
+        var space = LayerMapComponent.For(sos2SpaceMap);
+        // The whole point of handing the source layout to the generator: an orbiting map for a
+        // two-deck ship must have two bands, otherwise every stored z above the first band is out of
+        // bounds and the move throws halfway through.
+        Check("sos2-launch-space-map-keeps-both-bands", space?.Layout is { LayerCount: >= 2 },
+            $"layout={space?.Layout}, size={sos2SpaceMap.Size}");
+        object? moved = Sos2Compatibility.ShipCompOf(sos2SpaceMap);
+        Check("sos2-launch-moved-the-ship-to-the-space-map", Sos2ShipCache(sos2SpaceMap) != null,
+            $"spaceCells={CountCells(moved)}");
+    }
+
+    /// <summary>Upper-deck bridge, an engine, and a hull on both bands - the shape a player's ship has.</summary>
+    private static Building? BuildLaunchShip(LayerMapComponent component)
+    {
+        var rect = new CellRect(100, 100, 9, 7);
+        foreach (IntVec3 c in rect)
+        {
+            foreach (int layer in new[] { 0, 1 })
+            {
+                IntVec3 cell = component.AtElevation(layer, c.x, c.z);
+                foreach (Thing t in cell.GetThingList(map).ToList())
+                    if (t is not Pawn)
+                    {
+                        if (t.def.destroyable) t.Destroy(DestroyMode.Vanish);
+                        else t.DeSpawn();
+                    }
+                if (layer == 0 && map.terrainGrid.UnderTerrainAt(cell) != null)
+                    map.terrainGrid.RemoveTopLayer(cell, false);
+                if (layer == 0) map.terrainGrid.SetTerrain(cell, TerrainDefOf.Substructure);
+                else map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_OpenAir);
+                map.roofGrid.SetRoof(cell, null);
+                map.fogGrid.Unfog(cell);
+            }
+        }
+        foreach (IntVec3 c in rect)
+        {
+            SpawnSos2On(map, "ShipHullTile", component.AtElevation(0, c.x, c.z), Rot4.North);
+            SpawnSos2On(map, "ShipHullTile", component.AtElevation(1, c.x, c.z), Rot4.North);
+        }
+        // Layout is constrained on both axes: the pad is x100..108 / z100..106, and RimLayers refuses to
+        // transmit from a building that does not stand entirely on a deck. A 5x5 reactor centred on z=101
+        // reaches z=99 and loses its transmitter flag, which shows up far away as an engine with no net.
+        Building? engine = SpawnSos2On(map, "Ship_Engine_Interplanetary", component.AtElevation(0, 101, 102), Rot4.North);
+        // A real ship has a reactor, and the engine only reports CanFire while its net is live. Spawning
+        // the engine without a source leaves PowerOn false, which looks exactly like the bug under test
+        // and would let a fixture failure pass for a game failure.
+        //
+        // Picked in a separate local under a different name on purpose: a local called `reactor` in this
+        // method would shadow the static field of the same name and silently drop the reference.
+        // 3x3 engine spans x100..102 / z101..103 and the 5x5 reactor spans x103..107 / z100..104: they
+        // touch along x102|x103 without overlapping, and both stay inside the pad.
+        Building? reactorOnDeck = SpawnSos2On(map, "Ship_Reactor", component.AtElevation(0, 105, 102), Rot4.North);
+        // The bridge sits on the upper band, and RimLayers keeps power layers apart by design - a
+        // trader on one band never joins a net on another without a riser. Giving the bridge its own
+        // reactor on its own deck is what a player builds, and it keeps the bridge powered after the
+        // move instead of relying on a cross-layer net that RimLayers deliberately refuses to make.
+        Building? upperReactor = SpawnSos2On(map, "Ship_Reactor", component.AtElevation(1, 105, 103), Rot4.North);
+        Building? bridge = SpawnSos2On(map, "ShipPilotSeatMini", component.AtElevation(1, 101, 102), Rot4.North);
+        if (engine == null || bridge == null || reactorOnDeck == null || upperReactor == null)
+        {
+            Check("sos2-launch-fixture-has-engine-and-bridge", false,
+                $"engine={engine != null}, bridge={bridge != null}, reactor={reactorOnDeck != null}, upperReactor={upperReactor != null}");
+            return null;
+        }
+        // Every fixture building has to stand fully on a deck. A part hanging off the pad silently loses
+        // its transmitter flag and the failure surfaces much later as an unpowered engine.
+        var offDeck = new List<string>();
+        foreach (Building part in new[] { engine, bridge, reactorOnDeck, upperReactor })
+            foreach (IntVec3 cell in part.OccupiedRect())
+                if (!component.Structure.HasSurface(cell)) offDeck.Add($"{part.def.defName}@{part.Position}");
+        Check("sos2-launch-fixture-stands-fully-on-the-deck", offDeck.Count == 0, string.Join(", ", offDeck.Distinct()));
+        foreach (Building source in new[] { reactorOnDeck, upperReactor })
+            source.TryGetComp<CompRefuelable>()?.Refuel(source.TryGetComp<CompRefuelable>()?.Props.fuelCapacity ?? 0f);
+        // A transmitter flag that RimLayers has withdrawn and a transmitter that simply never got a net
+        // look identically unpowered from the engine's side. Naming which one it is here keeps the next
+        // failure from being blamed on the engine again.
+        Check("sos2-launch-fixture-reactors-count-as-transmitters",
+            reactorOnDeck.TransmitsPowerNow && upperReactor.TransmitsPowerNow,
+            PowerReport(reactorOnDeck) + " " + PowerReport(upperReactor));
+        map.regionAndRoomUpdater.RebuildAllRegionsAndRooms();
+        map.powerNetManager.UpdatePowerNetsAndConnections_First();
+        // Two phases on purpose. Joining a net rebuilds the surrounding graph, and the native teardown
+        // resets PowerOn on every connector it passes, so a part switched on before a later part joins
+        // ends up off again. Every part joins first; only then is anything switched on.
+        var powered = new List<Building> { reactorOnDeck, engine, upperReactor, bridge };
+        foreach (Building part in powered) JoinNet(part);
+        Check("sos2-launch-fixture-reactor-gets-a-net", reactorOnDeck.TryGetComp<CompPowerTrader>()?.PowerNet != null,
+            PowerReport(reactorOnDeck));
+        Check("sos2-launch-fixture-engine-gets-a-net", engine.TryGetComp<CompPowerTrader>()?.PowerNet != null,
+            PowerReport(engine));
+        Check("sos2-launch-fixture-power-graph",
+            powered.All(part => part.TryGetComp<CompPowerTrader>()?.PowerNet != null),
+            $"reactor={PowerReport(reactorOnDeck)} engine={PowerReport(engine)} " +
+            $"upper={PowerReport(upperReactor)} bridge={PowerReport(bridge)}");
+        foreach (Building part in powered) PowerUp(part);
+        Check("sos2-launch-fixture-parts-are-on",
+            powered.All(part => part.TryGetComp<CompPowerTrader>()?.PowerOn == true),
+            string.Join(" ", powered.Select(PowerReport)));
+        sos2LaunchEngine = engine;
+        return bridge;
+    }
+
+    /// <summary>
+    /// What the power graph thinks of one building. TransmitsPowerNow is the flag the native net search
+    /// reads, and RimLayers withdraws it when any occupied cell lacks a surface - so a false there means
+    /// the building is not standing on its deck, not that the net failed to form.
+    /// </summary>
+    private static string PowerReport(Building? building)
+    {
+        if (building == null) return "null";
+        CompPowerTrader? power = building.TryGetComp<CompPowerTrader>();
+        var offDeck = building.OccupiedRect().Cells
+            .Where(c => LayerMapComponent.For(building.Map)?.Structure.HasSurface(c) != true).ToList();
+        return $"{building.def.defName}@({building.Position.x},{building.Position.z})" +
+               $"[transmits={building.TransmitsPowerNow}, net={power?.PowerNet != null}" +
+               $", on={power?.PowerOn == true}" +
+               $", netAtCell={building.Map.powerNetGrid.TransmittedPowerNetAt(building.Position) != null}" +
+               $", offDeck={(offDeck.Count == 0 ? "-" : string.Join("/", offDeck.Select(c => $"({c.x},{c.z})")))}";
+    }
+
+    /// <summary>Gives a building a net without touching whether it is switched on.</summary>
+    private static void JoinNet(Building? building)
+    {
+        if (building == null || !building.Spawned) return;
+        building.TryGetComp<CompFlickable>()?.SwitchIsOn = true;
+        if (building.TryGetComp<CompPowerTrader>() is not { } power) return;
+        // A building spawned into a queued batch is only guaranteed a net if its own register action is
+        // still pending. Ours are usually already consumed by the first global update, and nothing ever
+        // re-queues them, so the net is never created. Re-declaring the transmitter and running the
+        // native phases is the same path the game takes when a player builds the part by hand; there is
+        // no manual PowerNet surgery here.
+        for (int attempt = 0; attempt < 4 && power.PowerNet == null; attempt++)
+        {
+            if (power.Props.transmitsPower) map.powerNetManager.Notify_TransmitterSpawned(power);
+            if (building.def.ConnectToPower) map.powerNetManager.Notify_ConnectorWantsConnect(power);
+            map.powerNetManager.UpdatePowerNetsAndConnections_First();
+        }
+        if (power.PowerNet == null) power.TryManualReconnect(dispayVisuals: false);
+    }
+
+    /// <summary>Switches a building on the way a player does: it must already have a net.</summary>
+    private static void PowerUp(Building? building)
+    {
+        if (building == null || !building.Spawned) return;
+        if (building.TryGetComp<CompPowerTrader>() is not { } power) return;
+        if (power.PowerNet == null) return;
+        power.PowerOn = true;
+    }
+
+    /// <summary>How many of the launch pad's own cells the ground map still claims as ship.</summary>
+    private static int GroundLaunchCells()
+    {
+        if (sos2GroundMap == null || sos2GroundMap.Disposed) return 0;
+        return sos2LaunchCells.Count(c => Sos2Compatibility.ShipIndexAt(sos2GroundMap, c) >= 0);
+    }
+
+    private static void ObserveFlight()
+    {
+        if (sos2FlightReported) return;
+        // The engine is the only thing that decides whether the ship climbs, so its own live state is
+        // reported first: an engine whose building is despawned reads as "powered off" from SOS2's side
+        // even though the power graph is fine, and that is a different failure from a dead net.
+        // Reported once - this method runs every tick of the flight window.
+        if (!sos2EngineReported && sos2LaunchEngine != null)
+        {
+            sos2EngineReported = true;
+            Check("sos2-launch-engine-survives-the-move", sos2LaunchEngine.Spawned && sos2LaunchEngine.Map != null,
+                LiveEngineReport());
+        }
+        // The bug is the ship coming back. SOS2's landing branch calls MoveShip back to PrevMap, so the
+        // map to watch is the one the fixture launched from - the transit state is not a reliable
+        // signal, because a ship that fell back keeps reporting inTransit until the move completes.
+        // It has to be asked about the launch pad's own cells: earlier phases leave their pads behind
+        // in ShipsOnMap, so "the ground map has a ship" is true long before the ship ever launched.
+        int returned = GroundLaunchCells();
+        if (returned > 0)
+        {
+            sos2FlightReported = true;
+            Check("sos2-launch-ship-does-not-fall-back", false,
+                $"ship returned to the ground map: groundCells={returned}/{sos2LaunchCells.Length}");
+            return;
+        }
+        if (sos2SpaceMap == null || sos2SpaceMap.Disposed)
+        {
+            sos2FlightReported = true;
+            Check("sos2-launch-ship-does-not-fall-back", false, "the space map was disposed mid-flight");
+        }
+    }
+
+    private static void FinishFlight()
+    {
+        if (sos2SpaceMap == null || sos2SpaceMap.Disposed)
+        {
+            Check("sos2-launch-space-map-survives-the-flight", false, $"spaceMap={sos2SpaceMap}");
+            return;
+        }
+        object? component = Sos2Compatibility.ShipCompOf(sos2SpaceMap);
+        object? cache = Sos2ShipCache(sos2SpaceMap);
+        object? state = component == null ? null : AccessTools.Field(component.GetType(), "ShipMapState")?.GetValue(component);
+        object? heading = component == null ? null : AccessTools.Field(component.GetType(), "Heading")?.GetValue(component);
+        Check("sos2-launch-space-map-survives-the-flight", true, $"size={sos2SpaceMap.Size}");
+        Check("sos2-launch-ship-stays-in-the-space-map", cache != null,
+            $"spaceCells={CountCells(component)}, state={state}, heading={heading}");
+        // Paired with ObserveFlight: that one reports the failure the moment the ship lands back, this
+        // one only records the pass when the whole window went by without it happening.
+        if (!sos2FlightReported)
+            Check("sos2-launch-ship-does-not-fall-back", true,
+                $"state={state}, heading={heading}, altitude={AccessTools.Field(component?.GetType() ?? typeof(object), "Altitude")?.GetValue(component)}");
+        // The decks are the reason this is a RimLayers problem at all. A hull that arrives with an
+        // empty upper band is the failure the deck-move patch was written for.
+        var space = LayerMapComponent.For(sos2SpaceMap);
+        if (space?.Layout is { LayerCount: >= 2 })
+        {
+            int decked = 0;
+            foreach (IntVec3 c in space.LayerRect(1))
+                if (sos2SpaceMap.terrainGrid.FoundationAt(c) != null) decked++;
+            Check("sos2-launch-upper-deck-arrives-with-a-floor", decked > 0, $"decked={decked}");
+        }
+        else
+        {
+            Check("sos2-launch-upper-deck-arrives-with-a-floor", false, $"layout={space?.Layout}");
+        }
+        Check("sos2-launch-ground-map-is-cleared-of-the-ship", GroundLaunchCells() == 0,
+            $"groundCells={GroundLaunchCells()}/{sos2LaunchCells.Length}");
+        // Evidence that the re-power patch is what the flight needed, rather than a ship that happened
+        // to survive on its own. Passes counts native re-power runs on a multi-deck hull; Restored
+        // counts the parts this adapter had to switch on beyond the bridge's own deck.
+        Check("sos2-launch-repower-patch-runs-on-a-multi-deck-hull",
+            RimLayers.Compatibility.Sos2RepowerPatches.Passes > 0,
+            $"passes={RimLayers.Compatibility.Sos2RepowerPatches.Passes}, restored={RimLayers.Compatibility.Sos2RepowerPatches.Restored}");
+    }
+
+    private static string LiveEngineReport()
+    {
+        Building? engine = sos2LaunchEngine;
+        if (engine == null) return "no engine";
+        CompPowerTrader? power = engine.TryGetComp<CompPowerTrader>();
+        CompFlickable? flick = engine.TryGetComp<CompFlickable>();
+        return $"{engine.def.defName} spawned={engine.Spawned}, destroyed={engine.Destroyed}" +
+               $", map={(engine.Map == null ? "null" : engine.Map.ToString())}" +
+               $", pos=({engine.Position.x},{engine.Position.z})" +
+               $", flick={flick?.SwitchIsOn}, on={power?.PowerOn}, net={power?.PowerNet != null}";
+    }
+
+    private static Map? SpaceMap()
+    {
+        foreach (Map candidate in Find.Maps)
+            // SOS2 marks an orbiting map by its world-object parent, not by biome: the orbiting parent
+            // type is the only thing LaunchShip sets before the ship arrives.
+            if (candidate != map && candidate.Parent?.GetType().Name.Contains("OrbitingShip") == true)
+                return candidate;
+        return null;
+    }
+
+    /// <summary>One specific hull on a map, by the index its bridge carries.</summary>
+    private static object? Sos2ShipCache(Map target, int index)
+    {
+        object? component = Sos2Compatibility.ShipCompOf(target);
+        if (component == null) return null;
+        System.Collections.IDictionary? ships = AccessTools.PropertyGetter(Sos2Compatibility.ShipMapCompType, "ShipsOnMap")
+            ?.Invoke(component, null) as System.Collections.IDictionary;
+        return ships != null && ships.Contains(index) ? ships[index] : null;
+    }
+
+    /// <summary>How many hulls the map currently tracks, so a by-index lookup that finds nothing is explainable.</summary>
+    private static int Sos2ShipCount()
+    {
+        System.Collections.IDictionary? ships = AccessTools.PropertyGetter(Sos2Compatibility.ShipMapCompType, "ShipsOnMap")
+            ?.Invoke(sos2ShipComp, null) as System.Collections.IDictionary;
+        return ships?.Count ?? -1;
+    }
+
+    private static object? Sos2ShipCache(Map target)
+    {
+        object? component = Sos2Compatibility.ShipCompOf(target);
+        if (component == null) return null;
+        System.Collections.IDictionary? ships = AccessTools.PropertyGetter(Sos2Compatibility.ShipMapCompType, "ShipsOnMap")
+            ?.Invoke(component, null) as System.Collections.IDictionary;
+        if (ships is not { Count: > 0 }) return null;
+        foreach (System.Collections.DictionaryEntry entry in ships) return entry.Value;
+        return null;
+    }
+
+    private static int CountCells(object? component)
+    {
+        if (component == null) return -1;
+        return (AccessTools.PropertyGetter(component.GetType(), "MapShipCells")?.Invoke(component, null)
+            as System.Collections.ICollection)?.Count ?? -1;
+    }
+
+    private static bool CanMoveOf(object? cache) =>
+        cache != null && cache.GetType().GetMethod("CanMove", Type.EmptyTypes)?.Invoke(cache, null) is true;
+
+    private static string Details(object? cache)
+    {
+        if (cache == null) return "no ship cache";
+        var type = cache.GetType();
+        object? stuck = type.GetProperty("IsStuck")?.GetValue(cache);
+        object? wreck = type.GetProperty("IsWreck")?.GetValue(cache);
+        object? thrust = type.GetProperty("ThrustRatio")?.GetValue(cache);
+        return $"stuck={stuck}, wreck={wreck}, thrust={thrust}, {EngineReport(cache)}";
+    }
+
+    /// <summary>
+    /// Per-engine flight state. CanMove only ever asks "does one engine fire", so when it is false the
+    /// answer lives in these three flags - a switched-off engine, a dead power net, or a rotation that
+    /// no longer matches the hull after the ship was mirrored onto another map.
+    /// </summary>
+    private static string EngineReport(object cache)
+    {
+        if (cache.GetType().GetField("Engines")?.GetValue(cache) is not System.Collections.IEnumerable engines)
+            return "engines=?" ;
+        var parts = new List<string>();
+        foreach (object? engine in engines)
+        {
+            if (engine == null) continue;
+            var type = engine.GetType();
+            object? flick = type.GetField("flickComp")?.GetValue(engine);
+            object? power = type.GetField("powerComp")?.GetValue(engine);
+            object? fuel = type.GetField("refuelComp")?.GetValue(engine);
+            object? parent = type.GetField("parent")?.GetValue(engine);
+            bool fires = type.GetMethod("CanFire", Type.EmptyTypes)?.Invoke(engine, null) is true;
+            // The cached comps are the ones SOS2 bound at PostSpawnSetup. If they are null while the same
+            // building reports a live net, the engine is reading a stale reference, not a dead graph -
+            // that distinction is the whole difference between an adapter bug and a fixture bug.
+            object? liveFlick = (parent as ThingWithComps)?.TryGetComp<CompFlickable>();
+            object? livePower = (parent as ThingWithComps)?.TryGetComp<CompPowerTrader>();
+            bool cachedNull = flick == null || power == null;
+            bool on = flick?.GetType().GetProperty("SwitchIsOn")?.GetValue(flick) is true;
+            bool powered = power?.GetType().GetProperty("PowerOn")?.GetValue(power) is true;
+            bool net = power?.GetType().GetProperty("transNet")?.GetValue(power) != null;
+            float stored = fuel?.GetType().GetProperty("Fuel")?.GetValue(fuel) is float f ? f : -1f;
+            parts.Add($"[fires={fires}, switch={on}, power={powered}, net={net}, fuel={stored:0.#}" +
+                      $", rot={(parent as Thing)?.Rotation.ToString() ?? "?"}" +
+                      $", cachedNull={cachedNull}, liveSwitch={liveFlick?.GetType().GetProperty("SwitchIsOn")?.GetValue(liveFlick) is true}" +
+                      $", livePower={livePower?.GetType().GetProperty("PowerOn")?.GetValue(livePower) is true}" +
+                      $", liveNet={livePower?.GetType().GetProperty("PowerNet")?.GetValue(livePower) != null}" +
+                      $", spawned={(parent as Thing)?.Spawned}, sameMap={ReferenceEquals((parent as Thing)?.Map, map)}" +
+                      $", liveIsCached={ReferenceEquals(livePower, power)}]");
+        }
+        return parts.Count == 0 ? "engines=0" : string.Join(" ", parts);
     }
 
     private static Thing? Sentry(IntVec3 cell)    {

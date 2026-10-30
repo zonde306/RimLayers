@@ -222,6 +222,41 @@ public sealed class StructuralSupport
          else owner.map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_StructuralFloor);}
     }
 
+    /// <summary>
+    /// Runs <paramref name="action"/>, and while it runs per-cell path-cost refreshes become bookkeeping
+    /// only. The structural sets are still updated; what is skipped is the write into the map's path
+    /// grid, which is the single operation in this class that reaches into other mods.
+    /// </summary>
+    /// <remarks>
+    /// This exists for moves. A hull leaving a map rewrites every deck cell, and each write would
+    /// otherwise recost that cell - thousands of refreshes on a grid the map is about to abandon. It is
+    /// also the only way to make the source map safe: Vehicle Framework postfixes
+    /// <c>Pathing.RecalculatePerceivedPathCostAt</c> and reads per-map vehicle pathing context, which a
+    /// departing map never had, so the call throws <c>AccessViolationException</c> out of
+    /// <c>PathGrid.RecalcuateCellDirect</c> and aborts the ship move halfway through.
+    /// </remarks>
+    internal static IDisposable Settling() => new SettleScope();
+
+    private static int settling;
+
+    /// <summary>
+    /// True while moves are rewriting structure. Every patch that would refresh a cell's path cost has
+    /// to consult this, not just the ones in this class: <c>ShipFoundationRemovalCommit</c> postfixes
+    /// <c>TerrainGrid.RemoveFoundation</c> directly and never passes through here.
+    /// </summary>
+    internal static bool SettlingNow => settling > 0;
+
+    private sealed class SettleScope : IDisposable
+    {
+        internal SettleScope() => settling++;
+        public void Dispose() => settling--;
+    }
+
+    private void Recost(IntVec3 cell)
+    {
+        if (!SettlingNow) owner.map.pathing.RecalculatePerceivedPathCostAt(cell);
+    }
+
     internal void TerrainChanged(IntVec3 cell, TerrainDef? terrain)
     {
         if (!owner.TryDecode(cell, out var logical) || logical.LayerId == 0) return;
@@ -229,7 +264,7 @@ public sealed class StructuralSupport
             (terrain == RimLayersDefOf.RL_OpenAir || terrain == RimLayersDefOf.RL_Isolation) && owner.StructuralCells.Remove(cell);
         if (changed)
         {
-            owner.map.pathing.RecalculatePerceivedPathCostAt(cell);
+            Recost(cell);
             RoofChanged(cell);
         }
         // Connector edges read only their own columns; unrelated terrain writes must not
@@ -256,7 +291,7 @@ public sealed class StructuralSupport
             {
                 affected=true;
                 if (!HasRequiredRoof(upper)) owner.PendingCollapse.Add(upper);
-                owner.map.pathing.RecalculatePerceivedPathCostAt(upper);
+                Recost(upper);
             }
         }
         if(affected||owner.Connectors.TouchesColumn(cell)) owner.Connectors.Invalidate();

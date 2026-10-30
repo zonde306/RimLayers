@@ -79,9 +79,21 @@ internal static class Sos2DeckMovePatch
         // A deck that stays behind would let the player build on a hull that has already left, so the
         // source loses it. The bookkeeping has to go through the source map's own component: the cell
         // coordinates are the source's, not the target's.
+        //
+        // The wider suppression matters here. <c>RemoveFoundation</c> ends in
+        // <c>DoTerrainChangedEffects</c>, and Vehicle Framework attaches a prefix to that method which
+        // dereferences per-map vehicle pathing state. A departing ship's map is about to be disposed, so
+        // there is no pathing state to update and no blueprint, designation or region worth refreshing -
+        // letting the chain run only gives it a chance to throw and abort the flight.
         TerrainGrid source = __state.Source.terrainGrid;
         LayerMapComponent? owner = LayerMapComponent.For(__state.Source);
-        using (Sos2TerrainPatches.Suppressed())
+        // Three layers of protection, each for a different reader. SuppressedEffects() keeps vanilla's
+        // terrain-change chain from running at all; Settling() keeps RimLayers' own per-cell path-cost
+        // refresh out of the way too, since the map is being abandoned and Vehicle Framework's postfix
+        // on Pathing reads vehicle pathing context that this map never had. Both are scoped to the cell
+        // loop so anything outside it behaves normally.
+        using (Sos2TerrainPatches.SuppressedEffects())
+        using (StructuralSupport.Settling())
             foreach (IntVec3 cell in __state.Cells)
             {
                 if (!StructuralSupport.IsSos2DeckTerrain(source.FoundationAt(cell))) continue;

@@ -160,7 +160,11 @@ internal static partial class V1Integration
         // CameraClampPatch, so the camera never rises above ~37 and the native far plane happens to
         // suffice. Only a large map reaches the native maximum (rootSize 60, camera y 65) where the
         // projected backdrop fell outside the frustum; the scenario must be able to reproduce that.
-        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:scenario=="ship-vge"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var vgeSize)?int.Parse(vgeSize):scenario=="presentation"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var presentationSize)?int.Parse(presentationSize):120;
+        // sos2 honours -MapSize for a related reason: SOS2 generates its space map from `originMap.Size`
+        // and the adapter derives that map's layer bands from the same size. A 120 map gives stride 136
+        // and keeps a two-deck hull inside one band, so the launch regression - which only bites once a
+        // hull's storage z crosses the band boundary - cannot reproduce there.
+        Find.GameInitData.mapSize = scenario=="collapse-perf"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var collapseSize)?int.Parse(collapseSize):scenario=="environment-perf"?250:scenario=="settings-perf"?250:scenario=="underground"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var undergroundSize)?int.Parse(undergroundSize):scenario=="scale"?scaleSize:scenario=="reachability"?250:scenario=="ship-vge"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var vgeSize)?int.Parse(vgeSize):scenario=="sos2"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var sos2Size)?int.Parse(sos2Size):scenario=="presentation"&&GenCommandLine.TryGetCommandLineArg("rimlayersmapsize",out var presentationSize)?int.Parse(presentationSize):120;
         foreach (var tile in Find.WorldGrid.Tiles)
             if (tile.PrimaryBiome == BiomeDefOf.TemperateForest && tile.hilliness == Hilliness.Flat &&
                 RimWorld.Planet.TileFinder.IsValidTileForNewSettlement(tile.tile))

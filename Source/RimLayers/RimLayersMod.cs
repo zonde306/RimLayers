@@ -50,6 +50,11 @@ public sealed class RimLayersMod : Mod
         foreach (var type in typeof(RimLayersMod).Assembly.GetTypes())
             if (type.GetCustomAttributes(typeof(HarmonyPatch), false).Length != 0)
             {
+                // An optional adapter installed above has already processed its own classes. Harmony
+                // does not deduplicate, so processing them here a second time registers every prefix
+                // and postfix twice - a ship move would run its deck fix-up, and a terrain write its
+                // suppression check, twice per call.
+                if (Compatibility.Sos2Compatibility.AlreadyInstalled(type)) continue;
                 // Harmony's class processor rethrows any transpiler/patch failure, and a throw here
                 // aborts the mod constructor: every later patch class (and the optional VGE adapter)
                 // silently disappears and the game looks inert. Isolate per class so one third-party

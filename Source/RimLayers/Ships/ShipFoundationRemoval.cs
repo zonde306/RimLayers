@@ -44,7 +44,11 @@ internal static class ShipFoundationRemovalCommit
     {
         var o=LayerMapComponent.For(___map);if(o==null)return;
         if(___map.terrainGrid.FoundationAt(c)==null&&___map.terrainGrid.TopTerrainAt(c)!=RimLayersDefOf.RL_StructuralFloor&&___map.terrainGrid.UnderTerrainAt(c)!=RimLayersDefOf.RL_StructuralFloor)o.StructuralCells.Remove(c);
-        o.map.pathing.RecalculatePerceivedPathCostAt(c);
+        // While a hull is being moved this map is about to be abandoned, and Vehicle Framework's postfix
+        // on Pathing reads vehicle pathing context this map never had - the call throws
+        // AccessViolationException out of PathGrid.RecalcuateCellDirect and aborts the move. The
+        // structural bookkeeping above still has to happen; only the path-cost write does not.
+        if(!RimLayers.Structure.StructuralSupport.SettlingNow)o.map.pathing.RecalculatePerceivedPathCostAt(c);
         o.Structure.RoofChanged(c);o.Invalidate(c,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);
     }
 }
