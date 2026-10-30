@@ -581,6 +581,31 @@ internal static partial class V1Integration
             Check("sos2-a-bridge-is-still-refused-over-empty-space", !offShip.Accepted, $"reason={offShip.Reason}");
         }
         else Check("sos2-a-bridge-can-stand-on-an-upper-deck", false, $"bridge={bridge != null}, worker={hullWorker != null}");
+
+        // The bug the player reported: a bridge actually standing on an upper deck threw
+        // KeyNotFoundException from CompShipCachePart.CompInspectStringExtra, because it owned no ship
+        // index and the dev-mode string then indexed ShipsOnMap[-1]. Being placeable is not enough -
+        // the hull below has to adopt the part, and its inspect string has to come out clean.
+        if (upperConduit != null)
+        {
+            IntVec3 deckCell = upperConduit.Position;
+            Building? seated = SpawnSos2("ShipPilotSeatMini", deckCell, Rot4.North);
+            Check("sos2-a-bridge-sits-on-an-upper-deck", seated != null);
+            if (seated != null)
+            {
+                IntVec3 hullCell = owner.Adjacent(deckCell, -1);
+                int seatedIndex = Sos2Compatibility.ShipIndexAt(map, seated.Position);
+                Check("sos2-an-upper-deck-bridge-belongs-to-the-hull-below", seatedIndex >= 0,
+                    $"index={seatedIndex}, hullIndex={Sos2Compatibility.ShipIndexAt(map, hullCell)}");
+                string inspect = string.Empty;
+                bool threw = false;
+                try { inspect = seated.GetInspectString(); }
+                catch (Exception exception) { threw = true; inspect = exception.GetType().Name + ": " + exception.Message; }
+                Check("sos2-an-upper-deck-bridge-can-be-inspected", !threw,
+                    threw ? inspect : inspect.Replace("\n", " | "));
+                seated.Destroy();
+            }
+        }
     }
 
     /// <summary>

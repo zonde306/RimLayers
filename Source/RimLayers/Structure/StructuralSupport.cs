@@ -88,8 +88,11 @@ public sealed class StructuralSupport
     internal static bool IsDeckTerrain(TerrainDef? terrain)
     {
         if (terrain == null) return false;
-        return terrain == RimLayersDefOf.RL_StructuralFloor || terrain == Sos2Deck;
+        return terrain == RimLayersDefOf.RL_StructuralFloor || IsSos2DeckTerrain(terrain);
     }
+
+    /// <summary>True only for the Save Our Ship 2 deck, whose ship is owned by SOS2 rather than RimLayers.</summary>
+    internal static bool IsSos2DeckTerrain(TerrainDef? terrain) => terrain != null && terrain == Sos2Deck;
 
     internal static bool SupportedRoof(RoofDef? roof)=>roof==RoofDefOf.RoofConstructed||roof==RoofDefOf.RoofRockThin;
     // A connector roof decides whether a stair or lift may break through the ceiling above it, so it
@@ -232,6 +235,11 @@ public sealed class StructuralSupport
         // Connector edges read only their own columns; unrelated terrain writes must not
         // invalidate the graph, which would rebuild heat/air/environment topology wholesale.
         if(owner.Connectors.TouchesColumn(cell)) owner.Connectors.Invalidate();
+        // The deck above a hull belongs to that hull. SOS2 derives ship membership from buildings, so
+        // a bare deck cell never enters its cache on its own; see Sos2DeckRegistry.
+        if (IsSos2DeckTerrain(terrain) || IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(cell)) ||
+            IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(cell)))
+            Compatibility.Sos2DeckRegistry.SyncCell(owner.map, cell);
         if(RimLayersMod.Settings.AutoRecovery)
             foreach(var thing in cell.GetThingList(owner.map).ToArray())RimLayers.Recovery.EntityRecoveryService.Current?.Notice(thing,owner.map,"Structure");
     }

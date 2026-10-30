@@ -46,6 +46,8 @@ internal static class Sos2Compatibility
     private static Type? shipInterior;
     private static Type? shipHeatComp;
     private static MethodInfo? mapShipCellsGetter;
+    private static MethodInfo? shipsOnMapGetter;
+    private static MethodInfo? addToCache;
     private static FieldInfo? shipMapGrid;
     private static FieldInfo? heatGridDirty;
     private static FieldInfo? breathableZoneDirty;
@@ -95,6 +97,7 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2FoamPatches));
         Patch(harmony, typeof(Sos2SubsystemPatches));
         Patch(harmony, typeof(Sos2PlacementPatches));
+        Patch(harmony, typeof(Sos2DeckRegistryPatches));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
     }
@@ -223,6 +226,49 @@ internal static class Sos2Compatibility
         comp == null || mapShipCellsGetter == null ? null : mapShipCellsGetter.Invoke(comp, null) as IDictionary;
 
     internal static bool HasShipCells(MapComponent? comp) => comp != null && ShipCellsOf(comp) is { Count: > 0 };
+
+    /// <summary>The live <c>ShipsOnMap</c> dictionary, or null when SOS2 is absent.</summary>
+    internal static IDictionary? ShipsOnMapOf(Map? map)
+    {
+        MapComponent? comp = ShipCompOf(map);
+        if (comp == null) return null;
+        MethodInfo? getter = shipsOnMapGetter ??= AccessTools.PropertyGetter(shipMapComp, "ShipsOnMap");
+        return getter?.Invoke(comp, null) as IDictionary;
+    }
+
+    /// <summary>One <c>SpaceShipCache</c> by index, or null when that ship is gone.</summary>
+    internal static object? ShipOf(IDictionary ships, int index) =>
+        index < 0 || !ships.Contains(index) ? null : ships[index];
+
+    /// <summary>The <c>Area</c> set of one ship, or null when the ship or the member is missing.</summary>
+    internal static ICollection<IntVec3>? ShipAreaOf(IDictionary ships, int index)
+    {
+        object? ship = ShipOf(ships, index);
+        return ship == null ? null : AccessTools.Field(ship.GetType(), "Area")?.GetValue(ship) as ICollection<IntVec3>;
+    }
+
+    /// <summary>True when the building carries SOS2's ship-part comp, i.e. SOS2 can cache it.</summary>
+    internal static bool HasShipCachePart(Building building) =>
+        shipCachePart != null && building.AllComps.Any(comp => shipCachePart.IsInstanceOfType(comp));
+
+    /// <summary>Adds a building to a ship's cache through SOS2's own entry point.</summary>
+    /// <remarks>
+    /// <c>SpaceShipCache.AddToCache</c> is idempotent (<c>Buildings.Add</c> guards the body) and is the
+    /// same method the adjacency walk calls, so a part it already adopted is left untouched.
+    /// </remarks>
+    internal static void AddBuildingToShip(object ship, Building building)
+    {
+        MethodInfo? add = addToCache ??= AccessTools.Method(ship.GetType(), "AddToCache", new[] { typeof(Building) });
+        if (add == null) return;
+        try
+        {
+            add.Invoke(ship, new object[] { building });
+        }
+        catch (Exception exception)
+        {
+            Log.Warning("[RimLayers] SOS2 AddToCache failed for " + building.def.defName + ". " + exception.Message);
+        }
+    }
 
     /// <summary>
     /// Rebuilds SOS2's per-cell heat grid after the map grew a band. The expansion copies the ground
