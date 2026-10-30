@@ -42,6 +42,9 @@ internal static class ConstructionCommitPatch
     static bool Prefix(Frame __instance, Pawn worker)
     {
         bool stair=ConnectorDefs.IsAdjacent(__instance.def.entityDefToBuild);
+        // Frame.CompleteConstruction itself dereferences worker, so a null worker is already invalid
+        // usage; guard anyway because a prefix that throws turns a bad call into a hard crash.
+        if(worker==null)return true;
         // Only a colonist's own build is a player action; a raider's frame is not worth a window.
         bool playerBuild=worker.Faction==Faction.OfPlayer;
         if(stair&&!StairLayerBootstrap.Prepare(__instance.Map,__instance.Position,__instance.Rotation,__instance.def.entityDefToBuild,report:playerBuild))

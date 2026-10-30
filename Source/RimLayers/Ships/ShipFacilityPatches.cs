@@ -392,6 +392,10 @@ internal static class ShipFoundationChange
 {
     static void Postfix(IntVec3 c,TerrainDef newTerr,Map ___map)
     {
+        // TerrainGrid.SetFoundation logs and returns on a null terrain, but Harmony still runs the
+        // postfix. Without Odyssey loaded TerrainDefOf.Substructure itself is null, so any mod (or
+        // fixture) that passes it would otherwise crash us here.
+        if(newTerr==null)return;
         var o=LayerMapComponent.For(___map);if(o==null)return;
         if(newTerr.IsSubstructure&&o.TryDecode(c,out var l)&&l.LayerId>0)o.StructuralCells.Add(c);
         if(newTerr.IsSubstructure&&o.Ships.ClaimAt(c)==0&&o.Ships.BuildOwner(c) is {} buildOwner)o.Ships.Assign(c,buildOwner.thingIDNumber);

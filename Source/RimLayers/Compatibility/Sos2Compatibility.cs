@@ -49,6 +49,7 @@ internal static class Sos2Compatibility
     private static FieldInfo? shipMapGrid;
     private static FieldInfo? heatGridDirty;
     private static FieldInfo? breathableZoneDirty;
+    private static MethodInfo? shipIndexOnVec;
 
     internal static void Install(Harmony harmony)
     {
@@ -92,6 +93,7 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2HeatPatches));
         Patch(harmony, typeof(Sos2FoamPatches));
         Patch(harmony, typeof(Sos2SubsystemPatches));
+        Patch(harmony, typeof(Sos2PlacementPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
     }
 
@@ -106,6 +108,19 @@ internal static class Sos2Compatibility
             Log.Error("[RimLayers] SOS2 patch class " + type.Name + " failed and was skipped; the rest of the adapter keeps working.");
             Log.Error(exception.ToString());
         }
+    }
+
+    /// <summary>
+    /// The <c>AllowsPlacing</c> method of one of SOS2's ship placement workers, or null when the
+    /// worker type is gone. Returned as <c>MethodBase</c> because a <c>PlaceWorker</c> subclass method
+    /// is what Harmony must patch; the adapter has no compile-time reference to it.
+    /// </summary>
+    internal static System.Reflection.MethodBase? PlacementWorkerMethod(string workerName)
+    {
+        Type? assemblyOwner = shipMapComp;
+        if (assemblyOwner == null) return null;
+        Type? worker = assemblyOwner.Assembly.GetType("SaveOurShip2." + workerName, throwOnError: false);
+        return worker == null ? null : AccessTools.Method(worker, "AllowsPlacing");
     }
 
     private static Type Require(Assembly assembly, string name) =>
@@ -135,6 +150,31 @@ internal static class Sos2Compatibility
     }
 
     internal static bool MapClaims(Map map, IntVec3 cell) => ShipCellsOf(map)?.Contains(cell) ?? false;
+
+    /// <summary>
+    /// SOS2's own <c>ShipMapComp.ShipIndexOnVec</c>, i.e. which ship owns a cell, or -1.
+    /// </summary>
+    /// <remarks>
+    /// Reflected rather than reimplemented on purpose: SOS2 validates the index against
+    /// <c>ShipsOnMap</c> and returns -1 for a cell whose ship was removed, and a second copy of that
+    /// rule here would drift.
+    /// </remarks>
+    internal static int ShipIndexAt(Map? map, IntVec3 cell)
+    {
+        MapComponent? comp = ShipCompOf(map);
+        if (comp == null) return -1;
+        MethodInfo? method = shipIndexOnVec ??= AccessTools.Method(shipMapComp, "ShipIndexOnVec");
+        if (method == null) return -1;
+        try
+        {
+            return method.Invoke(comp, new object[] { cell }) is int index ? index : -1;
+        }
+        catch (Exception exception)
+        {
+            Log.Warning("[RimLayers] SOS2 ShipIndexOnVec failed; treating the cell as unclaimed. " + exception.Message);
+            return -1;
+        }
+    }
 
     internal static MapComponent? ShipCompOf(Map? map) =>
         shipMapComp == null || map == null ? null : map.GetComponent(shipMapComp);
@@ -178,8 +218,7 @@ internal static class Sos2Compatibility
     }
 
     internal static Type? ShipMapCompType => shipMapComp;
-    internal static Type? ShipCachePartType => shipCachePart;
-    internal static Type? ShipBridgeType => shipBridge;
+    internal static Type? ShipCachePartType => shipCachePart;    internal static Type? ShipBridgeType => shipBridge;
     internal static Type? ShipInteriorType => shipInterior;
 
     /// <summary>True when both cells sit on the same deck; always true on an unmanaged map.</summary>

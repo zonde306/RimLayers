@@ -6,7 +6,9 @@ using RimLayers.Compatibility;
 using RimLayers.Core;
 using RimLayers.Generation;
 using RimLayers.Layout;
+using RimLayers.Structure;
 using RimWorld;
+using RimWorld.Planet;
 using Verse;
 
 namespace RimLayers.Diagnostics;
@@ -127,7 +129,9 @@ internal static partial class V1Integration
 
     private static Building? UpperHeatPart() => HeatPartOn(1);
 
-    private static Building? SpawnSos2(string defName, IntVec3 cell, Rot4 rot)
+    private static Building? SpawnSos2(string defName, IntVec3 cell, Rot4 rot) => SpawnSos2On(map, defName, cell, rot);
+
+    private static Building? SpawnSos2On(Map target, string defName, IntVec3 cell, Rot4 rot)
     {
         ThingDef? def = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
         if (def == null)
@@ -137,7 +141,7 @@ internal static partial class V1Integration
         }
         var building = (Building)ThingMaker.MakeThing(def);
         building.SetFaction(Faction.OfPlayer);
-        GenSpawn.Spawn(building, cell, map, rot);
+        GenSpawn.Spawn(building, cell, target, rot);
         return building;
     }
 
@@ -349,6 +353,13 @@ internal static partial class V1Integration
         if (sos2Phase == 8)
         {
             Sos2OffShipStep();
+            sos2Phase = 9;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 9)
+        {
+            Sos2StairStep();
             sos2Phase = 6;
             ticks = 0;
             return;
@@ -658,8 +669,152 @@ internal static partial class V1Integration
         Check("sos2-offship-still-clears-the-ground-deck", groundSilver.Destroyed, $"destroyed={groundSilver.Destroyed}");
     }
 
-    private static Thing? Sentry(IntVec3 cell)
+    /// <summary>
+    /// Building a second deck on a real SOS2 ship, the way a player does it: lay hull plating on the
+    /// deck above, then finish a stair that breaks through the ship's own roof.
+    /// </summary>
+    /// <remarks>
+    /// SOS2 never generates its space map with layers (RimLayers only pre-expands maps it generated
+    /// itself, and a space map belongs to SOS2), so a ship in orbit has no <see cref="LayerMapComponent"/>.
+    /// The first stair is therefore the only way a player can open a deck, and it has to accept the
+    /// roof SOS2 puts over a hermetic hull - <c>RoofShip</c>, not <c>RoofConstructed</c>. That is the
+    /// exact case a registered support roof used to open a deck for but never let a stair reach.
+    /// </remarks>
+    /// <summary>
+    /// The deck a player opens on a space map. <c>map</c> is already layered by the time this runs,
+    /// so the scenario uses the band above it: a deck that exists but has never been plated.
+    /// </summary>
+    private static readonly CellRect sos2StairSite = new(76, 76, 8, 8);
+    private static IntVec3 sos2StairCell = IntVec3.Invalid;
+
+    private static void Sos2StairStep()
     {
+        var component = LayerMapComponent.For(map);
+        if (component == null)
+        {
+            Check("sos2-stair-fixture-has-layers", false, "no LayerMapComponent on the scenario map");
+            return;
+        }
+        // The scenario map itself is a settlement fixture, not an orbiting ship map; what this step
+        // needs is a band above the ground deck that has never been plated. The space-map side of the
+        // adapter is covered by sos2-space-map-is-generated-at-the-logical-size in the subsystem step.
+        Check("sos2-stair-fixture-has-a-deck-above", component.Layout is { LayerCount: >= 2 },
+            $"parent={map.Parent?.GetType().Name}, layers={component.Layout?.LayerCount}");
+        ThingDef? hullDef = DefDatabase<ThingDef>.GetNamedSilentFail("ShipHullTile");
+        RoofDef? shipRoof = DefDatabase<RoofDef>.GetNamedSilentFail("RoofShip");
+        if (hullDef == null || shipRoof == null)
+        {
+            Check("sos2-stair-defs-exist", false, $"hull={hullDef != null}, roof={shipRoof != null}");
+            return;
+        }
+        int deck = 1;
+        if (!component.TryDecode(component.AtElevation(deck, sos2StairSite.minX, sos2StairSite.minZ), out _))
+        {
+            Check("sos2-stair-deck-exists", false, $"elevation={deck}, layout={component.Layout}");
+            return;
+        }
+        // A bare deck with no ship on it: the floor below is what a player stands on, and the band
+        // above is the space the stair has to open into.
+        foreach (IntVec3 c in sos2StairSite)
+        {
+            IntVec3 lower = component.AtElevation(0, c.x, c.z);
+            IntVec3 upper = component.AtElevation(deck, c.x, c.z);
+            foreach (IntVec3 cell in new[] { lower, upper })
+                foreach (Thing t in cell.GetThingList(map).ToList())
+                    if (t is not Pawn)
+                    {
+                        if (t.def.destroyable) t.Destroy(DestroyMode.Vanish);
+                        else t.DeSpawn();
+                    }
+            map.terrainGrid.SetFoundation(lower, TerrainDefOf.Substructure);
+            map.terrainGrid.SetTerrain(lower, TerrainDefOf.Concrete);
+            map.terrainGrid.SetTerrain(upper, RimLayersDefOf.RL_OpenAir);
+            map.roofGrid.SetRoof(upper, null);
+            map.fogGrid.Unfog(lower);
+            map.fogGrid.Unfog(upper);
+        }
+        map.roofCollapseBuffer.CellsMarkedToCollapse.RemoveAll(c => sos2StairSite.Contains(new IntVec3(c.x, 0, c.z)) ||
+            component.TryDecode(c, out var at) && sos2StairSite.Contains(new IntVec3(at.X, 0, at.Z)));
+        foreach (IntVec3 c in new[] { new IntVec3(76, 0, 76), new IntVec3(83, 0, 76), new IntVec3(76, 0, 83), new IntVec3(83, 0, 83) })
+            GenSpawn.Spawn(ThingMaker.MakeThing(ThingDefOf.Column, ThingDefOf.Steel), c, map);
+        // Deliberately leave the roof empty before plating. CompShipCachePart only installs RoofShip
+        // when the existing roof is not already airtight; seeding RoofConstructed here would make SOS2
+        // keep it and the whole point of this step (RoofShip is an accepted support) would be skipped.
+        // A real SOS2 space deck starts roofless too, so this mirrors the actual player path.
+        foreach (IntVec3 c in sos2StairSite) SpawnSos2On(map, "ShipHullTile", new IntVec3(c.x, 0, c.z), Rot4.North);
+        map.roofCollapseBuffer.CellsMarkedToCollapse.RemoveAll(c =>
+            sos2StairSite.Contains(new IntVec3(c.x, 0, c.z)) ||
+            component.TryDecode(c, out var marked) && sos2StairSite.Contains(new IntVec3(marked.X, 0, marked.Z)));
+        map.regionAndRoomUpdater.RebuildAllRegionsAndRooms();
+        Check("sos2-stair-deck-carries-the-ship-roof",
+            sos2StairSite.All(c => map.roofGrid.RoofAt(new IntVec3(c.x, 0, c.z))?.defName == "RoofShip"),
+            $"roof={map.roofGrid.RoofAt(new IntVec3(76, 0, 76))?.defName}");
+
+        var worker = new PlaceWorker_LayerSupport();
+        sos2StairCell = new IntVec3(79, 0, 79);
+        AcceptanceReport withShipRoof = worker.AllowsPlacing(RimLayersDefOf.RL_Stairs, sos2StairCell, Rot4.North, map);
+        Check("sos2-stair-is-allowed-under-the-ship-roof", withShipRoof.Accepted, $"reason={withShipRoof.Reason}");
+        AcceptanceReport bootstrap = StairLayerBootstrap.Validate(map, sos2StairCell, Rot4.North);
+        Check("sos2-stair-bootstrap-accepts-the-ship-roof", bootstrap.Accepted, $"reason={bootstrap.Reason}");
+
+        // Finish the frame the way the bootstrap scenario does, then let the tick bootstrap run.
+        var frame = (Frame)ThingMaker.MakeThing(RimLayersDefOf.RL_Stairs.frameDef);
+        frame.SetFaction(Faction.OfPlayer);
+        GenSpawn.Spawn(frame, sos2StairCell, map);
+        foreach (var cost in RimLayersDefOf.RL_Stairs.CostListAdjusted(null))
+        {
+            var material = ThingMaker.MakeThing(cost.thingDef);
+            material.stackCount = cost.count;
+            frame.resourceContainer.TryAdd(material);
+        }
+        // Do NOT clear the roof here. The bootstrap scenario clears it to prove a roofless stair is
+        // rejected and the frame keeps its materials; this step is the opposite - the roof is the
+        // whole reason the stair is allowed to open a deck.
+        // A real pawn, not null. Frame.CompleteConstruction dereferences worker immediately, and so do
+        // the Vehicle Framework and SOS2 prefixes on it, so a null worker fails before RimLayers runs.
+        Pawn builder = map.mapPawns.FreeColonistsSpawned.FirstOrDefault() ??
+            PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist, Faction.OfPlayer);
+        frame.CompleteConstruction(builder);
+        var stair = sos2StairCell.GetThingList(map).OfType<Building_Stairs>().FirstOrDefault();
+        Check("sos2-stair-completion-opens-a-deck", stair != null,
+            $"stair={stair != null}, upper={stair?.UpperCell}, layers={component.Layout?.LayerCount}");
+        if (stair == null) return;
+        IntVec3 landing = stair.UpperCell;
+        Check("sos2-opened-deck-is-reachable-from-the-ship",
+            landing.IsValid && component.Structure.HasSurface(landing),
+            $"layers={component.Layout?.LayerCount}, landing={landing}");
+        if (!landing.IsValid) return;
+        // StructuralSupport.EnsureLanding lays RL_StructuralFloor when no RimLayers ship owns the cell,
+        // which is the case here: the deck belongs to an SOS2 hull, not to a RimLayers engine. Assert
+        // the landing is a real surface, not that it stayed open air - open air is exactly what a
+        // landing must not be.
+        Check("sos2-opened-deck-starts-as-a-real-surface",
+            component.Structure.HasSurface(landing),
+            $"terrain={map.terrainGrid.TerrainAt(landing)?.defName}");
+        // The point of the whole exercise: SOS2 hull can be laid on the deck the stair opened. The
+        // hull only rewrites terrain that is not layerable, so an RL_StructuralFloor cell keeps its
+        // terrain and the tile becomes the deck surface - which is what a player gets either way.
+        SpawnSos2On(map, "ShipHullTile", landing, Rot4.North);
+        Check("sos2-upper-hull-tile-lands-on-the-opened-deck",
+            landing.GetThingList(map).Any(t => t.def.defName == "ShipHullTile"),
+            $"things={string.Join(",", landing.GetThingList(map).Select(t => t.def.defName))}");
+        // Recursion is the real claim: the deck this stair opened can be plated with SOS2 hull, that
+        // hull puts RoofShip on this deck, and RoofShip in turn is what allows the next stair. Without
+        // RoofShip in ConnectorRoof the second stair is refused here.
+        IntVec3 next = landing + IntVec3.East;
+        SpawnSos2On(map, "ShipHullTile", next, Rot4.North);
+        Check("sos2-second-deck-gets-its-own-ship-roof",
+            map.roofGrid.RoofAt(next)?.defName == "RoofShip",
+            $"roof={map.roofGrid.RoofAt(next)?.defName}");
+        AcceptanceReport slabHere = worker.AllowsPlacing(RimLayersDefOf.RL_StructuralFloor, next, Rot4.North, map);
+        Check("sos2-opened-deck-can-take-a-structural-floor", slabHere.Accepted, $"reason={slabHere.Reason}");
+        if (!slabHere.Accepted) return;
+        map.terrainGrid.SetTerrain(next, RimLayersDefOf.RL_StructuralFloor);
+        AcceptanceReport secondStair = worker.AllowsPlacing(RimLayersDefOf.RL_Stairs, next, Rot4.North, map);
+        Check("sos2-upper-deck-can-hold-a-second-stair", secondStair.Accepted, $"reason={secondStair.Reason}");
+    }
+
+    private static Thing? Sentry(IntVec3 cell)    {
         ThingDef? silver = DefDatabase<ThingDef>.GetNamedSilentFail("Silver");
         if (silver == null) return null;
         // The sweep destroys everything on the ground deck, and some of what the map generator put

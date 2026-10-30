@@ -24,14 +24,31 @@ internal static class Sos2CellGraph
     /// </summary>
     [System.ThreadStatic] private static Map? current;
 
+    /// <summary>
+    /// Optional veto for vertical edges. Set by a caller whose walk must not cross into a different
+    /// ship (see <see cref="Sos2HeatPatches"/>); null means every stacked pair is a neighbour.
+    /// </summary>
+    [System.ThreadStatic] private static System.Func<IntVec3, IntVec3, bool>? verticalFilter;
+
     internal static Map? Current
     {
         get => current;
         set => current = value;
     }
 
-    internal static void Enter(Map? map) => current = map;
-    internal static void Leave() => current = null;
+    internal static void Enter(Map? map) => Enter(map, null);
+
+    internal static void Enter(Map? map, System.Func<IntVec3, IntVec3, bool>? filter)
+    {
+        current = map;
+        verticalFilter = filter;
+    }
+
+    internal static void Leave()
+    {
+        current = null;
+        verticalFilter = null;
+    }
 
     private static bool TryLayout(out LayerMapComponent owner)
     {
@@ -49,10 +66,12 @@ internal static class Sos2CellGraph
         LayerMapComponent? owner = LayerMapComponent.For(map);
         if (owner?.Layout == null || owner.Layout.LayerCount < 2) yield break;
         IntVec3 above = owner.Adjacent(cell, 1);
-        if (above.IsValid) yield return above;
+        if (above.IsValid && Allowed(cell, above)) yield return above;
         IntVec3 below = owner.Adjacent(cell, -1);
-        if (below.IsValid) yield return below;
+        if (below.IsValid && Allowed(cell, below)) yield return below;
     }
+
+    private static bool Allowed(IntVec3 from, IntVec3 to) => verticalFilter == null || verticalFilter(from, to);
 
     /// <summary>Cardinal neighbours of a cell, plus the two cells stacked on it.</summary>
     internal static IEnumerable<IntVec3> Cardinal(IntVec3 cell, Rot4 rot, IntVec2 size)

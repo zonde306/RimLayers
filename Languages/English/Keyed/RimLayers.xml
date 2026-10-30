@@ -11,6 +11,7 @@
   <RL_TopLayer>There is no layer above this one.</RL_TopLayer>
   <RL_BlockedLanding>The landing is blocked.</RL_BlockedLanding>
   <RL_RequiresLayerMap>This requires a RimLayers map.</RL_RequiresLayerMap>
+  <RL_PlacementCrossesDecks>This part would span two decks. Move it so the whole footprint sits on one deck.</RL_PlacementCrossesDecks>
   <RL_PowerNoPeer>No active terminal on the adjacent layer at this position, so this deck's grid is not joined to it. Build one on each layer and switch both on.</RL_PowerNoPeer>
   <RL_PowerPeers>Connected layers: {0}</RL_PowerPeers>
   <RL_PipeNoPeer>No matching riser on the adjacent layer at this position, so this deck's network is not joined to it. Build one on each layer; a riser spans a single deck, so a three-layer shaft needs one on every layer.</RL_PipeNoPeer>

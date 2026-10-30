@@ -35,8 +35,23 @@ internal static class Sos2HeatPatches
         /// and the original call site passes no map. Without this the vertical neighbours are dropped
         /// and every deck silently keeps its own net — which is exactly the failure this patch exists
         /// to prevent, so it must not be able to fail quietly.
+        /// <para>
+        /// A heat net must not cross into a different ship. Two hulls parked on neighbouring decks
+        /// share no conduit, but a stacked pair of cells can be claimed by two different ships, and
+        /// merging them would let a reactor on one hull charge a sink on the other. SOS2 groups a net
+        /// per map and never per ship, so the ship identity is checked here instead.
+        /// </para>
         /// </summary>
-        private static void Prefix(MapComponent __instance) => Sos2CellGraph.Enter(__instance?.map);
+        private static void Prefix(MapComponent __instance) =>
+            Sos2CellGraph.Enter(__instance?.map, SameShip);
+
+        /// <summary>True when both cells belong to the same SOS2 ship, or either one is unclaimed.</summary>
+        private static bool SameShip(IntVec3 from, IntVec3 to)
+        {
+            Map? map = Sos2CellGraph.Current;
+            if (map == null) return true;
+            return Sos2Compatibility.ShipIndexAt(map, from) == Sos2Compatibility.ShipIndexAt(map, to);
+        }
 
         [HarmonyPostfix]
         [HarmonyFinalizer]

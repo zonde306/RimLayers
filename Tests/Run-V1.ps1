@@ -69,6 +69,10 @@ if ($AllDlc) { $active += $expansions }
 elseif ($Scenario -in @('jump','combat-shields','combat-shield-save','combat-shield-pass')) { $active += 'ludeon.rimworld.royalty' }
 elseif ($Scenario -in @('mechanitor','temperature') -and -not ($Scenario -eq 'temperature' -and $TemperatureCore)) { $active += 'ludeon.rimworld.biotech' }
 elseif ($Scenario -in @('ship-landing-items','ship-coexistence','gravship','ship-structure','work-container')) { $active += 'ludeon.rimworld.odyssey' }
+# SOS2 itself runs fine without Odyssey, but RimLayers' deck model is Odyssey-based: ShipStructureService
+# bails on !ModsConfig.OdysseyActive, TerrainDef.IsSubstructure is hard-false, and TerrainDefOf.Substructure
+# is therefore null. The sos2 fixture builds native substructure decks, so the expansion must be present.
+elseif ($Scenario -eq 'sos2' -or $Sos2) { $active += 'ludeon.rimworld.odyssey' }
 $active += 'brrainz.harmony'
 if($Vehicles){
     # Steel Horizon's global VehicleDef patches require concrete vehicle content.

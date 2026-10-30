@@ -309,7 +309,7 @@ internal static partial class V1Integration
     {
         int dlcCount=(ModsConfig.RoyaltyActive?1:0)+(ModsConfig.IdeologyActive?1:0)+(ModsConfig.BiotechActive?1:0)+
             (ModsConfig.AnomalyActive?1:0)+(ModsConfig.OdysseyActive?1:0);
-        int expectedDlc=GenCommandLine.CommandLineArgPassed("rimlayersalldlc")?5:scenario=="temperature"&&GenCommandLine.CommandLineArgPassed("rimlayerstemperaturecore")?0:scenario is "temperature" or "jump" or "ship-landing-items" or "ship-coexistence" or "gravship" or "ship-structure" or "mechanitor" or "combat-shields" or "combat-shield-save" or "combat-shield-pass" or "work-container"?1:0;
+        int expectedDlc=GenCommandLine.CommandLineArgPassed("rimlayersalldlc")?5:scenario=="temperature"&&GenCommandLine.CommandLineArgPassed("rimlayerstemperaturecore")?0:scenario is "temperature" or "jump" or "ship-landing-items" or "ship-coexistence" or "gravship" or "ship-structure" or "mechanitor" or "combat-shields" or "combat-shield-save" or "combat-shield-pass" or "work-container" or "sos2"?1:0;
         Check("test-profile-loads-requested-official-dlc",dlcCount==expectedDlc,$"expected={expectedDlc}, actual={dlcCount}");
         if(scenario.StartsWith("environment")){BeginEnvironment();return;}
         if(scenario=="vehicle-flight"){BeginVehicleFlight();return;}

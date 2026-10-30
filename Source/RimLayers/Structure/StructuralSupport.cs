@@ -68,7 +68,11 @@ public sealed class StructuralSupport
 
 
     internal static bool SupportedRoof(RoofDef? roof)=>roof==RoofDefOf.RoofConstructed||roof==RoofDefOf.RoofRockThin;
-    internal static bool ConnectorRoof(RoofDef? roof)=>SupportedRoof(roof)||roof==RoofDefOf.RoofRockThick;
+    // A connector roof decides whether a stair or lift may break through the ceiling above it, so it
+    // has to accept exactly what the deck above would accept as support. Keeping this on SupportedRoof
+    // made a registered support roof (a third-party ship's RoofShip) open a deck above but never allow
+    // the stair that reaches it, which is the one case that deck is built for.
+    internal static bool ConnectorRoof(RoofDef? roof)=>IsSupportRoof(roof)||roof==RoofDefOf.RoofRockThick;
 
     public TerrainDef SlabAt(IntVec3 cell)=>owner.map.terrainGrid.FoundationAt(cell) is {IsSubstructure:true} foundation?
         foundation:RimLayersDefOf.RL_StructuralFloor;
