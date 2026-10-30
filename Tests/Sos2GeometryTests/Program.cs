@@ -60,9 +60,23 @@ Check("quarter turn keeps the band", Sos2Geometry.Mirror(10, 0, 5, Width, Height
 Check("identity rotation is a no-op", Sos2Geometry.Mirror(10, 0, 141, Width, Height, Stride, Layers, 1) == (10, 0, 141));
 
 // --- centring ------------------------------------------------------------------------------
-var centred = Sos2Geometry.CenterOnMap(120, StorageLength, Height, Stride, Layers, 20, 20, 0, 0);
+var centred = Sos2Geometry.CenterOnMap(120, StorageLength, Height, Stride, Layers, 20, 0, new[] { 0, 20 });
 Check("centring uses the logical length", centred == (50, 0, 50));
 Check("centring does not land in the storage middle", centred.Z != 194);
+
+// The real hull from the failed launch: 250x250 layout, stride 255, 2 bands, storage 510.
+// Ground cells sit at z=90, the upper deck at z=255+90=345. Measuring the storage span (255) as if
+// it were the hull's height gave z = 125 - 127 - 90 = -92, so every transferred cell landed on z=-1
+// and Area_Home threw IndexOutOfRangeException.
+const int RealStride = 255, RealLayers = 2, RealHeight = 250, RealStorage = 510;
+var real = Sos2Geometry.CenterOnMap(250, RealStorage, RealHeight, RealStride, RealLayers, 20, 0,
+    new[] { 90, RealStride + 90 });
+Check("centring a two-band hull does not go negative", real.Z == 35);
+Check("centring ignores which band a cell lives in",
+    Sos2Geometry.CenterOnMap(250, RealStorage, RealHeight, RealStride, RealLayers, 20, 0, new[] { 90, RealStride + 90 })
+    == Sos2Geometry.CenterOnMap(250, RealStorage, RealHeight, RealStride, RealLayers, 20, 0, new[] { 90, 90 }));
+Check("a two-band hull lands inside the destination",
+    new[] { 90, RealStride + 90 }.All(z => real.Z + z >= 0 && real.Z + z < RealStorage));
 
 // --- turret edge ---------------------------------------------------------------------------
 Check("north edge of a ground turret", Sos2Geometry.EdgeCell(50, 0, 10, Width, Height, Stride, Layers, 0, 0) == (50, 0, 119));

@@ -113,19 +113,17 @@ internal static class Sos2GeometryPatches
         private static bool Prefix(object __instance, ref IntVec3 __result)
         {
             if (ShipArea?.GetValue(__instance) is not HashSet<IntVec3> { Count: > 0 } area) return true;
-            int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+            int minX = int.MaxValue, maxX = int.MinValue;
             foreach (IntVec3 v in area)
             {
                 if (v.x < minX) minX = v.x;
                 if (v.x > maxX) maxX = v.x;
-                if (v.z < minZ) minZ = v.z;
-                if (v.z > maxZ) maxZ = v.z;
             }
             Map map = (AccessTools.Field(__instance.GetType(), "Map")?.GetValue(__instance) as Map) ?? Find.CurrentMap;
             if (!Sos2CellGraph.BandOf(map, out LayerMapComponent owner, out int stride, out int height, out int layers)) return true;
             (int x, int y, int z) = Sos2Geometry.CenterOnMap(
                 owner.Layout!.Width, map.Size.z, height, stride, layers,
-                maxX - minX, maxZ - minZ, minX, minZ);
+                maxX - minX, minX, area.Select(v => v.z));
             __result = new IntVec3(x, y, z);
             return false;
         }

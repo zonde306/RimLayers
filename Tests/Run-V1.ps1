@@ -84,13 +84,13 @@ $active += 'rimlayers.core'
 # Aerocraft Framework is an optional third-party pack; only the aerocraft scenario needs it.
 if($Aerocraft){$active+='MYDE.AerocraftFramework'}
 # Save Our Ship 2 keeps its own ship model, so it is never a Vehicle Framework provider. It does link
-# Vehicles.dll, though: without baal.vehicleframework the ShipsHaveInsides assembly throws
-# ReflectionTypeLoadException on load and the whole adapter silently disappears. Baal's build is a
-# rename of the upstream framework, so the assembly loads, but SOS2's own Setup() gate asks
-# ModLister for the exact id `SmashPhil.VehicleFramework` and returns before PatchAll() when it is
-# missing. Without both ids SOS2 loads half-patched: its DoPreDeSpawn prefix never exists, which is
-# why foam repairs silently never queue.
-if($Sos2 -or $Scenario -eq 'sos2'){$active+=@('smashphil.vehicleframework','baal.vehicleframework','kentington.saveourship2')}
+# Vehicles.dll, though, so *some* VF must be loaded or the ShipsHaveInsides assembly throws
+# ReflectionTypeLoadException and the whole adapter silently disappears.
+# Only the upstream build is used here. Steel Horizon's Baal.VehicleFramework is a fork that declares
+# <incompatibleWith>SmashPhil.VehicleFramework</incompatibleWith>, so loading both is a configuration no
+# player can actually run - testing that pair proves nothing about the load order people play with.
+# The player's own verified ModsConfig enables smashphil.vehicleframework and not the fork.
+if($Sos2 -or $Scenario -eq 'sos2'){$active+=@('smashphil.vehicleframework','kentington.saveourship2')}
 # The Dubwise family is a per-scenario dependency set; the dubs scenario needs all five at once.
 if($Dubs){$active+=@('dubwise.dubsskylights','dubwise.dubscentralheating','dubwise.dubsbadhygiene','dubwise.rimefeller','dubwise.rimatomics')}
 if($VePipes -or $Scenario -eq 'vefpipes'){

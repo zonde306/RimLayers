@@ -74,15 +74,31 @@ public static class Sos2Geometry
     }
 
     /// <summary>
-    /// Centre offset for dropping a ship of <paramref name="size"/> onto a map whose z extent is
-    /// <paramref name="storageLength"/> but whose logical height is <paramref name="height"/>.
+    /// Centre offset for dropping a ship onto a map whose z extent is <paramref name="storageLength"/>
+    /// but whose logical height is <paramref name="height"/>.
     /// </summary>
+    /// <remarks>
+    /// The ship's north/south extent must be measured in <b>local</b> z, never in storage z. A hull
+    /// that spans two bands has a storage span of about <c>2 * stride</c>: with the real hull, 
+    /// <c>minZ = 90</c>, <c>maxZ = 345</c>, <c>stride = 255</c>, measuring <c>max - min</c> directly gave
+    /// <c>z = 125 - 127 - 90 = -92</c>, so every transferred cell landed on <c>z = -1</c> and
+    /// <c>Area_Home</c> threw. Taking the raw storage z values here, instead of a precomputed minimum
+    /// and span, makes that mistake impossible at the call site.
+    /// </remarks>
     public static (int X, int Y, int Z) CenterOnMap(
         int storageWidth, int storageLength, int height, int stride, int layerCount,
-        int sizeX, int sizeZ, int minX, int minZ)
+        int sizeX, int minX, IEnumerable<int> storageZ)
     {
+        int min = int.MaxValue, max = int.MinValue;
+        foreach (int z in storageZ)
+        {
+            int local = LocalZ(z, stride);
+            if (local < min) min = local;
+            if (local > max) max = local;
+        }
+        if (min > max) { min = 0; max = 0; }
         int logicalLength = LogicalLength(storageLength, height, stride, layerCount);
-        return (storageWidth / 2 - sizeX / 2 - minX, 0, logicalLength / 2 - sizeZ / 2 - minZ);
+        return (storageWidth / 2 - sizeX / 2 - minX, 0, logicalLength / 2 - (max - min) / 2 - min);
     }
 
     /// <summary>

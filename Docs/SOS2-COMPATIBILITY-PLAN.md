@@ -459,8 +459,27 @@ return pos + adjustment;
    没拿到才走原来的 Odyssey 逻辑。`TakeSpaceLayout` 读完即清，迟到的请求不会漏给下一张图。
 
 `TransformForShipMove` 的跨带镜像仍然需要（`rotb == 2/3` 要按 local z 算），
-`Sos2Geometry.Mirror` 已经按「先转 local、再加带基址」实现，并有 67 项纯逻辑断言覆盖
+`Sos2Geometry.Mirror` 已经按「先转 local、再加带基址」实现，并有纯逻辑断言覆盖
 三种旋转 × 三层。
+
+**居中偏移必须用 local z 量船高**（第一轮修复后仍「船留在原地」的真凶）。
+`SpaceShipCache.CenterShipOnMap` 原本由补丁接管，但补丁沿用了原版「存储坐标相减」的思路：
+
+```csharp
+sizeZ = maxZ - minZ;   // 实船：minZ=90（band 0），maxZ=345（band 1）→ 255
+CenterOnMap(…, sizeZ, minZ)  // z = 250/2 - 255/2 - 90 = -92
+```
+
+跨两条带的船，存储跨度天然是 `≈2 * Stride`，被当成船高之后偏移直接变负；
+每一格 `pos + adjustment` 都落到 `z = -1`。日志证据：
+`Got ThingsListAt out of bounds: (124, 0, -1)` 紧跟 `MoveShip_Patch3` 与
+`Area_Home.Set_Patch1` 的 `IndexOutOfRangeException` —— 太空图这次是 2 层（第一轮修复**确实**生效了），
+越界是我自己在 `Home[]` 那一行造出来的。
+
+修法：`Sos2Geometry.CenterOnMap` 不再接受预先算好的 `sizeZ`/`minZ`，改为直接收
+**存储 z 集合**，内部逐个 `LocalZ` 后取 min/max。这样调用点无法再犯「跨带相减」的错，
+而且「同一艘船在哪个带」与结果无关（有断言钉住）。实船用例 `z=35`，
+两层格 `90 / 345` 加上偏移后 `125 / 380`，都落在 `[0, 510)` 内。
 
 ### 楼板必须随船走（已实现）
 
@@ -488,7 +507,7 @@ SOS2 的起降需要同构的一套，但**落点完全不同**（SOS2 不用 `G
 |---|---|---|
 | `ShipInteriorMod2.GeneratePlayerShipMap(IntVec3)` | 按源图层带建太空图，而不是按逻辑高度建单层图 | 已实现 |
 | `ShipInteriorMod2.TransformForShipMove(Map,IntVec3,IntVec3,int)` | 镜像在 local 坐标内做，再还原带基址 | 已实现 |
-| `SpaceShipCache.CenterShipOnMap()` | 居中用逻辑长度，不是 `Map.Size.z` | 已实现 |
+| `SpaceShipCache.CenterShipOnMap()` | 居中偏移用 **local z** 量船高（收存储 z 集合，不收预计算的 span） | 已实现 |
 | `ShipInteriorMod2.MoveShip(Building,Map,IntVec3,…)` | 甲板随船搬运 + 源图清账 | 已实现 |
 | `ShipInteriorMod2.CanShipLandOnMap(Map,Map)` | 落点追加 band 存在性 + `LayerExpansionQuota` | 见 §11 |
 | `Comp/ShipMapComp.cs:2750 KillAllOffShip` | 见 #4 | 已实现 |

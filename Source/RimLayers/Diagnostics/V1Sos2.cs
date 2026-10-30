@@ -252,6 +252,35 @@ internal static partial class V1Integration
                 $"mirrored=({mx},{my},{mz})");
             Check("sos2-band-length-is-not-the-storage-length",
                 Sos2Geometry.LogicalLength(map.Size.z, owner.Layout.Height, owner.Layout.Stride, owner.Layout.LayerCount) == owner.Layout.Height);
+
+            // Launching used to break here: CenterShipOnMap measured the hull with raw storage z, so a
+            // hull spanning two bands reported a span of 2*stride and the offset came out negative
+            // (-92 on the real ship), pushing every transferred cell to z=-1. Exercise the live method
+            // and require the offset it returns to keep every tracked ship cell inside the storage.
+            object? cache = AccessTools.Property(sos2Bridge!.GetType(), "Ship")?.GetValue(sos2Bridge);
+            MethodInfo? centre = cache == null ? null : AccessTools.Method(cache.GetType(), "CenterShipOnMap");
+            System.Collections.IDictionary? tracked = Sos2Compatibility.ShipCellsOf(sos2ShipComp);
+            if (centre?.Invoke(cache, null) is not IntVec3 adjustment)
+            {
+                Check("sos2-centring-keeps-a-two-band-hull-inside-the-map", false, "CenterShipOnMap unavailable");
+            }
+            else
+            {
+                int outside = 0, bandsSeen = 0;
+                var seen = new HashSet<int>();
+                if (tracked != null)
+                    foreach (IntVec3 key in tracked.Keys)
+                    {
+                        if (owner.TryDecode(key, out LayerCell c)) seen.Add(c.LayerId);
+                        if (!Sos2Geometry.InStorage(key.x + adjustment.x, key.z + adjustment.z,
+                                owner.Layout!.Width, owner.Layout.Stride, owner.Layout.LayerCount)) outside++;
+                    }
+                bandsSeen = seen.Count;
+                Check("sos2-centring-keeps-a-two-band-hull-inside-the-map",
+                    outside == 0 && adjustment.z >= 0,
+                    $"adjustment={adjustment}, bands={bandsSeen}, outside={outside}, tracked={tracked?.Count}");
+            }
+
             sos2Phase = 2;
             ticks = 0;
             return;
