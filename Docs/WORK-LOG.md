@@ -1277,3 +1277,20 @@ foreach (Thing heldThing in slotGroup.HeldThings)
 3. **最麻烦的一个**：`blocked-stair` 的场景先触发过一次同 Key 的拒绝，紧接着复现后台路径时，`RejectionReporter` 的 250 tick 冷却把窗口吞掉了，断言看到 `windows=0`。这不是产品 bug，是测试没考虑冷却——所以先等真实 tick 越过冷却再 spawn 楼梯（`blockedWaitFrom`）。**如果为了测试通过而绕过冷却，就等于测的是个玩家看不到的路径。**
 
 **验证**：`-Scenario blocked-stair` 19 条断言、`-Scenario rejection-dialog` 22 条、`-Scenario stairs-bootstrap` 20+6 条，全部 0 失败。
+
+## 2026-10-30：下行楼梯和单层下行电梯用上行箭头
+
+**现象**：玩家指出「下行楼梯的建筑图像和上行楼梯一模一样，都是向上箭头；而在 2 层时的去下面那层的标记也还是上行箭头」。
+
+原因纯粹是 XML：`RL_StairsDown` 和 `RL_Stairs` 都指 `Things/Building/RimLayers/Stairs`，`RL_LiftSingleDown` 和 `RL_LiftSingle` 都指 `LiftSingle`。一个 def 的语义是「往下走」，画出来的箭头却朝上。
+
+第二处，「2 层时的去下面那层的标记」，是 `Presentation/LayerUsability.cs` 的 `LandingMarkers.Draw`：它在**上层落点**把该楼梯自己的 `Graphic.MatSingle` 用 `Quaternion.Euler(0,180,0)` 再画一次，作为「上一层这里有通道口」的地面标记。那是绕 Y 轴的偏航，不是垂直翻转，所以箭头方向完全跟着贴图走。改了 def 的 texPath，两处一起就对了。
+
+**做法**：`Textures/Generate-StructuralTextures.py` 里给电梯加了 `DOWN_ARROW`（把 `UP_ARROW` 的多边形按 y 上下镜像），`LiftSingle` 额外产出一张 `LiftSingleDown.png`；楼梯贴图是手绘素材、不在脚本里，所以只做派生——把米色箭头连同它的深色描边（`(61,56,40)`，这是唯一与米色相邻的颜色）取成 mask，逐像素在包围盒内上下镜像，再用**同行**最近的背景像素回填原位。
+
+**踩的坑**：
+1. 第一版整块 `FLIP_TOP_BOTTOM`（含 dilate 边距）在楼梯上留下一个可见的方框残影——背景木板的横向条带对不上。放大 4 倍才看得出来。改成逐像素镜像 + 邻域回填。
+2. 电梯的箭头**没有自己的描边**，右边缘紧贴门缝描边列。按行回填会把门缝抹成门色，必须按**同列**回填。楼梯则相反，按行才干净。
+3. 改完贴图必须重启游戏：`ThingDef.PostLoad` 把 `graphic = graphicData.Graphic` 塞进 `LongEventHandler.ExecuteWhenFinished`，Def 热重载看不到新贴图。
+
+**验证**：脚本先被单独复制到临时目录跑一遍，与仓库现有 `LiftSingle.png`/`LiftVertical.png`/`Roof/*.png` 的 sha256 逐一比对**全部相同**——证明它是这些素材的正源，派生出来的 down 版风格不会漂。新增两条 `usability` 断言直接比对**加载后的 `MatSingle.mainTexture`**（`stairs-down-does-not-reuse-the-stairs-up-art`、`lift-down-does-not-reuse-the-lift-up-art`）：只比 texPath 不够，纹理是延迟加载的，只有比实际纹理才能抓到「把 texPath 抄错了」这种回归。

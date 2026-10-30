@@ -57,6 +57,7 @@ internal static partial class V1Integration
         Check("future-slab-is-not-yet-constructible-without-real-neighbor",!GenConstruct.CanConstruct(far,pawn));
         LayerView.Switch(owner,1);
         Check("upper-landings-have-two-markers-without-duplicating-stairs",LandingMarkers.Visible(owner).Count()==2&&map.listerThings.ThingsOfDef(RimLayersDefOf.RL_Stairs).Count==3);
+        CheckDownwardBuildingsDrawTheirOwnArt();
         backdropTarget=PawnGenerator.GeneratePawn(PawnKindDefOf.Colonist,Faction.OfPlayer);
         GenSpawn.Spawn(backdropTarget,At(0,58,68),map);backdropTarget.drafter.Drafted=true;
         map.fogGrid.Unfog(backdropTarget.Position);
@@ -121,6 +122,20 @@ internal static partial class V1Integration
             pendingScreenshot=Path.Combine(directory,"usability-built-backdrop.png");screenshotHold=3;stage=11;ticks=0;
         }
         else if(ticks>65000){Check("batch-construction-settles",false,$"built={slabPlan.Count(c=>owner.Structure.HasSurface(At(1,c.x,c.z)))}/81;"+DescribePawn());Finish();}
+    }
+    // The down-stairs and the single-floor down lift used to reuse the up variant's artPath, so a
+    // building that travels downward still showed an upward arrow. Nothing keeps the files apart on its
+    // own: a copy-paste in the XML would silently restore the bug, and graphics load lazily after startup,
+    // so only a live comparison of the loaded textures can catch it.
+    private static void CheckDownwardBuildingsDrawTheirOwnArt()
+    {
+        static (string path,Texture2D texture) Art(ThingDef def)=> (def.graphicData.texPath,def.graphicData.Graphic.MatSingle.mainTexture as Texture2D)!;
+        var stairsUp=Art(RimLayersDefOf.RL_Stairs);
+        var stairsDown=Art(DefDatabase<ThingDef>.GetNamed("RL_StairsDown"));
+        Check("stairs-down-does-not-reuse-the-stairs-up-art",stairsUp.path!=stairsDown.path&&stairsUp.texture!=stairsDown.texture,stairsUp.path+" vs "+stairsDown.path);
+        var liftUp=Art(DefDatabase<ThingDef>.GetNamed("RL_LiftSingle"));
+        var liftDown=Art(DefDatabase<ThingDef>.GetNamed("RL_LiftSingleDown"));
+        Check("lift-down-does-not-reuse-the-lift-up-art",liftUp.path!=liftDown.path&&liftUp.texture!=liftDown.texture,liftUp.path+" vs "+liftDown.path);
     }
     private static void RestoreUsability()
     {
