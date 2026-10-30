@@ -5,4 +5,5 @@
   <RL_StairsDownHelp>通往下一层的楼梯口。点击查看下一层。</RL_StairsDownHelp>
   <RL_SpawnRecovered>已将 {0} 从无支撑空域移至安全落点。</RL_SpawnRecovered>
   <RL_KeyHints>下层：{0}    上层：{1}</RL_KeyHints>
+  <RL_PanelDragHelp>拖动这条手柄可移动楼层面板。双击手柄可把它放回角落。</RL_PanelDragHelp>
 </LanguageData>

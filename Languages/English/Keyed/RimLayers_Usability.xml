@@ -5,4 +5,5 @@
   <RL_StairsDownHelp>Stair entrance to the floor below. Click to view that floor.</RL_StairsDownHelp>
   <RL_SpawnRecovered>{0} was moved from unsupported air to a safe landing.</RL_SpawnRecovered>
   <RL_KeyHints>Down: {0}    Up: {1}</RL_KeyHints>
+  <RL_PanelDragHelp>Drag this strip to move the floor panel. Double-click it to snap the panel back to the corner.</RL_PanelDragHelp>
 </LanguageData>

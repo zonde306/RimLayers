@@ -66,15 +66,94 @@ public static class LayerView
         return true;
     }
 
-    internal static Rect ControlsRect(LayerMapComponent component) => new(UI.screenWidth - 238f, 160f, 226f,
-        (component.Elevation(component.ViewedLayer)>0?106f:70f)+(component.map.GetComponent<RimLayers.Vehicles.VehicleTraffic>().RecoveryCount>0?34f:0f)+(RimLayers.Vehicles.VehicleWorldTravel.Current.HasWaiting(component.map)?34f:0f));
-    internal static bool MouseOverFloorControls(LayerMapComponent component) => RimLayersMod.Settings.FloorPanel && ControlsRect(component).Contains(Event.current.mousePosition);
+    /// <summary>Native screen position, i.e. where the panel sits before any user drag.</summary>
+    private static Vector2 DefaultPosition => new(UI.screenWidth - 238f, 160f);
+
+    internal static Rect ControlsRect(LayerMapComponent component)
+    {
+        Vector2 anchor = DefaultPosition;
+        Vector2 stored = RimLayersMod.Settings.FloorPanelOffset;
+        // The stored offset is a user preference from possibly another resolution, so the live
+        // rectangle is always re-clamped instead of trusted; MouseOverFloorControls and the drag
+        // handler therefore share exactly one hit rectangle.
+        var (x, y) = PanelDragMath.Clamp(anchor.x + stored.x, anchor.y + stored.y, 226f,
+            ControlsHeight(component), UI.screenWidth, UI.screenHeight);
+        return new Rect(x, y, 226f, ControlsHeight(component));
+    }
+    private static float ControlsHeight(LayerMapComponent component) =>
+        (component.Elevation(component.ViewedLayer)>0?106f:70f)+(component.map.GetComponent<RimLayers.Vehicles.VehicleTraffic>().RecoveryCount>0?34f:0f)+(RimLayers.Vehicles.VehicleWorldTravel.Current.HasWaiting(component.map)?34f:0f);
+    internal static bool MouseOverFloorControls(LayerMapComponent component) =>
+        RimLayersMod.Settings.FloorPanel && (ControlsRect(component).Contains(Event.current.mousePosition) || DragHandleRect(component).Contains(Event.current.mousePosition));
+    private static Rect DragHandleRect(LayerMapComponent component)
+    {
+        Rect panel = ControlsRect(component);
+        return new Rect(panel.x, panel.y - PanelDragMath.HandleHeight, panel.width, PanelDragMath.HandleHeight);
+    }
+    /// <summary>
+    /// Grab offset between the pointer and the panel's top-left. Constant for the whole drag, so
+    /// the panel follows the pointer without accumulating rounding drift.
+    /// </summary>
+    private static Vector2 dragGrab;
+    private static bool dragging;
+
+    /// <summary>
+    /// Drag strip above the panel. Only its own rectangle consumes a click, so the floor buttons keep
+    /// working, and because the strip sits before the panel background the rest of the panel still
+    /// blocks a designation aimed at the map cell behind it.
+    /// </summary>
+    private static void DragHandle(Rect panel)
+    {
+        Rect handle = new(panel.x, panel.y - PanelDragMath.HandleHeight, panel.width, PanelDragMath.HandleHeight);
+        // Event.mousePosition is the coordinate space ControlsRect reports in, so the hit test, the
+        // grab offset and the live rectangle never need a Y flip or a UIScale conversion.
+        Vector2 pointer = Event.current.mousePosition;
+        if (!dragging && Event.current.type == EventType.MouseDown && Event.current.button == 0 && handle.Contains(pointer))
+        {
+            // Snap back to the native corner; a full reset is cheaper to discover than an unlabelled
+            // "somewhere in the middle" state, and the offset is the only thing Settings.Reset owns.
+            if (Event.current.clickCount >= 2)
+            {
+                RimLayersMod.Settings.FloorPanelOffset = Vector2.zero;
+                LoadedModManager.GetMod<RimLayersMod>().WriteSettings();
+            }
+            else
+            {
+                dragging = true;
+                dragGrab = pointer - panel.position;
+            }
+            Event.current.Use();
+        }
+        if (dragging)
+        {
+            if (Event.current.type is EventType.MouseDrag or EventType.MouseUp)
+            {
+                Vector2 want = pointer - dragGrab;
+                var (x, y) = PanelDragMath.Clamp(want.x, want.y, panel.width, panel.height, UI.screenWidth, UI.screenHeight);
+                Vector2 anchor = DefaultPosition;
+                var offset = PanelDragMath.OffsetFor(x, y, anchor.x, anchor.y);
+                RimLayersMod.Settings.FloorPanelOffset = new(offset.X, offset.Y);
+                Event.current.Use();
+            }
+            // A release outside the window never reaches us as MouseUp, so the held state is the
+            // fallback that still ends the drag and persists the new position.
+            if (Event.current.type == EventType.MouseUp || !Input.GetMouseButton(0))
+            {
+                dragging = false;
+                LoadedModManager.GetMod<RimLayersMod>().WriteSettings();
+            }
+        }
+        if (Event.current.type == EventType.Repaint)
+            if (dragging || handle.Contains(pointer)) Widgets.DrawLightHighlight(handle);
+            else Widgets.DrawLineHorizontal(handle.x + 70, handle.center.y, handle.width - 140);
+        TooltipHandler.TipRegion(handle, "RL_PanelDragHelp".Translate());
+    }
 
     internal static void DrawControls(LayerMapComponent component)
     {
         if (Current != component || !RimLayersMod.Settings.FloorPanel) return;
         Rect panel = ControlsRect(component);
         Widgets.DrawWindowBackground(panel);
+        DragHandle(panel);
         if (Widgets.ButtonText(new Rect(panel.x + 8, panel.y + 8, 34, 28), "−"))
             LayerTransition.RequestRelative(component, -1);
         Widgets.Label(new Rect(panel.x + 50, panel.y + 13, 126, 28),

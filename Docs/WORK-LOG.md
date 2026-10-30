@@ -1229,3 +1229,19 @@ foreach (Thing heldThing in slotGroup.HeldThings)
 顺带发现但**与本改动无关**的既有夹具缺陷：`blocked-stair` 用共享的 `BootstrapSite`（铺 `Concrete`）却建**向下**楼梯，而 `StairLayerBootstrap.Validate` 对向下楼梯要求 `UndergroundService.TerrainAllows`，混凝土没有 `Diggable` 权限，于是注入故障的 `EnsureElevation` 根本没被调用（`attempts=0`，3 条断言红）。在 `BeginBlockedStair` 里把那格改成 `TerrainDefOf.Soil` 后 15 断言全通过。
 
 详见 [SMARTCOMBAT-COMPATIBILITY](SMARTCOMBAT-COMPATIBILITY.md)。
+## 2026-10-30：楼层面板可以用鼠标拖着走
+
+楼层面板一直是 `MapComponent` 覆盖层，不是 `Window`，所以拿不到 `Window.InnerWindowOnGUI` 末尾那句 `GUI.DragWindow()`；位置写死在 `UI.screenWidth - 238f, 160f`，玩家装了别的东西压在上面就只能忍。这次给面板加了一条 14 像素高的抓手：按住拖动整块面板，双击抓手回到原角落。
+
+- **命中矩形只有一个来源。** `LayerView.ControlsRect` 现在把「原生锚点 + 存档偏移」过一遍 `PanelDragMath.Clamp` 再返回；`MouseOverFloorControls`、抓手、`LayerTransition.OnGUI` 的地图点击闸门和诊断夹具都调它，不存在第二份可能漂移的矩形。
+- **坐标不做任何翻转。** `Event.current.mousePosition` 与 `ControlsRect` 同一空间，手指偏移 `dragGrab = pointer - panel.position` 全程恒定，拖动不会累积舍入误差；也不需要 `UIScale` 换算。
+- **边长会变，但高度基线固定。** 面板高度随海拔页脚、恢复提示条在 70/106 之间变，拖动时用的是当帧真实高度，所以放大/收起提示条后再拖仍然贴着抓手。
+- **不许拖出屏幕。** 抓手本身要留在屏幕内，所以 `y` 的下界是 `4 + 14`；换分辨率后旧偏移会被**重新收紧**而不是丢掉，`Normalize()` 只清 `NaN/∞`。
+- **拖动必须自己 `Event.current.Use()`。** 面板背景不消费输入，`DesignatorManager.ProcessInputEvents` 和 `Selector.HandleMapClicks` 都不看指针是否在 UI 上：不 `Use()` 就会在面板背后的地图格上放置命令或拉框。
+- **松手即存。** `LoadedModManager.GetMod<RimLayersMod>().WriteSettings()`，指针移出窗口收不到 `MouseUp` 时用 `!Input.GetMouseButton(0)` 兜底结束。
+
+新增 `Source/RimLayers/Presentation/PanelDragMath.cs`（不引用 Unity，纯几何）、`RimLayersSettings.FloorPanelOffset`（`Scribe_Values` 存成 `(x, y)`）、`RL_PanelDragHelp` 中英各一条。抓手在 `Widgets.DrawWindowBackground` 之后、第一个按钮之前绘制，只吃自己那 14 像素，按钮和背景照常工作。
+
+验收：新增纯几何套件 `Tests/PanelDragTests` **26938 断言 0 失败**（四种分辨率下原生锚点必须原样通过、±4000 偏移全扫不出屏、超大面板与 `NaN/∞`、偏移往返）；`Run-UnitTests.ps1` 18/18 套件通过。游戏内新增场景 `-Scenario panel-drag`：生成 **14 断言**、新进程读档 **3 断言**，零失败（[183635](../Tests/Artifacts/v1-panel-drag-20261030-183635)）——覆盖拖动跟随、抓手持久、松手保留、新矩形接管命中、旧角落不再吞点击、移动后的“+”仍能排楼层、拖不出屏、双击复位、设置文件真的写出 `floorPanelOffset`，以及读档后面板位置与尺寸不变。
+
+顺带核实两条**与本改动无关**的既有失败（已由并行会话确认）：`-Scenario transition` 的 `blend-right-click-submits-native-cross-floor-goto`（注入的右键被 `MainButtonsRoot.DoButtons` 优先吃掉）与 `-Scenario usability` 的三条 HasSurface 断言（未提交的 deck-source/`StructuralSupport` 改动）。

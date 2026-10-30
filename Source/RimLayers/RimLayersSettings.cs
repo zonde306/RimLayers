@@ -1,3 +1,4 @@
+using UnityEngine;
 using Verse;
 
 namespace RimLayers;
@@ -7,6 +8,8 @@ public enum RecoveryPreference { FallThenReset, ResetFirst }
 public sealed class RimLayersSettings : ModSettings
 {
     public bool FloorPanel=true, KeyHints=true, LandingMarkers=true, ReturnButtons=true, PlanningBounds=true;
+    /// <summary>User drag offset from the panel's native upper-right anchor; clamped live.</summary>
+    public Vector2 FloorPanelOffset;
     public bool LayerTransitions=true;
     public bool LowerBackground=true, Mist=true, CombatInfo=true, Trajectory=true;
     public int UpperLimit=2, UndergroundLimit=2, GlobalLimit=20;
@@ -26,6 +29,7 @@ public sealed class RimLayersSettings : ModSettings
         base.ExposeData();
         Scribe_Values.Look(ref LayerTransitions,"layerTransitions",true);
         Scribe_Values.Look(ref FloorPanel,"floorPanel",true);
+        Scribe_Values.Look(ref FloorPanelOffset,"floorPanelOffset",Vector2.zero);
         Scribe_Values.Look(ref KeyHints,"keyHints",true);
         Scribe_Values.Look(ref LandingMarkers,"landingMarkers",true);
         // Old settings used one switch for both. Always write the new value so a
@@ -67,6 +71,9 @@ public sealed class RimLayersSettings : ModSettings
         MaterialCost=Clamp(MaterialCost,.25f,4);WorkCost=Clamp(WorkCost,.25f,4);LiftPower=Clamp(LiftPower,.25f,4);
         HeightRange=Clamp(HeightRange,0,2);Minerals=Clamp(Minerals,0,3);
         if(!Enum.IsDefined(RecoveryMode))RecoveryMode=RecoveryPreference.FallThenReset;
+        // Screen bounds are enforced when the panel is drawn, so only reject what cannot be geometry
+        // at all; a value from a larger monitor must survive to be re-clamped, not be zeroed.
+        if(!float.IsFinite(FloorPanelOffset.x)||!float.IsFinite(FloorPanelOffset.y))FloorPanelOffset=Vector2.zero;
         RecoveryExcludedDefs??=new();
         Environment??=new();Environment.Normalize();
     }
