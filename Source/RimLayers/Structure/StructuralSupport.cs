@@ -67,6 +67,30 @@ public sealed class StructuralSupport
          RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell) || HasDeckSource(cell));
 
 
+    /// <summary>
+    /// The SOS2 deck floor, resolved by name and cached, including the miss.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not a <see cref="RimLayersDefOf"/> field. The def is injected by a
+    /// <c>PatchOperationConditional</c> that only fires when SOS2's own floors exist, and
+    /// <c>DefOfHelper.EnsureInitializedInCtor</c> throws for a field whose def is absent - which would
+    /// take the whole mod down on every configuration without SOS2.
+    /// </remarks>
+    internal static TerrainDef? Sos2Deck=>sos2Deck??=DefDatabase<TerrainDef>.GetNamedSilentFail("RL_Sos2Deck");
+    private static TerrainDef? sos2Deck;
+
+    /// <summary>
+    /// True for every floor this mod treats as a structural deck: the plain upper floor, the Odyssey
+    /// gravship deck, and the SOS2 hull deck. Identity is by def, not by the <c>Substructure</c> tag,
+    /// because that tag makes SOS2 detach its own hull plating (CompShipEngineBreakdownable) and is
+    /// also false whenever Odyssey is not loaded.
+    /// </summary>
+    internal static bool IsDeckTerrain(TerrainDef? terrain)
+    {
+        if (terrain == null) return false;
+        return terrain == RimLayersDefOf.RL_StructuralFloor || terrain == Sos2Deck;
+    }
+
     internal static bool SupportedRoof(RoofDef? roof)=>roof==RoofDefOf.RoofConstructed||roof==RoofDefOf.RoofRockThin;
     // A connector roof decides whether a stair or lift may break through the ceiling above it, so it
     // has to accept exactly what the deck above would accept as support. Keeping this on SupportedRoof
@@ -74,11 +98,12 @@ public sealed class StructuralSupport
     // the stair that reaches it, which is the one case that deck is built for.
     internal static bool ConnectorRoof(RoofDef? roof)=>IsSupportRoof(roof)||roof==RoofDefOf.RoofRockThick;
 
-    public TerrainDef SlabAt(IntVec3 cell)=>owner.map.terrainGrid.FoundationAt(cell) is {IsSubstructure:true} foundation?
+    public TerrainDef SlabAt(IntVec3 cell)=>owner.map.terrainGrid.FoundationAt(cell) is {} foundation&&
+        (IsDeckTerrain(foundation)||foundation.IsSubstructure)?
         foundation:RimLayersDefOf.RL_StructuralFloor;
     public bool IsBareSlab(IntVec3 cell) => owner.StructuralCells.Contains(cell) &&
         owner.map.terrainGrid.TempTerrainAt(cell) == null &&
-        (owner.map.terrainGrid.TerrainAt(cell) == RimLayersDefOf.RL_StructuralFloor ||
+        (IsDeckTerrain(owner.map.terrainGrid.TerrainAt(cell)) ||
          owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true&&owner.map.terrainGrid.UnderTerrainAt(cell)==null);
 
     public bool CanDismantleSlab(IntVec3 cell)
@@ -112,7 +137,8 @@ public sealed class StructuralSupport
             if(!quota.Accepted)return quota;
         }
         bool shipSlab=buildable.defName=="RL_ShipStructuralFloor";
-        bool slab = buildable == RimLayersDefOf.RL_StructuralFloor||shipSlab;
+        bool sos2Slab=buildable.defName=="RL_Sos2Deck";
+        bool slab = buildable == RimLayersDefOf.RL_StructuralFloor||shipSlab||sos2Slab;
         bool stair = ConnectorDefs.IsUp(buildable);
         if(ConnectorDefs.IsDown(buildable))
         {
@@ -142,12 +168,23 @@ public sealed class StructuralSupport
             {
                 if(owner.Mountains.IsNaturalFloor(cell))return "RL_NaturalFloorImmutable".Translate();
                 if (logical.LayerId == 0) return "RL_UpperOnly".Translate();
-                if (!(shipSlab?HasShipRoof(cell):HasRequiredRoof(cell))) return "RL_NeedsRoof".Translate();
+                if (sos2Slab)
+                {
+                    // An SOS2 deck belongs to an SOS2 hull and nothing else. Both halves are checked
+                    // explicitly instead of leaning on HasRequiredRoof: that predicate accepts any
+                    // registered support roof, while a ship deck has to sit under the ship's own roof
+                    // and above a cell SOS2 itself counts as part of the ship.
+                    IntVec3 hullCell=owner.Adjacent(cell,-1);
+                    if(!hullCell.IsValid||!Compatibility.Sos2Compatibility.IsShipDeck(owner,hullCell))return "RL_Sos2DeckNeedsHull".Translate();
+                    if(owner.map.roofGrid.RoofAt(hullCell)?.defName!="RoofShip")return "RL_Sos2DeckNeedsShipRoof".Translate();
+                }
+                else if (!(shipSlab?HasShipRoof(cell):HasRequiredRoof(cell))) return "RL_NeedsRoof".Translate();
                 var core=owner.Ships.BuildOwner(cell);
                 bool ship=core!=null&&owner.Ships.Get(core) is {} hull&&owner.Elevation(logical.LayerId)>hull.Bottom;
                 if(shipSlab&&!ship)return "RL_ShipFloorOnly".Translate();
-                if(!shipSlab&&owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true)return "RL_StandardFloorOnly".Translate();
+                if(!shipSlab&&!sos2Slab&&owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true)return "RL_StandardFloorOnly".Translate();
                 if(shipSlab&&HasSurface(cell)&&owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure!=true)return "RL_ShipDeckOccupied".Translate();
+                if(sos2Slab&&owner.map.terrainGrid.FoundationAt(cell) is {} existingFloor&&!IsDeckTerrain(existingFloor))return "RL_ShipDeckOccupied".Translate();
                 if (!planning && !HasSurface(cell) && !GenAdj.AdjacentCells.Any(offset => HasSurface(cell + offset)))
                 {
                     // A foreign deck source (an SOS2 hull) is not an RL_StructuralFloor and owns no
@@ -176,13 +213,16 @@ public sealed class StructuralSupport
         if (!HasRequiredRoof(cell)) throw new InvalidOperationException("Stair landing lost its supporting roof.");
         if (!HasSurface(cell))
         {if(owner.Ships.BuildOwner(cell)!=null)RimLayers.Ships.ShipDeckTerrain.Install(owner,cell,false);
+         // A landing opened over an SOS2 hull is that hull's deck, not an Odyssey gravship floor:
+         // it reports to no engine and must not claim substructure capacity.
+         else if(Sos2Deck is {} deck&&Compatibility.Sos2Compatibility.IsShipDeck(owner,owner.Adjacent(cell,-1)))RimLayers.Ships.ShipDeckTerrain.InstallDeck(owner,cell,deck);
          else owner.map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_StructuralFloor);}
     }
 
     internal void TerrainChanged(IntVec3 cell, TerrainDef terrain)
     {
         if (!owner.TryDecode(cell, out var logical) || logical.LayerId == 0) return;
-        bool changed = terrain == RimLayersDefOf.RL_StructuralFloor || owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true ? owner.StructuralCells.Add(cell) :
+        bool changed = IsDeckTerrain(terrain) || owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true ? owner.StructuralCells.Add(cell) :
             (terrain == RimLayersDefOf.RL_OpenAir || terrain == RimLayersDefOf.RL_Isolation) && owner.StructuralCells.Remove(cell);
         if (changed)
         {

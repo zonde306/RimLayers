@@ -249,12 +249,44 @@ internal static class ShipDeckTerrain
         if(Def is not {} deck)return;
         var grid=owner.map.terrainGrid;var top=grid.TopTerrainAt(cell);var under=grid.UnderTerrainAt(cell);var temp=grid.TempTerrainAt(cell);var color=grid.ColorAt(cell);
         grid.SetTerrain(cell,RimLayersDefOf.RL_OpenAir);grid.SetFoundation(cell,deck);
-        if(preserve&&under!=null&&top!=RimLayersDefOf.RL_StructuralFloor)
-        {grid.SetTerrain(cell,top);grid.SetUnderTerrain(cell,under==RimLayersDefOf.RL_StructuralFloor?RimLayersDefOf.RL_OpenAir:under);}
+        if(preserve&&under!=null&&!StructuralSupport.IsDeckTerrain(top))
+        {grid.SetTerrain(cell,top);grid.SetUnderTerrain(cell,StructuralSupport.IsDeckTerrain(under)?RimLayersDefOf.RL_OpenAir:under);}
         if(preserve&&temp!=null)grid.SetTempTerrain(cell,temp);
         if(preserve&&color!=null)grid.SetTerrainColor(cell,color);
         owner.StructuralCells.Add(cell);owner.Structure.RoofChanged(cell);
         owner.Invalidate(cell,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);
+    }
+    /// <summary>
+    /// Installs a deck foundation on a cell that may still carry an under terrain.
+    /// </summary>
+    /// <remarks>
+    /// <c>TerrainGrid.SetFoundation</c> refuses any cell whose <c>underGrid</c> is occupied, and a
+    /// layerable terrain write (SOS2's own <c>FakeFloorInsideShip</c> is layerable) leaves exactly that.
+    /// Normalising to open air first clears the under grid without touching the foundation grid, so the
+    /// deck can be laid on a cell that was already floored.
+    /// </remarks>
+    /// <summary>Lays a foreign (SOS2) deck as the cell's foundation.</summary>
+    /// <remarks>
+    /// <c>TerrainGrid.SetFoundation</c> refuses a cell that still has an under terrain, and clearing it
+    /// with <c>SetTerrain(RL_OpenAir)</c> does not work here: that call fires <c>DoTerrainChangedEffects</c>,
+    /// SOS2's <c>RecreateShipTile</c> postfix answers by writing <c>FakeFloorInsideShip</c> (a layerable
+    /// terrain, so it repopulates <c>underGrid</c>), and the under layer is back before <c>SetFoundation</c>
+    /// runs. <c>RemoveTopLayer</c> plus <see cref="Compatibility.Sos2TerrainPatches.Suppressed"/> is what works.
+    /// </remarks>
+    internal static void InstallDeck(LayerMapComponent owner,IntVec3 cell,TerrainDef deck)
+    {
+        var grid=owner.map.terrainGrid;
+        // SOS2's RecreateShipTile postfix writes FakeFloorInsideShip back (layerable, so it refills the
+        // under layer) after every DoTerrainChangedEffects on a ship cell. Suppress it for this write or
+        // the engine rejects the foundation with "there is an under terrain there".
+        using var suppression = Compatibility.Sos2TerrainPatches.Suppressed();
+        if(grid.UnderTerrainAt(cell)!=null)grid.RemoveTopLayer(cell,false);
+        grid.SetFoundation(cell,deck);
+        // StructuralCells is filled by the TerrainGrid.SetTerrain postfix (IsolationPatches), and
+        // SetFoundation does not go through it. Without this call the deck would be laid but never
+        // registered as structure, so RoofChanged and the collapse pass would ignore it.
+        owner.Structure.TerrainChanged(cell,deck);
+        owner.Invalidate(cell,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Light);
     }
     /// <summary>All deck cells of a layered ship, or null when the engine has no layer structure.</summary>
     internal static HashSet<IntVec3>? DeckCells(Building_GravEngine engine)=>

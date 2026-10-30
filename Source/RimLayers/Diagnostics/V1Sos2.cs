@@ -6,6 +6,7 @@ using RimLayers.Compatibility;
 using RimLayers.Core;
 using RimLayers.Generation;
 using RimLayers.Layout;
+using RimLayers.Ships;
 using RimLayers.Structure;
 using RimWorld;
 using RimWorld.Planet;
@@ -803,13 +804,38 @@ internal static partial class V1Integration
         // RoofShip in ConnectorRoof the second stair is refused here.
         IntVec3 next = landing + IntVec3.East;
         SpawnSos2On(map, "ShipHullTile", next, Rot4.North);
+        // IsShipDeck asks SOS2 which ship a cell belongs to, so the cache has to see the new plating
+        // before the deck can be placed on it. A player's plating goes through PostSpawnSetup, which
+        // fills MapShipCells itself; spawning through ThingMaker from a fixture bypasses that hook.
+        RecacheSos2();
         Check("sos2-second-deck-gets-its-own-ship-roof",
             map.roofGrid.RoofAt(next)?.defName == "RoofShip",
             $"roof={map.roofGrid.RoofAt(next)?.defName}");
-        AcceptanceReport slabHere = worker.AllowsPlacing(RimLayersDefOf.RL_StructuralFloor, next, Rot4.North, map);
-        Check("sos2-opened-deck-can-take-a-structural-floor", slabHere.Accepted, $"reason={slabHere.Reason}");
-        if (!slabHere.Accepted) return;
-        map.terrainGrid.SetTerrain(next, RimLayersDefOf.RL_StructuralFloor);
+
+        // The SOS2 deck is a separate def from the Odyssey gravship floor on purpose. That one needs
+        // an inspected Building_GravEngine and spends its substructure capacity, neither of which an
+        // SOS2 hull has; and its Substructure tag makes SOS2 detach the plating underneath.
+        TerrainDef? sos2Deck = StructuralSupport.Sos2Deck;
+        Check("sos2-deck-def-exists", sos2Deck != null, $"def={(sos2Deck == null ? "missing" : sos2Deck.defName)}");
+        if (sos2Deck == null) return;
+        AcceptanceReport deckHere = worker.AllowsPlacing(sos2Deck, next, Rot4.North, map);
+        Check("sos2-deck-is-allowed-on-the-hull", deckHere.Accepted, $"reason={deckHere.Reason}");
+        // Six cells north is outside the plated footprint, so the deck below it has no hull tile and
+        // no RoofShip. This is the "only on the ship's own roof" half of the contract.
+        IntVec3 offHull = next + new IntVec3(0, 0, 6);
+        AcceptanceReport deckOffHull = worker.AllowsPlacing(sos2Deck, offHull, Rot4.North, map);
+        Check("sos2-deck-is-refused-off-the-hull", !deckOffHull.Accepted, $"reason={deckOffHull.Reason}");
+        if (!deckHere.Accepted) return;
+        ShipDeckTerrain.InstallDeck(component, next, sos2Deck);
+        Check("sos2-deck-installs-on-a-plated-cell",
+            map.terrainGrid.FoundationAt(next) == sos2Deck && component.StructuralCells.Contains(next),
+            $"foundation={map.terrainGrid.FoundationAt(next)?.defName}, structural={component.StructuralCells.Contains(next)}");
+        // SOS2 must not tear its own plating off when the deck arrives. It does exactly that on any
+        // cell that receives a foundation with the Substructure tag, which is why this deck is not
+        // tagged even when Odyssey is loaded.
+        Check("sos2-deck-does-not-detach-the-hull",
+            next.GetThingList(map).Any(t => t.def.defName == "ShipHullTile"),
+            $"things={string.Join(",", next.GetThingList(map).Select(t => t.def.defName))}");
         AcceptanceReport secondStair = worker.AllowsPlacing(RimLayersDefOf.RL_Stairs, next, Rot4.North, map);
         Check("sos2-upper-deck-can-hold-a-second-stair", secondStair.Accepted, $"reason={secondStair.Reason}");
     }

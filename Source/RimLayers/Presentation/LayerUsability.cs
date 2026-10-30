@@ -54,7 +54,7 @@ internal static class SlabPlanningOverlay
     static void Postfix(Designator_Build __instance)
     {
         var owner=LayerView.Current;
-        if(!RimLayersMod.Settings.PlanningBounds||owner==null||__instance.PlacingDef!=RimLayersDefOf.RL_StructuralFloor&&__instance.PlacingDef.defName!="RL_ShipStructuralFloor")return;
+        if(!RimLayersMod.Settings.PlanningBounds||owner==null||!StructuralSupport.IsDeckTerrain(__instance.PlacingDef as TerrainDef)&&__instance.PlacingDef.defName!="RL_ShipStructuralFloor")return;
         var cells=new List<IntVec3>();
         foreach(var cell in Find.CameraDriver.CurrentViewRect)
             if(owner.IsViewedCell(cell)&&!owner.Structure.HasSurface(cell)&&owner.Structure.Validate(__instance.PlacingDef,cell,Rot4.North,planning:true).Accepted)cells.Add(cell);

@@ -28,6 +28,8 @@
   <RL_ShipOutsideField>Part of this ship lies outside its grav field.</RL_ShipOutsideField>
   <RL_ShipCapacity>All decks: {0} / {1} substructure cells</RL_ShipCapacity>
   <RL_ShipFloorOnly>Ship structural floors require a connected gravship structure.</RL_ShipFloorOnly>
+  <RL_Sos2DeckNeedsHull>SOS2 deck plating has to sit on a Save Our Ship 2 hull. Plate the deck below it first.</RL_Sos2DeckNeedsHull>
+  <RL_Sos2DeckNeedsShipRoof>SOS2 deck plating has to sit under the ship's own roof. A hull tile on the deck below provides it.</RL_Sos2DeckNeedsShipRoof>
   <RL_StandardFloorOnly>Use ship structural floors on a gravship.</RL_StandardFloorOnly>
 <RL_LiftStop>Stop on this floor</RL_LiftStop>
 <RL_LiftStopHelp>Disable this stop to retain a through-shaft without allowing entry or exit.</RL_LiftStopHelp>

@@ -19,7 +19,7 @@ RimLayers 行号指 `Mods/RimLayers/Source/RimLayers/` 下的文件。
 并把 `ConnectorRoof` 改为走 `IsSupportRoof`（否则注册的支撑屋顶能开上层、却永远造不出到那里的楼梯）；
 `RimLayersMod.cs` 在补丁类循环前注册适配器；`About/About.xml` 的 `loadAfter` 已加 `kentington.saveourship2`。
 验收：`Tests/Sos2GeometryTests`（56 项纯逻辑检查）+ `Tests/Run-V1.ps1 -Scenario sos2 -Sos2`
-（真实游戏 generate 68 / load 13 条命名断言，0 失败，`Tests/Artifacts/v1-sos2-20261030-215602/`）
+（真实游戏 generate 72 / load 13 条命名断言，0 失败，`Tests/Artifacts/v1-sos2-20261030-233651/`）
 + `Tests/Run-UnitTests.ps1`（18 套件全绿）。
 
 **太空造多层船不需要新入口**：走原版楼梯/电梯路径，`StairLayerBootstrap` 本来就通用（逆重飞船也是这么
@@ -61,7 +61,7 @@ RimLayers 行号指 `Mods/RimLayers/Source/RimLayers/` 下的文件。
 | 6 | 舰对舰炮塔在本层开火，投射物却飞到最上层带 | `Building/Building_ShipTurret.cs:465-487 MapEdgeCell(int miss)` 用 `Map.Size.z - 1` / `Map.Size.x - 1` 当「北/东边缘」，`:607`/`:624` 同样；扩层后 `Map.Size.z - 1` 是最后一个 band 的末行 | Postfix `MapEdgeCell`：边缘改成本层带内边界（`bandTop = layer*Stride + Height - 1`，`bandRight = Width - 1`）。`FindProjectileSpawnDirection`/`FindClosestEdgeCellLowSpread`（`Comp/ShipMapComp.cs:3130-3195`）同样处理 | S |
 | 7 | 泡沫补船在上层完全不工作（部件不进 `BuildingsToFoam`，或进了但没有 distributor 能覆盖） | 入队条件在 `CompShipCachePart.cs:262-300 PreDeSpawn` 里读 `mapComp.MapShipCells[parent.Position].Item2`，上层格不在表里会直接抛；`SpaceShipCache.cs:636-660 FoamFill` 与 `:1155-1178 SlowTick` 都用 `OrderBy(t => t.Item3)`（到核心的 BFS 步数）排序，跨层时该值不存在 | 修好 #1 后自动解决 80%；剩余部分：`SlowTick`/`FoamFill` 里按 `distributor.parent.Position` 所在层过滤 distributor（`Sos2CellGraph.LayerOf(cell)`），避免上层破洞被下层 distributor 隔着楼板补 | S |
 | 8 | 太空图永远只有一层，玩家没有任何入口能建第二层 | `Generation/LayerGeneration.cs:33 GenerateMapPatch` 的守卫显式排除 `parent.Tile.Layer.Def.isSpace`（非「随船生成」路径），所以 `EmptySpaceMap` 生成期不扩层；运行期 `LiveMapExpansion.CanExpand` 并**不**排除太空图（`Generation/LiveMapExpansion.cs`） | **已解决，且不需要新入口**：走的就是原版楼梯/电梯路径。`StairLayerBootstrap` 本来就是通用的（不要求引擎、不要求 `Ships` 模块），逆重飞船也是这么触发扩层的。原先卡住的是 `ConnectorRoof` 不认 `RoofShip`（见 #2/#9），修好后「铺甲板 → 造楼梯 → 完工扩层 → 出口铺下一层甲板」在太空图上自然成立，可递归向上加层 | S |
-| 9 | 上层 SOS2 船体上不能放 RimLayers 的结构楼板/楼梯，RimLayers 的建造校验也不认 SOS2 船 | `Structure/StructuralSupport.cs:57 Validate` 里 `slab`/`stair` 分支要求 `HasShipRoof`/`HasRequiredRoof`；`HasSurface` 无 SOS2 分支；`Ships/ShipStructureService.cs Deck(c)` 要求 `FoundationAt(c)?.IsSubstructure == true`（SOS2 船体地形都不是 foundation） | 与 #2 同一组扩展点。**不要**把 SOS2 船体混进 RimLayers 的 `ShipStructureService`（那是 Odyssey 逆重船模型，`Core(e)` 要求 `Building_GravEngine` + `Faction.OfPlayer`），只加「等效甲板」分支 | S |
+| 9 | 上层 SOS2 船体上不能放 RimLayers 的结构楼板/楼梯，RimLayers 的建造校验也不认 SOS2 船 | `Structure/StructuralSupport.cs:57 Validate` 里 `slab`/`stair` 分支要求 `HasShipRoof`/`HasRequiredRoof`；`HasSurface` 无 SOS2 分支；`Ships/ShipStructureService.cs Deck(c)` 要求 `FoundationAt(c)?.IsSubstructure == true`（SOS2 船体地形都不是 foundation） | 与 #2 同一组扩展点。**不要**把 SOS2 船体混进 RimLayers 的 `ShipStructureService`（那是 Odyssey 逆重船模型，`Core(e)` 要求 `Building_GravEngine` + `Faction.OfPlayer`），只加「等效甲板」分支。另外 SOS2 有**专属楼板** `RL_Sos2Deck`（`Patches/RimLayers_Sos2Floor.xml` —— 注意是 `Patches/` 而不是 `Defs/`：`Defs/` 下每个文件的根元素必须是 `Defs`，写成 `<Patch>` 会报 `root element named Patch; should be named Defs` 并且**整个文件被静默丢弃**（后续跟着一条 `Type PatchOperationConditional is not a Def type or could not be found`））：`isFoundation=true`、`layerable=false`、`requireInspectedGravEngine=false`、**不打 `Substructure` tag**（`TerrainDef.IsSubstructure` 读该 tag，而 SOS2 的 `TerrainGrid_SetFoundation_DetachOnSubstructure` 会对收到 substructure 地基的格子里每个 `CompShipCachePart` 建筑调 `GravshipDetach.DetachFromSos2`——打 tag 等于玩家一铺楼板就把船体撕下来）。判定：正下方必须同时满足 `Sos2Compatibility.IsShipDeck(below)` 与 `RoofAt(below)?.defName == "RoofShip"`，缺一分别报 `RL_Sos2DeckNeedsHull` / `RL_Sos2DeckNeedsShipRoof`；def 由 `PatchOperationConditional` 按 SOS2 的 `FakeFloorInsideShip` 是否存在注入，C# 侧一律走 `StructuralSupport.Sos2Deck`（`GetNamedSilentFail`，**不能**放进 `RimLayersDefOf`，否则无 SOS2 时 `DefOfHelper` 会抛异常炸掉整个 mod） | S |
 | 10 | `PlaceWorker_ShipHull` / `PlaceWorker_ShipPlating` 在上层空腔里放不下，或反过来能放到别的船上 | 两者只查 `map.roofGrid.RoofAt(...) == RoofDefOf.RoofRockThick` 与 `GetAffordances(...).Contains(TerrainAffordanceDefOf.Heavy)`（`PlaceWorker/PlaceWorker_ShipHull.cs`、`PlaceWorker_ShipPlating.cs`），不查层归属；`PlaceWorker_ShipPlating.cs:23` 还只看 `loc`（原版 bug，occupiedRect 循环里用的是 `loc` 而不是 `vec`） | **已实装**（`Sos2PlacementPatches`）：Prefix 只拦「footprint 跨甲板带」（`GenAdj.OccupiedRect` 里出现两个不同 `LayerId` → `RL_PlacementCrossesDecks`），不重写 SOS2 自己的 hardpoint/geyser/blueprint/阵营判定；不跨带时直接放行原版。注：`LayerLayout.CalculateStride` 保证每带留 ≥17 格 padding，SOS2 最大 footprint 7×7，所以跨带只在玩家故意把部件放在带边界时发生 | S |
 | 11 | 跨层热传导/舱压贯通不成立：上下两层船的散热片各自成网 | `Comp/ShipMapComp.cs:204-240 AccumulateToNetNew` 只用 `GenAdj.CellsAdjacentCardinal`；RimLayers 的 `Environment/HeatLinks.cs`/`VolumeLinks.cs` 只服务 RimLayers 自己的 `Heat`/`Air` 模块，SOS2 不走它们 | 在 `AccumulateToNetNew` 的邻接枚举里并入「上下相邻层」：条件 = `owner.Connectors.HasTransferEdge(lower, upper, LayerChangeKind.Heat)`（由 `ConnectorTransmission` DefModExtension 的 `heat` 开关驱动，见 `Navigation/ConnectorGraph.cs`）或 `!owner.Structure.HasSurface(upper)`（开放竖井）。舱压同理走 `VolumeLinks.Open(...)` | M |
 | 12 | `ShipHeatNet` 的 `Turrets`/`Sinks`/`Shields` 按 `CompShipHeat` 分类，跨层后 `AccuracyBoost`、`TacCons` 取到别的层的舰桥 | `ShipHeatNet.Register`（`ShipHeatNet.cs:180-228`）按类型归类，与层无关；`Building_ShipTurret.cs:384 TryStartShootSomething` 里 AI 选目标直接 `mapComp.ShipCombatTargetMap.GetComponent<ShipMapComp>().MapRootListAll.RandomElement()` | 目标选择本身跨图、与层无关，**不需要改**；#11 的跨层邻接会让相邻甲板堆叠的两艘船串网，所以 `Sos2HeatPatches` 的 Prefix 给 `Sos2CellGraph` 装 `SameShip` 过滤器（反射 `ShipMapComp.ShipIndexOnVec` 比对两格归属），只在同一艘船内允许垂直边 | S |
@@ -316,6 +316,88 @@ owner.Structure.DeckSources.Add((o, c) =>
 
 这条与 `Vehicles/VehicleFacilitySpace.HasDeck` 是同一范式（`RL_VehicleDeck` 地形 + `Building_VehicleConnector`），
 只是把「第三方设施给自己开等效楼板」做成了可注册列表，而不是每来一个 mod 就改一次 `HasSurface`。
+
+### SOS2 专属楼板：`RL_Sos2Deck`
+
+**为什么不复用 `RL_ShipStructuralFloor`**：那个 def 是 Odyssey 逆重船的甲板——`MayRequire="Ludeon.RimWorld.Odyssey"`、
+`requireInspectedGravEngine=true`（要求一格引擎完整 footprint 内且已检视）、成本是 `GravlitePanel`、
+`tags` 带 `Substructure`。SOS2 的船没有 `Building_GravEngine`、没有 substructure 预算，把两者混用会让
+`Validate` 里 `shipSlab&&!ship → RL_ShipFloorOnly` 永远拒绝玩家。
+
+**def 定义**（`Patches/RimLayers_Sos2Floor.xml`，注意是 `Patches/` —— 见 §0 #9 关于根元素的坑）：
+
+```xml
+<TerrainDef ParentName="FloorBase">
+  <defName>RL_Sos2Deck</defName>
+  <texturePath>Terrain/Surfaces/TileHull</texturePath>   <!-- 直接用 SOS2 自己的船体纹理 -->
+  <isFoundation>true</isFoundation>
+  <layerable>false</layerable>
+  <terrainAffordanceNeeded>RL_FloorSupport</terrainAffordanceNeeded>
+  <requireInspectedGravEngine>false</requireInspectedGravEngine>
+  <costList><Steel>4</Steel><Plasteel>1</Plasteel></costList>
+  <placeWorkers><li>RimLayers.Structure.PlaceWorker_LayerSupport</li></placeWorkers>
+</TerrainDef>
+```
+
+**两个容易踩的坑**：
+
+1. **不能打 `Substructure` tag**（即装了 Odyssey 也不能）。`TerrainDef.IsSubstructure` 就是
+   `ModsConfig.OdysseyActive && HasTag("Substructure")`，而 SOS2 的
+   `TerrainGrid_SetFoundation_DetachOnSubstructure` postfix（`CompShipEngineBreakdownable.cs:135-151`）
+   会对每一格收到 substructure 地基里的 `CompShipCachePart` 建筑调 `GravshipDetach.DetachFromSos2(b)`
+   —— 打 tag 等于玩家一铺楼板就把自己脚下的船体从船上拆下来。RimLayers 靠 defName 识别
+   （`StructuralSupport.IsDeckTerrain`），不依赖 tag。
+2. **不能放进 `RimLayersDefOf`**。def 是条件注入的，没装 SOS2 时它不存在，
+   `DefOfHelper.EnsureInitializedInCtor` 会在静态构造时抛 `Could not find RimLayersDefOf.RL_Sos2Deck`
+   并把整个 mod 一起炸掉。统一走 `StructuralSupport.Sos2Deck`（`GetNamedSilentFail` + 缓存）。
+
+**判定**（`StructuralSupport.Validate` 的 `sos2Slab` 分支）：正下方格必须同时满足
+`Sos2Compatibility.IsShipDeck(owner, below)` 与 `owner.map.roofGrid.RoofAt(below)?.defName == "RoofShip"`，
+缺一分别报 `RL_Sos2DeckNeedsHull` / `RL_Sos2DeckNeedsShipRoof`。不走 `HasRequiredRoof` 是故意的：
+那个谓词接受任何注册过的支撑屋顶，而 SOS2 楼板只该认 SOS2 自己那层「飞船顶仓」。
+
+**配套改动**（所有硬编码 `RL_StructuralFloor` 的地方都改为 `IsDeckTerrain`）：
+`StructuralSupport` 的 `SlabAt`/`IsBareSlab`/`TerrainChanged`/`EnsureLanding`、
+`ShipStructureService.ShipDeckTerrain.Install` 与新增的 `InstallDeck`、`ShipFoundationRemoval`、
+`ConstructionPatches.StructuralFloorRemovalPatch`（退还材料改用 `SlabAt(c)` 的实际 def，否则
+SOS2 楼板的 Plasteel 会退成钢）、`LayerUsability.SlabPlanningOverlay`、`RecoveryCompatibility`。
+
+`EnsureLanding(cell)` 的三分支现在是：
+
+```csharp
+if(owner.Ships.BuildOwner(cell)!=null) ShipDeckTerrain.Install(owner,cell,false);           // Odyssey 逆重船
+else if(Sos2Deck is {} deck && Sos2Compatibility.IsShipDeck(owner, owner.Adjacent(cell,-1)))
+    ShipDeckTerrain.InstallDeck(owner,cell,deck);                                            // SOS2 船
+else owner.map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_StructuralFloor);             // 普通楼板
+```
+
+**第三个坑（最隐蔽的一个）**：`InstallDeck` 里光用 `RemoveTopLayer` 不够。SOS2 的 `RecreateShipTile`
+postfix 绑在 `TerrainGrid.DoTerrainChangedEffects` 上，对 `MapShipCells` 里的格会把
+`FakeFloorInsideShip`（`layerable=true`）再写一次 → `underGrid` 又满了。所以必须同时抑制它：
+新增的 `Compatibility/Sos2TerrainPatches.cs` 提供一个 `Suppressed()` 作用域，
+`InstallDeck` 用 `using var suppression = Sos2TerrainPatches.Suppressed();` 包住整段写入；
+Prefix 只回 `!Suppress`，其余判定（`MoveShipFlag`、`MapShipCells`、comp 查找）全部留在 SOS2 手里。
+抑制范围只有一次地形写，不是一个 tick，SOS2 平时的修复行为不受影响。
+
+`InstallDeck` 最后的样子：
+
+```csharp
+using var suppression = Sos2TerrainPatches.Suppressed();
+if(grid.UnderTerrainAt(cell)!=null)grid.RemoveTopLayer(cell,false);
+grid.SetFoundation(cell,deck);
+```
+
+`TerrainGrid.SetFoundation` 拒绝「已有 under terrain」的格，所以必须先把 under 层清掉。也不能用
+`SetTerrain(cell, RL_OpenAir)` 去清 —— 那条路径同样会触发 `DoTerrainChangedEffects` →
+`RecreateShipTile` → 写回 `FakeFloorInsideShip`（`layerable=true`）→ `underGrid` 又满 →
+`SetFoundation` 报 `Tried to set foundation ... but there is an under terrain there`。
+`RemoveTopLayer` 不触发那条 postfix，配合上面的抑制作用域才是正常路径。
+
+**第四个坑**：`RL_ShipDeckOccupied` 原本写成「该格 `HasSurface` 且地基不是甲板地形就拒绝」。这在 SOS2 船上是错的：
+SOS2 的 `SetShipTerrain` 只在**地形不可层叠**时才换地形，船体瓦片落在 `RL_OpenAir`（`layerable=false`）上的格子
+`FoundationAt` 是 `null`，表面由 `HasDeckSource` 提供。于是「有表面但没地基」被误判成「已被普通地板占用」，
+玩家在自己船的甲板上永远铺不了楼板。判定改成只看地基：
+`if(sos2Slab && FoundationAt(cell) is {} existingFloor && !IsDeckTerrain(existingFloor)) return "RL_ShipDeckOccupied"`。
 
 ### 明确不做的事
 
@@ -617,7 +699,7 @@ SOS2 侧不改（第三方 mod）。
 |---|---|
 | 改 `MapShipCells` / `Area` 的容器类型 | 都是 `IntVec3` 键/元素，存储坐标已含层号（§1） |
 | 给 SOS2 船加 RimLayers 的 `Comp` 或 `DefModExtension`（除 §8 的 `ConnectorTransmission` 外） | SOS2 的 `AddToCache`/`RecacheFromRoots` 只认自己的 `CompShipCachePart`；RimLayers 的 `ShipStructureService` 只认 `Building_GravEngine` |
-| 把 SOS2 船体地形改成 `isFoundation` | 会同时污染 20+ 处 `FoundationAt?.IsSubstructure` 判定（§4） |
+| 把 SOS2 船体地形（`FakeFloorInsideShip` 系列）改成 `isFoundation` | 会同时污染 20+ 处 `FoundationAt?.IsSubstructure` 判定（§4）。上层楼板另给一个独立 def（`RL_Sos2Deck`），不去改 SOS2 自己的地形 |
 | 复用 `Ships/ShipTopology.Resolve` 做 SOS2 归船 | 语义不同：SOS2 不需要「向下找锚点」，已有 `CheckAndMerge`/`Mass` 规则（§3） |
 | 接管 `Building_ShipTurret` 的 AI/射程 | 它已重写 `TryStartShootSomething`，两套 AI 叠加会互相打断（§7） |
 | 让 `Combat/ProjectilePatches.cs` 覆盖 `ShipCombatProjectile` | 那是 `IExposable` 纯数据，不是 `Projectile`（§7） |
@@ -712,14 +794,16 @@ SOS2 侧不改（第三方 mod）。
 | `sos2-offship-keeps-the-padding-band` / `sos2-offship-keeps-other-decks` / `sos2-offship-still-clears-the-ground-deck` | `KillAllOffShip` 只清本层船外，隔离带与其它层的东西**不**被 Destroy |
 | `sos2-stair-fixture-has-a-deck-above` / `sos2-stair-deck-carries-the-ship-roof` | 太空造多层船的入口：上层空腔铺 `ShipHullTile` 后，屋顶是 SOS2 的 `RoofShip` 而不是 `RoofConstructed` |
 | `sos2-stair-is-allowed-under-the-ship-roof` / `sos2-stair-bootstrap-accepts-the-ship-roof` | **`ConnectorRoof` 走 `IsSupportRoof`**：`RoofShip` 下 `PlaceWorker_LayerSupport` 与 `StairLayerBootstrap.Validate` 都返回 Accepted（改之前两者都返回 `RL_NeedsRoof`） |
-| `sos2-stair-completion-opens-a-deck` / `sos2-opened-deck-is-reachable-from-the-ship` / `sos2-opened-deck-starts-as-a-real-surface` | 楼梯完工 → 扩层 → 出口格 `HasSurface` 成立。出口是 `RL_StructuralFloor`（`EnsureLanding` 在没有 RimLayers 引擎拥有该格时铺的就是它），不是 `RL_OpenAir`——出口格本就不该是空腔 |
-| `sos2-second-deck-gets-its-own-ship-roof` / `sos2-opened-deck-can-take-a-structural-floor` / `sos2-upper-deck-can-hold-a-second-stair` | 递归向上加层：新层铺 `ShipHullTile` → 得到本层的 `RoofShip` → 可铺 `RL_StructuralFloor` → 可再起一座楼梯。楼梯要的是**自己这一层**的屋顶，所以只给出口格铺瓦片不够，必须给楼梯格也铺 |
+| `sos2-stair-completion-opens-a-deck` / `sos2-opened-deck-is-reachable-from-the-ship` / `sos2-opened-deck-starts-as-a-real-surface` | 楼梯完工 → 扩层 → 出口格 `HasSurface` 成立。出口是 `RL_Sos2Deck`（SOS2 图上 `EnsureLanding` 走 `IsShipDeck(下方)` 分支）或 `RL_StructuralFloor`（RimLayers 引擎拥有该格时），不是 `RL_OpenAir`——出口格本就不该是空腔 |
+| `sos2-second-deck-gets-its-own-ship-roof` / `sos2-upper-deck-can-hold-a-second-stair` | 递归向上加层：新层铺 `ShipHullTile` → 得到本层的 `RoofShip` → 可再起一座楼梯。楼梯要的是**自己这一层**的屋顶，所以只给出口格铺瓦片不够，必须给楼梯格也铺 |
+| `sos2-deck-def-exists` / `sos2-deck-is-allowed-on-the-hull` / `sos2-deck-is-refused-off-the-hull` | SOS2 专属楼板：`RL_Sos2Deck` 在船体瓦片正上方（下方 `IsShipDeck` + `RoofShip`）可建；离船体两格处没有 plating 也没有 `RoofShip`，必须被拒 |
+| `sos2-deck-installs-on-a-plated-cell` / `sos2-deck-does-not-detach-the-hull` | `ShipDeckTerrain.InstallDeck` 把 `RL_Sos2Deck` 写成地基并记入 `StructuralCells`；同一格上的 `ShipHullTile` **仍在**（证明没打 `Substructure` tag，SOS2 没执行 `DetachFromSos2`） |
 
 尚未自动化、需要单独补场景的意图：
 
 | 场景名 | 断言 |
 |---|---|
-| `sos2-deck-build` | 太空图 `EmptySpaceMap` 上：建 `RL_ShipStructuralFloor` 成功；上层 `CompShipCachePart` 加入 `MapShipCells`；`ShipsOnMap[idx].Area` 同时含两个 band 的格 |
+| `sos2-deck-build` | （**部分已覆盖**：`sos2-deck-{def-exists,is-allowed-on-the-hull,installs-on-a-plated-cell,does-not-detach-the-hull}` 在聚落原型的叠层图上验了同一条链，缺的是真太空图）太空图 `EmptySpaceMap` 上：建 `RL_Sos2Deck` 成功；上层 `CompShipCachePart` 加入 `MapShipCells`；`ShipsOnMap[idx].Area` 同时含两个 band 的格 |
 | `sos2-placement` | 跨甲板带的 `HullFoamDistributor`/`ShipHullTile` footprint 被 `RL_PlacementCrossesDecks` 拒绝（`Sos2PlacementPatches`）；同一 footprint 落在单一甲板带内时仍交给 SOS2 原版判定 |
 | `sos2-heat-ships` | 两艘船在相邻甲板堆叠时 `AccumulateToNetNew` 不串网（`SameShip` 过滤器），`nets` 数量与单船时一致 |
 | `sos2-heat-cross` | 下层散热片 + 上层炮塔（中间开放竖井）→ 同一 `ShipHeatNet.GridID`；`Connectors.HasTransferEdge` 为真时连通，铺满甲板时**不**连通 |

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    Deck plating for Save Our Ship 2 hulls.
+
+    RL_ShipStructuralFloor cannot be reused for SOS2. That def is the Odyssey gravship deck: it is
+    MayRequire-gated on Odyssey, it demands an inspected Building_GravEngine, and it counts towards an
+    engine's substructure capacity. An SOS2 ship is a different model entirely (CompShipCachePart on
+    every plating tile, a flat MapShipCells dictionary on ShipMapComp, Building_ShipBridge as owner),
+    so a deck built on one has no engine to report to and no substructure budget to spend.
+
+    Gated on SOS2's own terrain rather than on a mod name: PatchOperationFindMod compares
+    ModMetaData.Name (the display name), which changes with translations and local forks, exactly the
+    reason Patches/VGE_PipeRisers.xml tests the def too.
+
+    Deliberately NOT tagged "Substructure", even when Odyssey is loaded. TerrainDef.IsSubstructure
+    reads that tag, and SOS2's TerrainGrid_SetFoundation_DetachOnSubstructure postfix detaches every
+    CompShipCachePart building on a cell that receives a substructure foundation
+    (CompShipEngineBreakdownable.cs). Tagging this deck would therefore tear the hull off the ship the
+    moment the player lays it. RimLayers recognises the deck by defName instead
+    (StructuralSupport.IsDeckTerrain), which is configuration independent.
+  -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/TerrainDef[defName="FakeFloorInsideShip"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <TerrainDef ParentName="FloorBase">
+          <defName>RL_Sos2Deck</defName>
+          <label>SOS2 deck plating</label>
+          <description>A load-bearing upper deck built over a completed SOS2 ship roof. The hull plating directly below stays part of the ship; this deck is the floor the next storey stands on. Decorative flooring can be laid on top.</description>
+          <texturePath>Terrain/Surfaces/TileHull</texturePath>
+          <isFoundation>true</isFoundation>
+          <layerable>false</layerable>
+          <edgeType>Hard</edgeType>
+          <renderPrecedence>399</renderPrecedence>
+          <terrainAffordanceNeeded>RL_FloorSupport</terrainAffordanceNeeded>
+          <requireInspectedGravEngine>false</requireInspectedGravEngine>
+          <affordances Inherit="False">
+            <li>Light</li>
+            <li>Medium</li>
+            <li>Heavy</li>
+            <li>Walkable</li>
+            <li>RL_FloorSupport</li>
+          </affordances>
+          <statBases>
+            <WorkToBuild>600</WorkToBuild>
+            <Beauty>0</Beauty>
+            <Cleanliness>0</Cleanliness>
+            <Flammability>0</Flammability>
+          </statBases>
+          <costList>
+            <Steel>4</Steel>
+            <Plasteel>1</Plasteel>
+          </costList>
+          <resourcesFractionWhenDeconstructed>1</resourcesFractionWhenDeconstructed>
+          <placeWorkers>
+            <li>RimLayers.Structure.PlaceWorker_LayerSupport</li>
+          </placeWorkers>
+        </TerrainDef>
+      </value>
+    </match>
+  </Operation>
+</Patch>

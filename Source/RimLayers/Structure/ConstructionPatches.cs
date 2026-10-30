@@ -138,11 +138,14 @@ internal static class StructuralFloorRemovalPatch
         if (!owner.Structure.CanDismantleSlab(c)) return false;
         IntVec3 refundCell=GenAdj.AdjacentCells.Select(offset=>c+offset)
             .First(cell=>owner.Structure.HasSurface(cell) && cell.Standable(___map));
+        // Refund the material of the deck that is actually here. A bare SOS2 deck costs steel and
+        // plasteel, and refunding the plain floor's cost would hand out the wrong materials.
+        TerrainDef removed=owner.Structure.SlabAt(c);
         __instance.SetTerrain(c, RimLayersDefOf.RL_OpenAir);
         if (doLeavings)
-            foreach (var cost in RimLayersDefOf.RL_StructuralFloor.CostListAdjusted(null))
+            foreach (var cost in removed.CostListAdjusted(null))
             {
-                int count=GenMath.RoundRandom(cost.count*RimLayersDefOf.RL_StructuralFloor.resourcesFractionWhenDeconstructed);
+                int count=GenMath.RoundRandom(cost.count*removed.resourcesFractionWhenDeconstructed);
                 if (count==0) continue;
                 Thing material=ThingMaker.MakeThing(cost.thingDef);
                 material.stackCount=count;

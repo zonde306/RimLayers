@@ -29,7 +29,7 @@ public static class RecoveryCompatibility
         if(thing.def.entityDefToBuild is ThingDef connector&&RimLayers.Vehicles.VehicleFacilitySpace.IsConnector(connector))
             return owner.Structure.Validate(connector,at,thing.Rotation,planning:true).Accepted;
         if(thing.def.entityDefToBuild is not TerrainDef floor)return false;
-        if(floor!=RimLayersDefOf.RL_StructuralFloor&&floor.defName!="RL_ShipStructuralFloor")return false;
+        if(!StructuralSupport.IsDeckTerrain(floor)&&floor.defName!="RL_ShipStructuralFloor")return false;
         // A planned slab is meant to occupy air until built. Validate its roof/ship rules,
         // not the walkable surface it will create; distant cells may await adjacent work.
         return owner.Structure.Validate(floor,at,thing.Rotation,planning:true).Accepted;
