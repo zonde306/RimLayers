@@ -56,8 +56,18 @@ internal static class StairLayerBootstrap
             return false;
         }
         // A recorded failure is never retried implicitly: every attempt resizes the whole map and then
-        // rolls it back. Only the player's own retry button clears the record first.
-        if(IsBlocked(map,position))return false;
+        // rolls it back. Only the player's own retry button clears the record first. Refusing silently
+        // here made the failure look like nothing happened at all, so it explains itself like any other.
+        if(IsBlocked(map,position))
+        {
+            // The message is unconditional: the window can be suppressed by its own cooldown, and a
+            // refusal that says nothing at all is the bug this branch was added to explain.
+            if(report)
+                RejectionReporter.Reject(RejectionAction.Stairs,"RL_StairExpansionBlocked".Translate(),true,
+                    definition.defName,definition.LabelCap,map,position,RejectionReporter.ElevationAt(map,position));
+            Messages.Message("RL_StairExpansionBlocked".Translate(),MessageTypeDefOf.RejectInput,false);
+            return false;
+        }
         try
         {
             int elevation=LayerMapComponent.For(map) is {} owner&&owner.TryDecode(position,out var here)?owner.Elevation(here.LayerId):0;
@@ -73,8 +83,9 @@ internal static class StairLayerBootstrap
             if(report)
                 RejectionReporter.Reject(RejectionAction.Stairs,e,true,"RL_StairExpansionFailed".Translate(),
                     definition.defName,definition.LabelCap,map,position);
-            else
-                Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
+            // Unconditional, like every other refusal in the mod: the window is the extra help, not the
+            // only feedback. Cooldown can swallow the window, and silence here reads as a dead click.
+            Messages.Message("RL_StairExpansionFailed".Translate(),MessageTypeDefOf.RejectInput,false);
             return false;
         }
     }
@@ -89,7 +100,10 @@ internal static class StairLayerBootstrap
             // Never retry a stair that already failed: one attempt per stair until the player asks again.
             var trigger=stairs.FirstOrDefault(s=>!s.UpperCell.IsValid&&!component.BlockedStairs.Contains(s.Position)
                 &&Validate(component.map,s.Position,s.Rotation,s.def).Accepted);
-            if(trigger!=null&&!Prepare(component.map,trigger.Position,trigger.Rotation,trigger.def))return;
+            // This is the path a finished stair takes on a map that already has layers, so it is a real
+            // player action and has to explain itself: the frame that follows never reaches Prepare
+            // again, because CanConstruct refuses it from here on.
+            if(trigger!=null&&!Prepare(component.map,trigger.Position,trigger.Rotation,trigger.def,report:true))return;
         }
         foreach(var stair in stairs)stair.InitializeConnection(createLanding:true);
     }

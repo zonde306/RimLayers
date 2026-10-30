@@ -57,7 +57,7 @@ System.NotSupportedException: Unmapped native per-cell buffer: ...
 - **自动化测试**：带 `rimlayersv1test` / `rimlayerstest` / `quicktest` 命令行参数时整体关闭窗口。`Diagnostics/V1ShaftExpansion.cs:43` 断言 `!shaftSource.StartExtension(-1)`，窗口会卡住测试。
 - **同一拒绝不刷屏**：窗口按 `Action|DefName|Reason|CulpritType|CulpritField` 去重，同名窗口已在屏幕上就不再弹；另有 250 tick 冷却（约 4 秒）。
 
-红字消息没有删：`StartExtension`、`TryPrepare`、`LayerShipConfirmLanding` 仍然发原来的 `RejectInput` 消息，窗口是额外的一层，所以习惯看消息栏的玩家行为不变。
+红字消息没有删：`StartExtension`、`TryPrepare`、`LayerShipConfirmLanding` 仍然发原来的 `RejectInput` 消息，窗口是额外的一层，所以习惯看消息栏的玩家行为不变。楼梯的两条拒绝路径（`RL_StairExpansionFailed` / `RL_StairExpansionBlocked`）同样始终发红字——窗口会被自己的冷却吞掉，只留窗口就等于玩家点了没反应。
 
 ## 设置
 
@@ -73,6 +73,7 @@ System.NotSupportedException: Unmapped native per-cell buffer: ...
 - `StairLayerBootstrap.Prepare` 入口先查 `IsBlocked`，已记录的格子直接返回 false，不会隐式重试。
 - `ConstructionSupport.Validate` 对已记录的格子返回 `RL_StairExpansionBlocked`，于是 `GenConstruct.CanConstruct` 变 false，原生 `JobDriver_ConstructFinishFrame` 的 `build.FailOn(()=>!GenConstruct.CanConstruct(Frame,pawn))` 立刻结束任务，`WorkGiver_ConstructFinishFrames.JobOnThing` 也不再派活——循环断开。
 - `StairLayerBootstrap.Process` 扫描时跳过已记录的格子。
+- **两条扩层路径都要说明白**。框架完工走 `ConstructionCommitPatch`，后台地图 tick 扫描已建好的楼梯走 `Process`——后者原来传 `report:false`，玩家只看到一句「上层创建失败，请查看日志」而没有窗口。现在 `Process` 触发的扩层一律 `report:true`。另外 `Prepare` 命中 `IsBlocked` 时的提前返回原来是**完全静默**的（连红字都没有），现在它和别的拒绝一样弹窗加红字。
 - 玩家想再试：选中框架或楼梯会看到 **重试创建楼层** 按钮（`Structure/BlockedStairGizmos.cs`），点它会清掉记录并重新走一次真实扩层，成功给 `RL_StairRetryOk` 消息。拆掉楼梯也会清记录。
 - 虫巢生成单独兜底：`UndergroundService.SpawnCaveHives` 逐个 hive try/catch。虫巢生成是整条扩层链里唯一会执行任意第三方代码的地方，一个 MOD 崩掉不该让玩家丢掉整层，所以只跳过那一个 hive 并弹窗说明（`RL_HiveSpawnSkipped`），扩层继续。
 

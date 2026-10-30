@@ -24,6 +24,9 @@ internal static partial class V1Integration
     private static bool suppressInjectedExpansionError;
     private static Harmony? blockedFaultHook;
     private static readonly IntVec3 blockedSite=new(35,0,35);
+    // Comfortably past RejectionReporter's dialog cooldown, so a repeated refusal is allowed to show.
+    private const int BlockedStairRetryWindow=300;
+    private static int blockedWaitFrom;
     private static ThingDef DownStairsDef=>DefDatabase<ThingDef>.GetNamed("RL_StairsDown");
 
     private static void BeginBlockedStair()
@@ -71,6 +74,7 @@ internal static partial class V1Integration
 
     private static void BlockedStairStep()
     {
+        ticks++;
         if(blockedPhase==0)
         {
             // The first attempt: the real commit path runs, the injected fault aborts it, and the whole
@@ -127,9 +131,52 @@ internal static partial class V1Integration
         }
         if(blockedPhase==3)
         {
-            RejectionReporter.DialogGateOverride=null;
             Check("blocked-stair-record-survives-save-and-load",
                 LayerMapComponent.Raw(blockedMap) is {} raw&&!raw.BlockedStairs.Contains(blockedSite));
+            // A finished stair spawned on a map that already has layers does not go through Frame
+            // completion at all: Building_Stairs.SpawnSetup only queues StairBootstrapPending and the
+            // background Process path calls Prepare. That path used to report with report:false, so the
+            // player got a bare "check the log" line and no window. This phase reproduces it.
+            blockedPawn.jobs.StopAll();blockedPawn.DeSpawn();
+            blockedMap=MakeUnmanagedMap(BootstrapTile(),120,137);Current.Game.CurrentMap=blockedMap;BootstrapSite(blockedMap);
+            GenSpawn.Spawn(blockedPawn,new IntVec3(33,0,33),blockedMap);
+            blockedMap.roofGrid.SetRoof(blockedSite,RoofDefOf.RoofConstructed);
+            blockedMap.terrainGrid.SetTerrain(blockedSite,TerrainDefOf.Soil);
+            blockedFaultHook=new Harmony("rimlayers.diagnostics.blocked-stair-fault");
+            blockedFaultHook.Patch(AccessTools.Method(typeof(LiveMapExpansion),nameof(LiveMapExpansion.EnsureElevation)),
+                prefix:new HarmonyMethod(typeof(V1Integration),nameof(BlockedExpansionFault)));
+            // The fault fires from inside a map tick here, so the filter has to span the whole wait.
+            suppressInjectedExpansionError=true;
+            // Phase 0 showed the same refusal moments ago, and the reporter would suppress a repeat for
+            // its cooldown. The background path only ever tries once, so let the cooldown expire first
+            // rather than bypassing it - that keeps the test honest about what a player would see.
+            blockedWaitFrom=Find.TickManager.TicksGame;
+            blockedPhase=4;ticks=0;return;
+        }
+        if(blockedPhase==4)
+        {
+            if(Find.TickManager.TicksGame-blockedWaitFrom<BlockedStairRetryWindow)return;
+            var stair=(Building_Stairs)GenSpawn.Spawn(DownStairsDef,blockedSite,blockedMap);
+            stair.SetFaction(Faction.OfPlayer);
+            Check("direct-spawned-stair-queues-the-background-bootstrap",
+                LayerMapComponent.Raw(blockedMap) is {} bg&&bg.StairBootstrapPending,$"pending={LayerMapComponent.Raw(blockedMap)?.StairBootstrapPending}");
+            blockedWaitFrom=Find.TickManager.TicksGame;
+            blockedPhase=5;ticks=0;return;
+        }
+        if(blockedPhase==5)
+        {
+            // The map component ticks Process, which runs the expansion and hits the injected fault.
+            var windows=Find.WindowStack.Windows.OfType<Dialog_Rejection>().Where(w=>w.Report.Action==RejectionAction.Stairs).ToArray();
+            if(windows.Length==0&&Find.TickManager.TicksGame-blockedWaitFrom<BlockedStairRetryWindow)return;
+            Check("background-bootstrap-explains-the-failure-in-a-window",windows.Length==1,
+                $"windows={windows.Length},waited={Find.TickManager.TicksGame-blockedWaitFrom}");
+            Check("background-bootstrap-records-the-blocked-cell",
+                LayerMapComponent.Raw(blockedMap) is {} bg&&bg.BlockedStairs.Contains(blockedSite));
+            Check("background-bootstrap-leaves-the-map-unexpanded",
+                LayerMapComponent.For(blockedMap)==null&&blockedMap.Size==new IntVec3(120,1,137));
+            blockedFaultHook?.UnpatchAll(blockedFaultHook.Id);blockedFaultHook=null;
+            suppressInjectedExpansionError=false;
+            RejectionReporter.DialogGateOverride=null;
             stage=11;ticks=0;
         }
     }

@@ -1259,3 +1259,21 @@ foreach (Thing heldThing in slotGroup.HeldThings)
 断言只覆盖派生结果（`pairing-derives-for-vehicle-lift`），不真的 spawn 9×9 站点：那需要载具框架已加载并且整块地板空着，在通用夹具里代价太高。**注意 `Run-V1.ps1` 默认不加载载具框架**（`-Vehicles` 才会加 `baal.vehicleframework` + `rimthunder.core` + `mo.technicalvehicles`），所以普通 `-Scenario pairing` 下这条断言会走「缺席即跳过」分支（detail 为 `vehicle framework absent`），必须 `-Vehicles` 才真正校验。
 
 验收：普通配置 `v1-pairing` **54 断言 0 失败**（载具那条为缺席跳过），纯逻辑 16/16。
+
+## 2026-10-30：拒绝窗口在玩家真正会走的路径上消失了
+
+**现象**：玩家报告「创建楼层出错对话框不显示了，只提示说查看日志」。
+
+**是我上一版改坏的，而且是两处。** 上一版为了终止"失败→工作分配器立刻重发→再失败"的循环，让 `CanConstruct` 对已记录的格子返回 `RL_StairExpansionBlocked`。这本身没错，但它把玩家的**第一条**路径堵在了提交之前：框架完工的 `CompleteConstruction` 再也走不到，于是只有红字。第二条路径——地图 tick 扫到已建好的楼梯、走 `StairLayerBootstrap.Process` —— 一直传的是 `report:false`，本来就只发红字不弹窗。两条路一起哑了。更糟的是我新加的 `if(IsBlocked(...))return false;` 提前返回**完全静默**，连那句「请查看日志」都没有。
+
+**修法**：`Process` 触发的扩层改成 `report:true`；`IsBlocked` 分支和别的拒绝一样弹窗加红字；楼梯的两条拒绝路径的红字改成无条件发——窗口会 `RejectionReporter` 冷却吞掉（同一个 Key 250 tick 内只弹一次），只留窗口就意味着玩家连点两次重试时第二次毫无反馈。
+
+**取证过程本身也值得记。** 玩家日志 `Logs/Player.log` 已经被其它 agent 的测试跑覆盖成 V1 输出，里面一条 `Rejected` 都没有，`Mod_RimLayers_RimLayersMod.xml` 里也没有 `rejectionDialogs` 字段（说明开关一直是默认开）。**没有日志可查的情况下，"改坏了什么"只能靠测试复现**——所以给 `blocked-stair` 场景补了第七个阶段，直接复现玩家路径：地图上 `GenSpawn` 一座成品 `RL_StairsDown`，`Building_Stairs.SpawnSetup` 只置 `StairBootstrapPending`，让地图 tick 自己跑 `Process`，断言窗口出现。
+
+**测试自己踩的三个坑：**
+
+1. `stage==601` 的分派分支（`BlockedStairStep`）**不自增 `ticks`**，而我第一版在等待循环里写 `if(windows.Length==0&&ticks<40){DoSingleTick();return;}` —— `ticks` 永远是 0，死循环。改成在方法入口 `ticks++`，并改用真实 `Find.TickManager.TicksGame` 计时：这个 `Step()` 每帧跑 15 次，只调 1 次 `DoSingleTick`，帧数和 tick 数根本不同步。
+2. 注入的失败在地图 tick 里触发，`suppressInjectedExpansionError` 只在 `CompleteConstruction` 那一小段开着，于是又打红了 `no-runtime-errors`。改成整个等待阶段都开着。
+3. **最麻烦的一个**：`blocked-stair` 的场景先触发过一次同 Key 的拒绝，紧接着复现后台路径时，`RejectionReporter` 的 250 tick 冷却把窗口吞掉了，断言看到 `windows=0`。这不是产品 bug，是测试没考虑冷却——所以先等真实 tick 越过冷却再 spawn 楼梯（`blockedWaitFrom`）。**如果为了测试通过而绕过冷却，就等于测的是个玩家看不到的路径。**
+
+**验证**：`-Scenario blocked-stair` 19 条断言、`-Scenario rejection-dialog` 22 条、`-Scenario stairs-bootstrap` 20+6 条，全部 0 失败。
