@@ -17,10 +17,13 @@ internal static partial class V1Integration
     private static Thing pairAiry = null!;
     private static Building_Elevator pairLift = null!;
     private static Building_CargoHoist pairHoist = null!;
+    private static Building_CargoHoist pairShaft = null!;
     private static ThingDef PairRiserDef => RimLayersDefOf.RL_PowerRiser;
     private static ThingDef PairLiftDef => DefDatabase<ThingDef>.GetNamed("RL_LiftVertical");
     private static ThingDef PairHoistDef => DefDatabase<ThingDef>.GetNamed("RL_CargoManualUp");
     private static ThingDef PairPortDef => DefDatabase<ThingDef>.GetNamed("RL_CargoPort");
+    private static ThingDef PairShaftDef => DefDatabase<ThingDef>.GetNamed("RL_CargoManualShaft");
+    private static ThingDef PairStationDef => DefDatabase<ThingDef>.GetNamed("RL_CargoShaftStation");
 
     private static Command_Action? PairCommand(Thing thing, string key) =>
         thing.GetGizmos().OfType<Command_Action>().FirstOrDefault(g => g.defaultLabel == key.Translate().ToString());
@@ -52,6 +55,11 @@ internal static partial class V1Integration
         Check("pairing-derives-for-hoist-end",
             LayerPairing.Props(PairHoistDef) is { kind: LayerPairKind.Hoist, companion: true } && LayerPairing.Partner(PairHoistDef, 1) == PairPortDef);
         Check("pairing-skips-the-hoist-access-port", LayerPairing.Props(PairPortDef) == null);
+        Check("pairing-derives-for-cargo-shaft-master",
+            LayerPairing.Props(PairShaftDef) is { kind: LayerPairKind.Shaft, companion: false } &&
+            LayerPairing.Partner(PairShaftDef, 1) == PairStationDef &&
+            LayerPairing.Directions(PairShaftDef).SequenceEqual(new[] { 1, -1 }),
+            LayerPairing.Partner(PairShaftDef, 1)?.defName ?? "none");
 
         // A terminal offers both directions; only the one with a real layer is enabled.
         pairRiser = GenSpawn.Spawn(ThingMaker.MakeThing(PairRiserDef), At(0, 53, 53), map);
@@ -104,6 +112,22 @@ internal static partial class V1Integration
             owner.TryDecode(restored[0].Position, out var portAt) && portAt.LayerId != 0 && portAt.X == 57 && portAt.Z == 59,
             $"{restored.Length} port(s)");
         Check("hoist-port-is-not-left-as-a-blueprint", !ThingsAt(1, 57, 59).Any(t => t is Blueprint || t is Frame));
+
+        // A cargo shaft master offers the access station that gives it a stop on the next layer.
+        // The station is an ordinary paid building, so this places a blueprint like any other.
+        pairShaft = (Building_CargoHoist)GenSpawn.Spawn(ThingMaker.MakeThing(PairShaftDef), At(0, 57, 63), map);
+        pairShaft.SetFaction(Faction.OfPlayer);
+        var shaftUp = PairCommand(pairShaft, "RL_PairBuildUp");
+        var shaftDown = PairCommand(pairShaft, "RL_PairBuildDown");
+        Check("cargo-shaft-offers-both-directions", shaftUp != null && shaftDown != null);
+        Check("cargo-shaft-enables-the-station-above", shaftUp is { Disabled: false }, shaftUp?.disabledReason ?? "");
+        shaftUp!.action();
+        Check("cargo-shaft-button-places-a-station-blueprint-above",
+            PairBlueprint(1, 57, 63, PairStationDef) != null,
+            ThingsAt(1, 57, 63).Select(t => t.def.defName).ToCommaList(true));
+        Check("cargo-shaft-button-places-a-paid-station-not-a-free-one",
+            PairStationDef.costList is { Count: > 0 } &&
+            !ThingsAt(1, 57, 63).OfType<Building>().Any(b => b.def == PairStationDef));
 
         // Dev shortcuts stay hidden until god mode, and never bypass the mod's own commit gate.
         Check("dev-shortcuts-hidden-without-god-mode", !DevLayerGizmos.For(pairRiser).Any() && !DebugSettings.ShowDevGizmos);
@@ -162,6 +186,53 @@ internal static partial class V1Integration
             }
         }
         finally { DebugSettings.godMode = godMode; Prefs.DevMode = devMode; }
+
+        // The contents tab is a vanilla container tab, so each stored stack keeps its icon and a click
+        // selects that stack. The tab itself cannot be drawn headless, but everything the row needs is
+        // reachable: the container, the icon texture, and the very call a row click makes.
+        var tabSteel = ThingMaker.MakeThing(ThingDefOf.Steel);
+        tabSteel.stackCount = 20;
+        pairHoist.Contents.TryAdd(tabSteel);
+        Find.Selector.ClearSelection(); Find.Selector.Select(pairHoist);
+        var contentsTab = new ITab_CargoContents();
+        Check("cargo-tab-is-a-vanilla-contents-tab",
+            contentsTab is ITab_ContentsBase && contentsTab.containedItemsKey == "RL_CargoContents",
+            contentsTab.GetType().BaseType?.FullName ?? "");
+        Check("cargo-tab-hides-the-vanilla-discard-buttons", !contentsTab.canRemoveThings);
+        Check("cargo-tab-lists-the-basket-contents",
+            contentsTab.container.Count == 1 && ReferenceEquals(contentsTab.container[0], tabSteel),
+            contentsTab.container.Count.ToString());
+        Check("cargo-tab-is-visible-for-the-basket-end", contentsTab.IsVisible);
+        Check("cargo-tab-rows-have-an-icon-to-draw", tabSteel.def.DrawMatSingle?.mainTexture != null);
+        ITab_Pawn_FormingCaravan.SelectNow(new List<Thing> { tabSteel });
+        Check("cargo-tab-row-click-selects-the-stored-item", Find.Selector.IsSelected(tabSteel),
+            Find.Selector.SingleSelectedThing?.def.defName ?? "none");
+        Find.Selector.ClearSelection(); Find.Selector.Select(pairRiser);
+        Check("cargo-tab-hidden-for-a-building-without-a-basket", !contentsTab.IsVisible);
+
+        // Vanilla shelves also offer one "select this stored item" button per stack. The basket is a
+        // ThingOwner, so the vanilla slot-group loop does not apply and the mod reproduces it.
+        Find.Selector.ClearSelection(); Find.Selector.Select(pairHoist);
+        var storedGizmos = pairHoist.StoredThingGizmos().OfType<Command_Action>().ToList();
+        Check("cargo-offers-one-select-button-per-stored-stack", storedGizmos.Count == pairHoist.Contents.Count,
+            $"{storedGizmos.Count} button(s) for {pairHoist.Contents.Count} stack(s)");
+        Check("cargo-select-button-is-the-vanilla-storage-command",
+            storedGizmos.FirstOrDefault() is { } first && first.GetType().Name == "Command_SelectStorage",
+            storedGizmos.FirstOrDefault()?.GetType().Name ?? "none");
+        Check("cargo-select-button-names-the-stored-item",
+            storedGizmos.FirstOrDefault()?.defaultLabel?.Contains(tabSteel.LabelNoCount) == true,
+            storedGizmos.FirstOrDefault()?.defaultLabel ?? "none");
+        Check("cargo-select-button-has-an-icon", storedGizmos.FirstOrDefault()?.icon != null);
+        storedGizmos.FirstOrDefault()?.action();
+        Check("cargo-select-button-selects-the-stored-item", Find.Selector.IsSelected(tabSteel),
+            Find.Selector.SingleSelectedThing?.def.defName ?? "none");
+        Find.Selector.Select(pairRiser);
+        Check("cargo-select-buttons-need-a-single-selection", Find.Selector.NumSelected > 1 && pairHoist.StoredThingGizmos().Count() == 0,
+            $"{Find.Selector.NumSelected} selected");
+        Find.Selector.ClearSelection(); Find.Selector.Select(pairHoist);
+        Check("cargo-select-buttons-also-on-the-access-port",
+            restored.Length > 0 && restored[0].StoredThingGizmos().Count() == pairHoist.Contents.Count,
+            restored.Length > 0 ? restored[0].StoredThingGizmos().Count().ToString() : "no port");
 
         stage = 600; ticks = 0;
     }

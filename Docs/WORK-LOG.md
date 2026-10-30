@@ -1158,3 +1158,57 @@ if(decks[l]!=0&&decks[l]!=engine.thingIDNumber){set.Clear();break;}
 2. `stage==600` 已经被 `pairing` 占用，我先加了一条重复的 `if(stage==600)`，被前面那条抢先命中，`BlockedStairStep` 一次都没执行，表现是场景 30 tick 后自己 `Finish()`。改用 `stage==601`。
 3. 场景是"自动化运行"，`RejectionReporter` 的 `automatedRun` 默认把窗口静音；断言"弹了窗口"必须先 `RejectionReporter.DialogGateOverride=true`。这是同一个开关 `rejection-dialog` 场景用的。
 4. 注入的失败会走 `Log.Error`，被 `Error()` 收进错误清单打红 `no-runtime-errors`。加 `suppressInjectedExpansionError` 只在注入调用期间过滤那一条 `Stair-triggered map expansion failed`，其余日志照旧计入。
+
+### 追加：竖井吊篮扩展站按钮（实机反馈）
+
+实机截图反馈「吊篮没有对应的按钮」。排查后确认按钮没坏，是**规则覆盖漏了一族**：吊篮有两种，我之前只登记了相邻层那种。
+
+- **相邻层吊篮**（`direction ≠ 0, shaft:false`）造价含两端，主机完工时 `SpawnSetup` 自己 `GenSpawn.Spawn` 一个 `RL_CargoPort`，所以按钮只是补回丢失的存取口（`companion=true`，直接给成品）。
+- **竖井吊篮**（`shaft:true, station:false, direction:0`）只买主机，每一层要自己加 `RL_CargoShaftStation`。这才是真正的"对位"需求：以前得在家具菜单选扩展站、再手工把蓝图对到主机正上方/正下方同格。
+
+补的规则就是 `Derive` 里加一个分支：`CargoProperties{shaft:true, station:false}` → `partner = RL_CargoShaftStation`、`directions = {1,-1}`、**`companion=false`**（扩展站是普通付费建筑，必须走原生蓝图）。扩展站自己（`station:true`）不登记，避免套娃。
+
+**教训**：`CargoProperties` 这一个扩展同时编码了三种吊篮形态（相邻层端 / 竖井主机 / 竖井站点），只看 `direction` 一个字段会把另外两族静默漏掉。派生规则要按**所有**判别字段组合穷举，而不是找一个"看起来最像"的。
+
+新增断言（`Diagnostics/V1Pairing.cs`，5 条）：`pairing-derives-for-cargo-shaft-master`（partner 是扩展站、`companion=false`、双向）、`cargo-shaft-offers-both-directions`、`cargo-shaft-enables-the-station-above`、`cargo-shaft-button-places-a-station-blueprint-above`（产物是 `Blueprint_RL_CargoShaftStation`）、`cargo-shaft-button-places-a-paid-station-not-a-free-one`（扩展站有 `costList` 且当场没有成品）。
+
+验收：`v1-pairing` **39 断言 0 失败**，纯逻辑 16/16 套件。
+
+### 追加：吊篮内容物页签改用原版容器列表
+
+原来 `ITab_CargoContents` 自己用 `Listing_Standard` 打一串 `t.LabelCap`，纯文本：没有图标、不能点选、没有信息卡。用户要求"和原生物品架一样能看图标、点一下就选中"。
+
+原版物品架 `Shelf` 其实只挂 `ITab_Storage`（筛选 + 优先级），**没有图标列表**；"图标 + 点选"的观感来自容器类页签，它们全部继承 `ITab_ContentsBase`（`ITab_ContentsTransporter`、`ITab_ContentsCasket`、`ITab_ContentsBooks`）。所以正解不是模仿，而是直接继承。
+
+- `ITab_CargoContents : ITab_ContentsBase`，`container => main.Contents`（`ThingOwner<Thing>` 本身就实现 `IList<Thing>`，不必 `.ToList()`）。
+- 只覆写 `DoItemsLists`：分隔标题用现成的 `RL_CargoContentsCount`（"Stored stacks: {0}/{1}"），逐行调基类 `DoThingRow`，空篮用 `Widgets.NoneLabel(ref curY, width, "RL_CargoEmpty".Translate())`（**三参重载才有自定义文案**，两参会用原版 `NoneBrackets`）。
+- 免费得到：`Widgets.ThingIcon` 图标、`TooltipHandler` 悬浮名、`TargetHighlighter.Highlight` 高亮、`Widgets.InfoCardButton` 信息卡，以及关键的一行——`DoThingRow` 内的 `if (Widgets.ButtonInvisible(rect)) SelectLater(things);`，`FillTab` 末尾把它交给 `ITab_Pawn_FormingCaravan.SelectNow`，于是点击即 `Find.Selector.Select` + `CameraJumper.TryJump`。
+- **`DoThingRow` 是 non-virtual**，所以"点选"这条路径无法自己实现，只能靠继承；这也是为什么不能只覆写 `FillTab` 保留原有渲染。
+- `canRemoveThings = false`：基类丢弃按钮走 `GenDrop.TryDropSpawn(t.SplitOff(count), SelThing.Position + DropOffset, ...)`，会绕过 `CargoAccess` 的操作位占用和升降行程，凭空把货丢在端口格上。取出仍走右键菜单与搬运任务。
+
+验收（`v1-pairing`，**46 断言 0 失败**）新增 7 条：页签确实继承 `ITab_ContentsBase` 且 `containedItemsKey=="RL_CargoContents"`、丢弃按钮已关闭、`container` 返回篮内实物本体（引用相等）、有篮时可见、`DrawMatSingle.mainTexture != null`（行图标有贴图可画）、`ITab_Pawn_FormingCaravan.SelectNow` 后 `Find.Selector.IsSelected(steel)`（**行的点击回调最终就是这一句**）、无篮建筑上不可见。
+
+### 追加：吊篮"选择篮中物品"快捷按钮（实机反馈）
+
+用户截图对比：原版钢铁物品架选中后，快捷按钮栏有 `选择牦牛肉 x90`、`选择钢铁 x52`，而吊篮没有。第一反应是"物品架有什么页签我们漏了"，反编译后才发现方向错了：
+
+- **原生物品架 `Shelf` 只挂 `ITab_Storage`**，那个页签只有优先级下拉和筛选窗口，**没有图标列表**。
+- 那排"选择 XX"按钮来自 `RimWorld.Building_Storage.GetGizmos()` 尾部：
+
+```csharp
+if (Find.Selector.NumSelected != 1) yield break;
+foreach (Thing heldThing in slotGroup.HeldThings)
+    yield return ContainingSelectionUtility.CreateSelectStorageGizmo(
+        "CommandSelectStoredThing".Translate(heldThing),
+        ("CommandSelectStoredThingDesc".Translate() + "\n\n" + heldThing.LabelCap.Colorize(ColoredText.TipSectionTitleColor)
+         + "\n\n" + heldThing.GetInspectString()).Resolve(),
+        heldThing, heldThing, groupable: false);
+```
+
+吊篮拿不到它有两个原因：`Building_CargoPort` 不是 `Building_Storage` 子类；而且篮内货物在 `ThingOwner<Thing>` 里，**没有 `slotGroup`**。所以只能自己重写这段循环。
+
+新增 `Building_CargoPort.StoredThingGizmos()`：`Master is {Spawned:true}` 才出按钮，沿用原版"`NumSelected == 1` 才显示"的习惯，逐堆调 `ContainingSelectionUtility.CreateSelectStorageGizmo(...)`（`groupable:false`，`groupKey = thingIDNumber` 由原版方法自己设）。`GetGizmos()` 里紧跟 `StorageSettingsClipboard.CopyPasteGizmosFor` 之后 yield 它，所以**主机和每个存取口都有**——`Building_CargoHoist` 没有自己的 `GetGizmos` 覆写，一处改动覆盖全部。
+
+本地化直接复用原版 `CommandSelectStoredThing`（`{0_label}`）/`CommandSelectStoredThingDesc`，不新增 key。**`"CommandSelectStoredThing".Translate(t)` 传 Thing 是对的**：`GrammarResolverSimple` 对 `obj is Thing` + `subSymbol == "label"` 直接返回 `thing.Label`，与 `NamedArgument.label` 无关（`.Named("0")` 是另一条路，两者都能出 `{0_label}`）。
+
+验收：`v1-pairing` **53 断言 0 失败**，新增 7 条覆盖按钮数量与篮内堆数一致、类型是 `Command_SelectStorage`、label 含物品名、有图标、点 action 后 `Find.Selector.IsSelected` 为真、多选时不显示、存取口上同样有。纯逻辑 16/16。

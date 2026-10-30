@@ -40,6 +40,7 @@ public class Building_CargoPort:Building,IHaulDestination
         foreach(var gizmo in base.GetGizmos())yield return gizmo;
         if(Faction!=Faction.OfPlayer)yield break;
         if(Master!=null)foreach(var g in StorageSettingsClipboard.CopyPasteGizmosFor(GetStoreSettings()))yield return g;
+        foreach(var g in StoredThingGizmos())yield return g;
         yield return new Command_Toggle{defaultLabel="RL_CargoAccess".Translate(),defaultDesc="RL_CargoAccessDesc".Translate(),
             icon=TexCommand.ForbidOff,isActive=()=>AccessEnabled,toggleAction=()=>AccessEnabled=!AccessEnabled};
         yield return new Command_Action{defaultLabel="RL_CargoCall".Translate(),defaultDesc="RL_CargoCallDesc".Translate(),
@@ -50,6 +51,27 @@ public class Building_CargoPort:Building,IHaulDestination
                 if(choices.Count>0)Find.WindowStack.Add(new FloatMenu(choices));
                 else Messages.Message("RL_CargoNoOperator".Translate(),MessageTypeDefOf.RejectInput,false);
             }};
+    }
+    /// <summary>One "select this stored item" button per stack in the basket, mirroring what
+    /// <see cref="Building_Storage"/> offers for shelves. The basket is a <see cref="ThingOwner{T}"/>, not a
+    /// slot group, so the vanilla loop cannot be reused and is reproduced here.</summary>
+    public IEnumerable<Gizmo> StoredThingGizmos()
+    {
+        if(Master is not {Spawned:true} main||MapHeld==null)yield break;
+        // Vanilla only offers these while exactly one thing is selected; keep that so the bar
+        // does not explode when a whole group is selected.
+        if(Find.Selector.NumSelected!=1)yield break;
+        var contents=main.Contents;
+        for(int i=0;i<contents.Count;i++)
+        {
+            var t=contents[i];
+            if(t==null||!t.def.selectable)continue;
+            var gizmo=ContainingSelectionUtility.CreateSelectStorageGizmo(
+                "CommandSelectStoredThing".Translate(t),
+                ("CommandSelectStoredThingDesc".Translate()+"\n\n"+t.LabelCap.Colorize(ColoredText.TipSectionTitleColor)+"\n\n"+t.GetInspectString()).Resolve(),
+                t,t,groupable:false);
+            if(gizmo!=null)yield return gizmo;
+        }
     }
     public override IEnumerable<FloatMenuOption> GetFloatMenuOptions(Pawn pawn)
     {
@@ -128,18 +150,35 @@ internal static class CargoDrawing
         else {Rect(loc,0,-.09f,.6f,.57f,Dark,.01f);for(int i=-2;i<=2;i++)Rect(loc,0,i*.10f-.09f,.58f,.065f,frame,.02f);}
     }
 }
-public sealed class ITab_CargoContents:ITab
+/// <summary>Basket contents, drawn with the vanilla container row so stored items keep their icon,
+/// tooltip, info card and click-to-select behaviour instead of a flat text list.</summary>
+public sealed class ITab_CargoContents:ITab_ContentsBase
 {
-    public ITab_CargoContents(){size=new Vector2(380,240);labelKey="RL_CargoContents";}
+    public ITab_CargoContents()
+    {
+        size=new Vector2(400,420);labelKey="RL_CargoContents";containedItemsKey="RL_CargoContents";
+        // Taking goods out goes through the CargoAccess job so reservations and the basket
+        // motion stay coherent; the row's discard buttons would bypass all of that.
+        canRemoveThings=false;
+    }
     public override bool IsVisible=>SelThing is Building_CargoPort {Master:not null};
-    protected override void FillTab()
+    public override IList<Thing> container=>SelThing is Building_CargoPort {Master:{} main}?main.Contents:Array.Empty<Thing>();
+    protected override void DoItemsLists(Rect inRect,ref float curY)
     {
         if(SelThing is not Building_CargoPort {Master:{} main})return;
-        var listing=new Listing_Standard();listing.Begin(new Rect(15,15,size.x-30,size.y-30));
-        listing.Label("RL_CargoContentsCount".Translate(main.Contents.Count,main.Props.capacity));
-        listing.GapLine();
-        foreach(var t in main.Contents)listing.Label(t.LabelCap);
-        if(main.Contents.Count==0)listing.Label("RL_CargoEmpty".Translate());
-        listing.End();
+        Widgets.BeginGroup(inRect);
+        Widgets.ListSeparator(ref curY,inRect.width,"RL_CargoContentsCount".Translate(main.Contents.Count,main.Props.capacity));
+        bool any=false;
+        for(int i=0;i<main.Contents.Count;i++)
+        {
+            var t=main.Contents[i];
+            if(t==null)continue;
+            any=true;
+            tmpSingleThing.Clear();tmpSingleThing.Add(t);
+            DoThingRow(t.def,t.stackCount,tmpSingleThing,inRect.width,ref curY,x=>OnDropThing(t,x));
+            tmpSingleThing.Clear();
+        }
+        if(!any)Widgets.NoneLabel(ref curY,inRect.width,"RL_CargoEmpty".Translate());
+        Widgets.EndGroup();
     }
 }

@@ -23,6 +23,8 @@ public enum LayerPairKind
     Lift,
     /// <summary>A cargo hoist end: paired with the access port its CargoProperties points at.</summary>
     Hoist,
+    /// <summary>A cargo shaft: the station that gives it a stop on the adjacent layer.</summary>
+    Shaft,
 }
 
 /// <summary>
@@ -499,6 +501,16 @@ internal static class LayerPairingBootstrap
                 partner = port,
                 directions = new List<int> { cargo.direction },
                 companion = true,
+            };
+        // A shaft master owns the whole column: its matching end is the access station that gives it a
+        // stop on the adjacent layer. The station is a normal paid building, not a companion.
+        if (def.GetModExtension<CargoProperties>() is { shaft: true, station: false } &&
+            DefDatabase<ThingDef>.GetNamedSilentFail("RL_CargoShaftStation") is { } stationDef)
+            return new LayerPairProperties
+            {
+                kind = LayerPairKind.Shaft,
+                partner = stationDef,
+                directions = new List<int> { 1, -1 },
             };
         return null;
     }
