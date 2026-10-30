@@ -153,6 +153,41 @@ internal static class Sos2Compatibility
     internal static bool MapClaims(Map map, IntVec3 cell) => ShipCellsOf(map)?.Contains(cell) ?? false;
 
     /// <summary>
+    /// True for a roof SOS2 treats as sealing a ship interior, which is what a deck may sit under.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately SOS2's own predicate instead of a defName list. <c>CompShipCachePart.SetRoof</c> writes
+    /// <c>RoofConstructed</c> over a cell that already carries <c>RoofShip</c>: its branch is
+    /// <c>!IsRoofDefAirtight(oldRoof) ? RoofShip : RoofConstructed</c>, and <c>IsRoofDefAirtight</c> accepts
+    /// <c>RoofShip</c>, so every respawn (a load is enough) downgrades a hull's ship ceiling to the plain
+    /// constructed roof. SOS2 does not care, because both are airtight to it, and third-party mods can add
+    /// their own airtight roofs through <c>compatibleAirtightRoofs</c>. Matching on <c>RoofShip</c> alone
+    /// therefore locks the deck out of any hull that has been reloaded once.
+    /// </remarks>
+    internal static bool IsShipCeiling(RoofDef? roof)
+    {
+        if (roof == null) return false;
+        if (airtightRoof == null)
+        {
+            MethodInfo? method = AccessTools.Method(shipInterior, "IsRoofDefAirtight", new[] { typeof(RoofDef) });
+            airtightRoof = method == null
+                ? (Func<RoofDef, bool>)(def => def.defName == "RoofShip" || def == RoofDefOf.RoofConstructed)
+                : (Func<RoofDef, bool>)(def => method.Invoke(null, new object[] { def }) is true);
+        }
+        try
+        {
+            return airtightRoof(roof);
+        }
+        catch (Exception exception)
+        {
+            Log.Warning("[RimLayers] SOS2 IsRoofDefAirtight failed; falling back to def name. " + exception.Message);
+            return roof.defName == "RoofShip" || roof == RoofDefOf.RoofConstructed;
+        }
+    }
+
+    private static Func<RoofDef, bool>? airtightRoof;
+
+    /// <summary>
     /// SOS2's own <c>ShipMapComp.ShipIndexOnVec</c>, i.e. which ship owns a cell, or -1.
     /// </summary>
     /// <remarks>

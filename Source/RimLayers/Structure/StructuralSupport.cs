@@ -172,11 +172,11 @@ public sealed class StructuralSupport
                 {
                     // An SOS2 deck belongs to an SOS2 hull and nothing else. Both halves are checked
                     // explicitly instead of leaning on HasRequiredRoof: that predicate accepts any
-                    // registered support roof, while a ship deck has to sit under the ship's own roof
-                    // and above a cell SOS2 itself counts as part of the ship.
+                    // registered support roof, while a ship deck has to sit under the ship's own
+                    // ceiling and above a cell SOS2 itself counts as part of the ship.
                     IntVec3 hullCell=owner.Adjacent(cell,-1);
                     if(!hullCell.IsValid||!Compatibility.Sos2Compatibility.IsShipDeck(owner,hullCell))return "RL_Sos2DeckNeedsHull".Translate();
-                    if(owner.map.roofGrid.RoofAt(hullCell)?.defName!="RoofShip")return "RL_Sos2DeckNeedsShipRoof".Translate();
+                    if(!Compatibility.Sos2Compatibility.IsShipCeiling(owner.map.roofGrid.RoofAt(hullCell)))return "RL_Sos2DeckNeedsShipRoof".Translate();
                 }
                 else if (!(shipSlab?HasShipRoof(cell):HasRequiredRoof(cell))) return "RL_NeedsRoof".Translate();
                 var core=owner.Ships.BuildOwner(cell);

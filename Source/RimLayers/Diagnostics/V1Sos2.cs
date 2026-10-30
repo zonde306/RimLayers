@@ -838,6 +838,27 @@ internal static partial class V1Integration
             $"things={string.Join(",", next.GetThingList(map).Select(t => t.def.defName))}");
         AcceptanceReport secondStair = worker.AllowsPlacing(RimLayersDefOf.RL_Stairs, next, Rot4.North, map);
         Check("sos2-upper-deck-can-hold-a-second-stair", secondStair.Accepted, $"reason={secondStair.Reason}");
+
+        // A hull cell that has been reloaded once carries RoofConstructed, not RoofShip:
+        // CompShipCachePart.SetRoof writes RoofShip only when the old roof was NOT airtight, and
+        // IsRoofDefAirtight accepts RoofShip - so the second pass downgrades every ceiling to the plain
+        // constructed roof. SOS2 is fine with that (both are airtight), and a deck rule that matched the
+        // def name alone would refuse every hull the player has loaded twice. Reproduce the downgrade
+        // here rather than trusting the reader to imagine it.
+        IntVec3 downgraded = next + IntVec3.West;
+        SpawnSos2On(map, "ShipHullTile", downgraded, Rot4.North);
+        RecacheSos2();
+        map.roofGrid.SetRoof(downgraded, RoofDefOf.RoofConstructed);
+        Check("sos2-reload-downgrades-the-ship-roof",
+            map.roofGrid.RoofAt(downgraded) == RoofDefOf.RoofConstructed,
+            $"roof={map.roofGrid.RoofAt(downgraded)?.defName}");
+        Check("sos2-deck-accepts-a-downgraded-ship-roof",
+            Sos2Compatibility.IsShipCeiling(map.roofGrid.RoofAt(downgraded)),
+            $"roof={map.roofGrid.RoofAt(downgraded)?.defName}");
+        AcceptanceReport downgradedDeck = worker.AllowsPlacing(sos2Deck, downgraded, Rot4.North, map);
+        Check("sos2-deck-is-allowed-under-a-downgraded-roof",
+            downgradedDeck.Accepted,
+            $"reason={downgradedDeck.Reason}, roof={map.roofGrid.RoofAt(downgraded)?.defName}");
     }
 
     private static Thing? Sentry(IntVec3 cell)    {
