@@ -29,6 +29,7 @@
     <li>VanillaExpanded.VChemfuelE</li>
     <li>VanillaExpanded.HelixienGas</li>
     <li>VanillaExpanded.VNutrientE</li>
+    <li>lordfelix.SmartCombat</li>
   </loadAfter>
   <incompatibleWith>
     <li>Peren.IsoRimProjectZ</li>
@@ -51,7 +52,7 @@
 设置：显示、楼层、玩法、地下生成、兼容与恢复、环境与生态六页，全局共用。单图上下默认各 2 层，全局额外层默认 20；降低上限不删除旧层。异常空域中的 Pawn、物品和尸体可自动恢复，无合法落点时暂存原对象并提供手动恢复。详情见 Docs/SETTINGS.md。
 
 存档：先备份并另存新槽。超出旧版 ±2 上限的存档不能回退旧版 DLL。楼层存档持续依赖 RimLayers，不能安全移除。更新 DLL 后必须重启游戏。
-兼容：需要 1.7 对应的 Harmony 3；不要同时启用 IsoRim ProjectZ 或 Baal.SecondFloor。VGE Chapter 1 / 2 为可选兼容，启用时 RimLayers 排在其后，保留 VGE 单活动引擎及资源规则；不装 VGE 仍支持原生多船。CE、其他飞船框架尚未适配；原生独立地下与 Pocket 地图不自动扩层。建议地表不超过 250×250。
+兼容：需要 1.7 对应的 Harmony 3；不要同时启用 IsoRim ProjectZ 或 Baal.SecondFloor。VGE Chapter 1 / 2 为可选兼容，启用时 RimLayers 排在其后，保留 VGE 单活动引擎及资源规则；不装 VGE 仍支持原生多船。CE、其他飞船框架尚未适配；原生独立地下与 Pocket 地图不自动扩层。Immersive Warfare（Smart Combat）的路况网格已适配，扩层时由其自行重建。建议地表不超过 250×250。
 封面与介绍卡为概念示意，游戏使用俯视切层显示。
 
 —— English ——
@@ -70,7 +71,7 @@ Requires RimWorld 1.7 and the matching Harmony 3. Load Harmony before RimLayers,
 
 Six global settings pages cover display, floors, gameplay, underground generation, recovery, and environment/ecology. Defaults allow two upper/two underground floors per map and twenty extra floors across the save. Lowering limits preserves existing floors. Abnormal airspace recovery keeps original Pawns, items and corpses; when no legal landing exists they remain in suspended storage with manual recovery. See Docs/SETTINGS.md.
 
-Back up saves and use a new save slot. Saves beyond the old ±2 limits cannot be loaded with an older DLL. Layered saves require RimLayers and cannot safely have it removed. Restart after DLL updates. Do not combine with IsoRim ProjectZ or Baal.SecondFloor. Optional VGE Chapter 1 / 2 compatibility: load RimLayers after both chapters. VGE keeps its single-active-engine and resource rules; without VGE, native multiple ships remain supported. CE and other ship frameworks are not adapted; native pocket/independent underground Maps do not auto-expand. Recommended surface size: up to 250×250.
+Back up saves and use a new save slot. Saves beyond the old ±2 limits cannot be loaded with an older DLL. Layered saves require RimLayers and cannot safely have it removed. Restart after DLL updates. Do not combine with IsoRim ProjectZ or Baal.SecondFloor. Optional VGE Chapter 1 / 2 compatibility: load RimLayers after both chapters. VGE keeps its single-active-engine and resource rules; without VGE, native multiple ships remain supported. CE and other ship frameworks are not adapted; native pocket/independent underground Maps do not auto-expand. Immersive Warfare (Smart Combat) road-cost grid is adapted: the expansion releases it and the mod rebuilds it. Recommended surface size: up to 250×250.
 
 See README.md for the illustrated guide. Cover and cards are concept illustrations; gameplay uses a top-down layer view.</description>
 </ModMetaData>

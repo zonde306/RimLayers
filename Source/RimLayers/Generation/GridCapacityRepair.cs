@@ -103,6 +103,7 @@ namespace RimLayers.Generation
                         // write as soon as anything addresses an appended band).
                         else if (v != null &&
                                  v.GetType().Namespace?.StartsWith("Unity.Collections", StringComparison.Ordinal) == true &&
+                                 (v.GetType().GetProperty("IsCreated")?.GetValue(v) is not bool created || created) &&
                                  v.GetType().GetProperty("Length")?.GetValue(v) is int nativeLength &&
                                  nativeLength >= groundCells && nativeLength <= groundCells + 63)
                         {

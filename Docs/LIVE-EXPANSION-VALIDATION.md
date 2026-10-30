@@ -66,6 +66,25 @@ VVRace 自身按 `map.Size` 遍历整张存储区（含 RimLayers 的保留隔�
 
 验证：`pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario expansion -AllDlc -River -VVRace`。`vvrace-*` 五项断言覆盖缓冲跟随扩容、预留折算清空、主网格前缀保持（含真实地表魔素 370）、新增层为空、隔离行无魔素；读档阶段 6 项通过且 `errors` 为空。该场景仍保留一个与本次改动无关的既有失败（`every-original-spawned-thing-keeps-identity-map-and-stack`）：在未改动的原始代码上同样失败。
 
+## 第三方自定义原生网格（Smart Combat）
+
+Smart Combat（`lordfelix.SmartCombat`，Immersive Warfare）的 `SmartCombat.OrdinaryRoadMap` 持有一个
+**懒分配**的 `NativeArray<ushort> offsets`（离路附加代价，长度 == `NumGridCells`）。它只在殖民者开始普通工作
+时才由 `PrepareSafeBatch` 建出来，所以同一张地图上「刚开局能扩层、玩一会儿就扩不了」：
+
+```text
+[RimLayers] Stair-triggered map expansion failed on map 0:
+System.NotSupportedException: Unmapped native per-cell buffer: SmartCombat.OrdinaryRoadMap.offsets.
+Expansion was not applied.
+```
+
+适配方式是 `RegisterBeforeResize` + 丢弃，而不是 `RegisterNativeCellBuffer` + 迁移前缀：
+`PrepareSafeBatch` 自己就有 `offsets.Length != numGridCells → DisposeGrid()` 的退化路径，下一次批量会按新尺寸
+全量重建并调 `RecycleGridJobData`；而前缀迁移会留下旧地图的代价、并让与 `roadCells` 配对维护的 `roadCount` 失配。
+细节与断言清单见 [SMARTCOMBAT-COMPATIBILITY.md](SMARTCOMBAT-COMPATIBILITY.md)。
+
+验证：`pwsh -NoProfile -File Mods/RimLayers/Tests/Run-V1.ps1 -Scenario smartcombat`。
+
 ## 已修复的失败记录
 
 - `v1-expansion-20261019-140017`：洪水填充新增行的零初值导致区域碎裂和日志洪泛；结束的仅是本任务启动的测试 PID，保留日志。

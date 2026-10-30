@@ -1212,3 +1212,20 @@ foreach (Thing heldThing in slotGroup.HeldThings)
 本地化直接复用原版 `CommandSelectStoredThing`（`{0_label}`）/`CommandSelectStoredThingDesc`，不新增 key。**`"CommandSelectStoredThing".Translate(t)` 传 Thing 是对的**：`GrammarResolverSimple` 对 `obj is Thing` + `subSymbol == "label"` 直接返回 `thing.Label`，与 `NamedArgument.label` 无关（`.Named("0")` 是另一条路，两者都能出 `{0_label}`）。
 
 验收：`v1-pairing` **53 断言 0 失败**，新增 7 条覆盖按钮数量与篮内堆数一致、类型是 `Command_SelectStorage`、label 含物品名、有图标、点 action 后 `Find.Selector.IsSelected` 为真、多选时不显示、存取口上同样有。纯逻辑 16/16。
+
+## Smart Combat（Immersive Warfare）兼容
+
+2026-10-30。报告现场：`Player.log` 里楼梯建层失败，`[RimLayers] Stair-triggered map expansion failed on map 0: System.NotSupportedException: Unmapped native per-cell buffer: SmartCombat.OrdinaryRoadMap.offsets`。同一张地图 15:45:43 扩层成功、15:48:01 失败，因为 `offsets` 是**懒分配**的：殖民者开始普通工作（`Goto`/`HaulToCell`/`DoBill`/… 白名单）时，`OrdinaryRoadPreference.ApplySafeBatch` 才在 `PathFinder.ComputeWorkThisTick` 的后缀里调 `PrepareSafeBatch` 建出 `NativeArray<ushort>`。
+
+修法为**丢弃**而**不是**迁移：`SmartCombatCompatibility.Install()` 只登记 `RegisterBeforeResize(OrdinaryRoadMap, DiscardGrid)`，在事务里调 Smart Combat 自己的 `DisposeGrid()`。理由：`PrepareSafeBatch` 本来就自带 `offsets.Length != numGridCells → DisposeGrid()` 的自愈分支，下一次批量会按新尺寸全量重建（`changed=true` → `RecycleGridJobData` → 重算）；而保留旧前缀会留下 `roadCells`/`roadCount` 与新尺寸不一致的半状态。
+
+同时修掉两个真问题：
+
+1. **核心侧 `Length` 判定**：`NativeArray<T>.Dispose()` 之后字段仍是那个 struct，`IsCreated == false` 但 `Length` 保留旧值。`LiveMapExpansion.PrepareManaged` 与 `GridCapacityRepair.Fix` 的未登记原生缓冲分支只看 `Length`，于是"适配器刚丢掉的缓冲"被当成"长度正好是旧格数的未登记缓冲"继续抛同样的异常。两处改为把 `IsCreated` 当作存活判据（没有该属性的类型行为不变）。
+2. **`ModsConfig` 大小写**：1.7 的 `ModsConfig.RecacheActiveMods()` 把 `ModsConfig.xml` 里的字符串**原样**放进 `activeModsHashSet`，而 `IsActive(id)` 用 `id.ToLower()` 查。所以配置里写驼峰 `lordfelix.SmartCombat` 时 DLL 照常加载、`AccessTools.TypeByName` 找得到类型，但 `ModMetaData.Active` 恒 false、`GetActiveModWithIdentifier` 恒 null。适配器改用 `AerocraftCompatibility` 早就有的双路判定（`ModLister` + `RunningModsListForReading` 大小写无关兜底）。
+
+验收：`-Scenario smartcombat` **23 断言 0 失败**（`Tests/Artifacts/v1-smartcombat-20261030-171022`）；回归 `-Scenario expansion -AllDlc -River -VVRace` generate 28 / load 7、`-Scenario stairs-bootstrap` 20+6、`-Scenario rejection-dialog` 22 全部 0 失败。
+
+顺带发现但**与本改动无关**的既有夹具缺陷：`blocked-stair` 用共享的 `BootstrapSite`（铺 `Concrete`）却建**向下**楼梯，而 `StairLayerBootstrap.Validate` 对向下楼梯要求 `UndergroundService.TerrainAllows`，混凝土没有 `Diggable` 权限，于是注入故障的 `EnsureElevation` 根本没被调用（`attempts=0`，3 条断言红）。在 `BeginBlockedStair` 里把那格改成 `TerrainDefOf.Soil` 后 15 断言全通过。
+
+详见 [SMARTCOMBAT-COMPATIBILITY](SMARTCOMBAT-COMPATIBILITY.md)。

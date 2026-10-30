@@ -38,6 +38,10 @@ internal static partial class V1Integration
         foreach(var work in DefDatabase<WorkTypeDef>.AllDefs)pawn.workSettings.SetPriority(work,0);
         pawn.workSettings.SetPriority(construction,1);
         map.roofGrid.SetRoof(blockedSite,RoofDefOf.RoofConstructed);
+        // The fixture builds a stair that digs DOWN, so the substrate has to be excavatable: the shared
+        // BootstrapSite floor is concrete, which carries no Diggable affordance, and Validate would then
+        // refuse the stair before the injected expansion fault ever runs.
+        map.terrainGrid.SetTerrain(blockedSite,TerrainDefOf.Soil);
         blockedPawn=pawn;blockedMap=map;
         Check("blocked-fixture-starts-unexpanded",LayerMapComponent.For(map)==null&&map.Size==new IntVec3(120,1,137));
         // Injected the same way the other fault scenarios do it: the expansion itself is untouched, so

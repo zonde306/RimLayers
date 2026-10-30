@@ -229,6 +229,10 @@ Recommended surface size: **250 × 250 or smaller**. Creating a floor causes a b
   Compiled, not yet verified in game (Aerocraft was not enabled for the recorded runs).
   See [Aerocraft compatibility](Docs/AEROCRAFT-COMPATIBILITY.md).
 - **Optional Vanilla Gravship Expanded Chapter 1 / 2 integration.** Load RimLayers after both chapters. VGE retains its single-active-engine, fuel-network and interference rules. Native multiple ships still work without VGE. See [VGE compatibility](Docs/VGE-COMPATIBILITY.md).
+- **Optional Immersive Warfare (Smart Combat) integration.** Load RimLayers after `lordfelix.SmartCombat`. Its
+  ordinary-road cost grid is a lazily allocated native buffer; the expansion releases it and Smart Combat rebuilds
+  it at the new size, so stairs keep creating floors after colonists have started working.
+  See [Smart Combat compatibility](Docs/SMARTCOMBAT-COMPATIBILITY.md).
 - **Optional Steel Horizon 4.9.2 integration has actual-vehicle validation.** See [Vehicles across floors](#vehicles-across-floors) for scope and framework restrictions.
 - **CE, other ship frameworks, special non-projectile Verbs, and custom combat or geology frameworks need separate adaptation.**
 - Native independent underground Maps and PocketMaps do not auto-expand. Ordinary NPC and space Maps do not auto-expand either; valid incoming-ship preparation and deliberately completed connectors follow their own rules.
@@ -239,6 +243,7 @@ Actual screenshots and run records:
 - [Layered climate, solar-flare isolation, mineral batches, magma and insects](Docs/ENVIRONMENT-IMPLEMENTATION.md)
 - [Vehicle ramps, lifts, flight and recovery](Docs/VEHICLES-IMPLEMENTATION.md)
 - [Aerocraft Framework compatibility](Docs/AEROCRAFT-COMPATIBILITY.md)
+- [Immersive Warfare (Smart Combat) compatibility](Docs/SMARTCOMBAT-COMPATIBILITY.md)
 - [B1/B2, vertical excavation and saves](Docs/UNDERGROUND-VALIDATION.md)
 - [Mountain entrances, independent veins and older-floor migration](Docs/MOUNTAINS.md)
 - [Shooting, turrets, explosions and cross-floor hazards](Docs/COMBAT-3D.md) · [Real raids and throwing](Docs/RAID-COMBAT-VALIDATION.md)

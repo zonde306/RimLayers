@@ -215,7 +215,12 @@ internal static class LiveMapExpansion
                 else if(value is BoolGrid or ByteGrid or IntGrid or CellGrid or CellBoolDrawer)roots.Add(value);
                 else if(value!=null&&value.GetType().Namespace?.StartsWith("Unity.Collections",StringComparison.Ordinal)==true)
                 {
-                    var length=value.GetType().GetProperty("Length")?.GetValue(value);
+                    // A released or never-allocated native buffer owns no cells, so there is nothing to
+                    // carry into the appended rows and nothing to index past the old size. Adapters
+                    // use exactly this shape to hand a lazily allocated grid back to its owner, and
+                    // Vector/bit containers already expose IsCreated, so treat it as the live test.
+                    bool live=value.GetType().GetProperty("IsCreated")?.GetValue(value) is not bool created||created;
+                    var length=live?value.GetType().GetProperty("Length")?.GetValue(value):null;
                     if(length is int n&&n>=oldCount&&n<=oldCount+63)
                         throw new NotSupportedException($"Unmapped native per-cell buffer: {root.GetType().FullName}.{f.Name}. Expansion was not applied.");
                 }
