@@ -9,25 +9,62 @@ public sealed class StructuralSupport
 {
     private readonly LayerMapComponent owner;
     public StructuralSupport(LayerMapComponent owner) => this.owner = owner;
+
+    // A third-party ship framework keeps its own hull model and must never be folded into RimLayers'
+    // Odyssey gravship path (Ships/ShipStructureService owns that model exclusively). What it can
+    // share are the two predicates that decide whether a cell above it is buildable: "is this cell a
+    // deck?" and "does this roof count as a floor for the deck above?". Registering them here keeps
+    // ownership untouched while letting an upper deck sit on a foreign hull.
+    private static readonly List<Func<LayerMapComponent, IntVec3, bool>> deckSources = new();
+    private static readonly List<Func<RoofDef?, bool>> supportRoofs = new();
+
+    /// <summary>Register an extra "this cell is a walkable deck" source. Called per cell; keep it cheap.</summary>
+    public static void RegisterDeckSource(Func<LayerMapComponent, IntVec3, bool> source)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (!deckSources.Contains(source)) deckSources.Add(source);
+    }
+
+    /// <summary>Register a roof that may support the deck above it, in addition to the native ones.</summary>
+    public static void RegisterSupportRoof(Func<RoofDef?, bool> supported)
+    {
+        if (supported == null) throw new ArgumentNullException(nameof(supported));
+        if (!supportRoofs.Contains(supported)) supportRoofs.Add(supported);
+    }
+
+    private bool HasDeckSource(IntVec3 cell)
+    {
+        for (int i = 0; i < deckSources.Count; i++) if (deckSources[i](owner, cell)) return true;
+        return false;
+    }
+
+    internal static bool IsSupportRoof(RoofDef? roof)
+    {
+        if (SupportedRoof(roof)) return true;
+        for (int i = 0; i < supportRoofs.Count; i++) if (supportRoofs[i](roof)) return true;
+        return false;
+    }
+
     public bool HasRequiredRoof(IntVec3 upper)
     {
         if (!owner.TryDecode(upper, out var cell)) return false;
         if (cell.LayerId == 0 || owner.Mountains.IsNaturalFloor(upper)) return true;
         IntVec3 lower = owner.Adjacent(upper,-1);
         if(!lower.IsValid)return false;
-        return SupportedRoof(owner.map.roofGrid.RoofAt(lower)) &&
+        bool supported = IsSupportRoof(owner.map.roofGrid.RoofAt(lower)) || HasDeckSource(lower);
+        return supported &&
             (owner.Elevation(cell.LayerId) == 1 || owner.map.terrainGrid.FoundationAt(upper)?.IsSubstructure==true || HasSurface(lower));
     }
 
     internal bool HasShipRoof(IntVec3 upper)
     {
         if(!owner.TryDecode(upper,out var at)||owner.Elevation(at.LayerId)<=0)return false;
-        return SupportedRoof(owner.map.roofGrid.RoofAt(owner.Adjacent(upper,-1)));
+        return IsSupportRoof(owner.map.roofGrid.RoofAt(owner.Adjacent(upper,-1)));
     }
     public bool HasSurface(IntVec3 cell) =>
         owner.TryDecode(cell, out var logical) && owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir &&
         (logical.LayerId == 0 || owner.Mountains.IsNaturalFloor(cell) || owner.StructuralCells.Contains(cell) && HasRequiredRoof(cell) ||
-         RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell));
+         RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell) || HasDeckSource(cell));
 
 
     internal static bool SupportedRoof(RoofDef? roof)=>roof==RoofDefOf.RoofConstructed||roof==RoofDefOf.RoofRockThin;
@@ -108,7 +145,13 @@ public sealed class StructuralSupport
                 if(!shipSlab&&owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true)return "RL_StandardFloorOnly".Translate();
                 if(shipSlab&&HasSurface(cell)&&owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure!=true)return "RL_ShipDeckOccupied".Translate();
                 if (!planning && !HasSurface(cell) && !GenAdj.AdjacentCells.Any(offset => HasSurface(cell + offset)))
-                    return "RL_NeedsPlatform".Translate();
+                {
+                    // A foreign deck source (an SOS2 hull) is not an RL_StructuralFloor and owns no
+                    // RimLayers engine, so neither the surface test nor the engine-core test can see
+                    // it. The deck directly below is the authority for "is there a platform here".
+                    IntVec3 under=owner.Adjacent(cell,-1);
+                    if(!under.IsValid||!HasDeckSource(under))return "RL_NeedsPlatform".Translate();
+                }
             }
             else if (!HasSurface(cell)) return "RL_NoSurface".Translate();
             if (stair)

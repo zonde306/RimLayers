@@ -30,6 +30,7 @@
     <li>VanillaExpanded.HelixienGas</li>
     <li>VanillaExpanded.VNutrientE</li>
     <li>lordfelix.SmartCombat</li>
+    <li>kentington.saveourship2</li>
   </loadAfter>
   <incompatibleWith>
     <li>Peren.IsoRimProjectZ</li>

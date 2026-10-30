@@ -65,7 +65,7 @@ internal static partial class V1Integration
         if (GenCommandLine.TryGetCommandLineArg("rimlayersmode", out var value)) mode = value;
         if (mode != "generate" && mode != "load") throw new ArgumentException("Invalid V1 test mode.");
         if (GenCommandLine.TryGetCommandLineArg("rimlayerscase", out var testCase)) scenario = testCase;
-        if (scenario != "aerocraft" && scenario != "collapse-perf" && scenario != "deep-resources" && scenario != "environment" && scenario != "environment-geology" && scenario != "environment-perf" && scenario != "vehicle-flight" && scenario != "vehicle-ramp" && scenario != "vehicle-lift" && scenario != "vehicle-ground" && scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "areas" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed" && scenario != "minimap" && scenario != "dubs" && scenario != "vefpipes" && scenario != "rejection-dialog" && scenario != "blocked-stair" && scenario != "pairing" && scenario != "smartcombat" && scenario != "panel-drag") throw new ArgumentException("Invalid V1 scenario.");
+        if (scenario != "aerocraft" && scenario != "collapse-perf" && scenario != "deep-resources" && scenario != "environment" && scenario != "environment-geology" && scenario != "environment-perf" && scenario != "vehicle-flight" && scenario != "vehicle-ramp" && scenario != "vehicle-lift" && scenario != "vehicle-ground" && scenario != "ship-landing-items" && scenario != "temperature" && scenario != "cargo" && scenario != "reinstall" && scenario != "jump" && scenario != "transition" && scenario != "ship-vge" && scenario != "shaft-extension" && scenario != "settings-behavior" && scenario != "settings-perf" && scenario != "settings-quota" && scenario != "settings-ui" && scenario != "settings-recovery" && scenario != "underground" && scenario != "combat-raid-audit" && scenario != "combat-raid-guns" && scenario != "combat-upper" && scenario != "combat-grenade" && scenario != "combat-raid-melee" && scenario != "combat-raid" && scenario != "combat-raid-isolated" && scenario != "combat-manned" && scenario != "combat-3d" && scenario != "ship-coexistence" && scenario != "mountains" && scenario != "ship-structure" && scenario != "elevators" && scenario != "stairs-bootstrap" && scenario != "expansion" && scenario != "gravship" && scenario != "corpse-refresh" && scenario != "command-input" && scenario != "reachability" && scenario != "presentation" && scenario != "usability" && scenario != "migration" && scenario != "world-exit" && scenario != "home" && scenario != "areas" && scenario != "navigation-door" && scenario != "scale" && scenario != "lord" && scenario != "roping" && scenario != "mechanitor" && scenario != "navigation" && scenario != "navigation-maze" && scenario != "navigation-rules" && scenario != "work" && scenario != "work-save" && scenario != "work-container" && scenario != "work-haul" && scenario != "work-hunger" && scenario != "structure" && scenario != "skyfall" && scenario != "skyfall-shuttle" && scenario != "combat-geometry" && scenario != "combat-shot" && scenario != "combat-ai" && scenario != "combat-turret" && scenario != "combat-policy" && scenario != "combat-shields" && scenario != "combat-shield-save" && scenario != "combat-shield-pass" && scenario != "combat-explosion" && scenario != "combat-delay" && scenario != "combat-grenade-flee" && scenario != "combat-roof" && scenario != "combat-ballistics" && scenario != "combat-blast-effects" && scenario != "utilities" && scenario != "air" && scenario != "heat" && scenario != "sky" && scenario != "hazards" && scenario != "hazards-timed" && scenario != "minimap" && scenario != "dubs" && scenario != "vefpipes" && scenario != "rejection-dialog" && scenario != "blocked-stair" && scenario != "pairing" && scenario != "smartcombat" && scenario != "panel-drag" && scenario != "sos2") throw new ArgumentException("Invalid V1 scenario.");
         Directory.CreateDirectory(directory);
         var h = new Harmony("rimlayers.core.v1test");
         if(scenario=="mountains")
@@ -257,6 +257,7 @@ internal static partial class V1Integration
                     else if (scenario == "skyfall") { RestoreSkyfall(); }
                     else if (scenario == "collapse-perf") { RestoreCollapsePerf(); }
                     else if (scenario == "structure") { RestoreStructure(); }
+                    else if (scenario == "sos2") { RestoreSos2(); }
                     else if(scenario is "combat-shield-save" or "combat-shield-pass") { RestoreShieldBoundary(); }
                     else if(scenario=="combat-shot") { RestoreCombatShot(); }
                     else if(scenario=="combat-explosion") { RestoreBlastTests(); }
@@ -328,6 +329,7 @@ internal static partial class V1Integration
         if(scenario=="aerocraft"){BeginAerocraft();return;}
         if(scenario=="dubs"){BeginDubs();return;}
         if(scenario=="smartcombat"){BeginSmartCombat();return;}
+        if(scenario=="sos2"){BeginSos2();return;}
         if(scenario=="vefpipes"){BeginVePipes();return;}
         foreach (var p in map.mapPawns.FreeColonistsSpawned.ToList())
         {
@@ -452,6 +454,7 @@ internal static partial class V1Integration
     {
         if(stage==601){BlockedStairStep();return;}
         if(stage==602){ticks++;SmartCombatStep();return;}
+        if(stage==603){ticks++;Sos2Step();return;}
         if (stage == 600) { PairingStep(); return; }
         if(stage==580){AerocraftStep();return;}
         if(stage==590){RejectionStep();return;}
@@ -996,6 +999,7 @@ internal static partial class V1Integration
             "hazards" or "hazards-timed"=>"RimLayers_V1Hazards",
             "navigation"=>"RimLayers_V1Navigation",
             "aerocraft"=>"RimLayers_V1Aerocraft",
+            "sos2"=>"RimLayers_V1Sos2",
             _=>null
         };
         if(saveName==null||!File.Exists(Path.Combine(directory,"Saves",saveName+".rws")))

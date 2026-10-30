@@ -43,6 +43,7 @@ public sealed class RimLayersMod : Mod
         // is the only point where a failure is still reported per patch class.
         Compatibility.DubsCompatibility.Install(harmony);
         Compatibility.VEPipeSystemCompatibility.Install(harmony);
+        Compatibility.Sos2Compatibility.Install(harmony);
         int patchClasses=0;
         var failed=failedPatches;
         failed.Clear();
