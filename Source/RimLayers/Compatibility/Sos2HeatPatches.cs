@@ -44,12 +44,31 @@ internal static class Sos2HeatPatches
         private static void Prefix(MapComponent __instance) =>
             Sos2CellGraph.Enter(__instance?.map, SameShip);
 
-        /// <summary>True when both cells belong to the same SOS2 ship, or either one is unclaimed.</summary>
+        /// <summary>
+        /// True when a deck boundary between two stacked cells carries heat.
+        /// </summary>
+        /// <remarks>
+        /// A vertical edge is only allowed when BOTH cells hold heat hardware, i.e. the player ran a
+        /// conduit, a heatsink or a reactor up to that exact column. The earlier rule walked through
+        /// every stacked pair unconditionally, which let a pipe on one deck silently join a sink on
+        /// another and made "thermal conduit" stop meaning anything on a layered map. Matching the
+        /// same-layer rule (also hardware, also adjacency) keeps both directions honest, and the
+        /// player-facing answer is RimLayers' own <c>RL_HeatRiser</c>.
+        /// </remarks>
         private static bool SameShip(IntVec3 from, IntVec3 to)
         {
             Map? map = Sos2CellGraph.Current;
             if (map == null) return true;
+            if (!CarriesHeat(map, from) || !CarriesHeat(map, to)) return false;
             return Sos2Compatibility.ShipIndexAt(map, from) == Sos2Compatibility.ShipIndexAt(map, to);
+        }
+
+        /// <summary>True when the cell holds a building with SOS2's heat comp.</summary>
+        private static bool CarriesHeat(Map map, IntVec3 cell)
+        {
+            foreach (Thing thing in cell.GetThingList(map))
+                if (Sos2Compatibility.IsHeatPart(thing)) return true;
+            return false;
         }
 
         [HarmonyPostfix]

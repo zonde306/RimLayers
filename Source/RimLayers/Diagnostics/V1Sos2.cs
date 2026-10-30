@@ -520,6 +520,67 @@ internal static partial class V1Integration
         {
             Check("sos2-heat-conduit-links-both-decks", false, "grid or conduits missing");
         }
+
+        // A stacked pair is not automatically one net. SOS2's walk is now allowed vertically only
+        // where BOTH cells carry heat hardware, so a lone reactor on the upper deck must stay out of
+        // the lower deck's net instead of bleeding heat into it from nowhere.
+        Building? isolated = SpawnSos2("ShipHeatConduit", At(1, 72, 56), Rot4.North);
+        AccessTools.Field(Sos2Compatibility.ShipMapCompType, "heatGridDirty")?.SetValue(sos2ShipComp, true);
+        AccessTools.Field(Sos2Compatibility.ShipMapCompType, "loaded")?.SetValue(sos2ShipComp, false);
+        AccessTools.Method(Sos2Compatibility.ShipMapCompType, "MapComponentUpdate", Type.EmptyTypes)
+            ?.Invoke(sos2ShipComp, null);
+        grid = AccessTools.Field(Sos2Compatibility.ShipMapCompType, "grid")?.GetValue(sos2ShipComp) as int[];
+        if (grid != null && isolated != null && lowerConduit != null)
+        {
+            int alone = grid[map.cellIndices.CellToIndex(isolated.Position)];
+            int floor = grid[map.cellIndices.CellToIndex(lowerConduit.Position)];
+            Check("sos2-a-ledge-conduit-with-no-conduit-below-keeps-its-own-net",
+                alone >= 0 && alone != floor, $"alone={alone}, below={floor}");
+        }
+
+        // The buildable answer is RL_HeatRiser: one on each layer, same local position, and the two
+        // decks join - the same contract RL_PowerRiser has for power.
+        ThingDef? riser = DefDatabase<ThingDef>.GetNamedSilentFail("RL_HeatRiser");
+        Building? lowerRiser = riser == null ? null : SpawnSos2("RL_HeatRiser", At(0, 76, 56), Rot4.North);
+        Building? upperRiser = riser == null ? null : SpawnSos2("RL_HeatRiser", At(1, 76, 56), Rot4.North);
+        Check("sos2-thermal-riser-exists-in-the-ship-category",
+            riser != null && riser.designationCategory?.defName == "Ship", $"def={riser?.defName}, category={riser?.designationCategory?.defName}");
+        if (riser != null && lowerRiser != null && upperRiser != null)
+        {
+            AccessTools.Field(Sos2Compatibility.ShipMapCompType, "heatGridDirty")?.SetValue(sos2ShipComp, true);
+            AccessTools.Field(Sos2Compatibility.ShipMapCompType, "loaded")?.SetValue(sos2ShipComp, false);
+            AccessTools.Method(Sos2Compatibility.ShipMapCompType, "MapComponentUpdate", Type.EmptyTypes)
+                ?.Invoke(sos2ShipComp, null);
+            grid = AccessTools.Field(Sos2Compatibility.ShipMapCompType, "grid")?.GetValue(sos2ShipComp) as int[];
+            if (grid != null)
+            {
+                int low = grid[map.cellIndices.CellToIndex(lowerRiser.Position)];
+                int high = grid[map.cellIndices.CellToIndex(upperRiser.Position)];
+                Check("sos2-thermal-riser-joins-the-decks", low >= 0 && low == high, $"lower={low}, upper={high}");
+            }
+        }
+        else Check("sos2-thermal-riser-joins-the-decks", false, $"riser={riser != null}, lower={lowerRiser != null}, upper={upperRiser != null}");
+
+        // The deck def has to be reachable from the Ship tab, and its strings have to come from the
+        // language files instead of the patch value.
+        TerrainDef? sos2Deck = DefDatabase<TerrainDef>.GetNamedSilentFail("RL_Sos2Deck");
+        Check("sos2-deck-plating-sits-in-the-ship-category",
+            sos2Deck != null && sos2Deck.designationCategory?.defName == "Ship",
+            $"category={sos2Deck?.designationCategory?.defName}");
+
+        // SOS2 decides "on a hull" from the thing list of the cell itself, and an upper deck has no
+        // hull tile in it. This is the assertion that a bridge can actually be built up there.
+        ThingDef? bridge = DefDatabase<ThingDef>.GetNamedSilentFail("ShipPilotSeatMini");
+        PlaceWorker? hullWorker = bridge?.PlaceWorkers?.FirstOrDefault();
+        if (bridge != null && hullWorker != null && upperConduit != null)
+        {
+            // SOS2's own worker, not RimLayers': this is the check the game runs on the ghost.
+            AcceptanceReport onDeck = hullWorker.AllowsPlacing(bridge, upperConduit.Position, Rot4.North, map);
+            Check("sos2-a-bridge-can-stand-on-an-upper-deck", onDeck.Accepted, $"reason={onDeck.Reason}");
+            AcceptanceReport offShip = hullWorker.AllowsPlacing(bridge, At(1, 90, 90), Rot4.North, map);
+            Check("sos2-a-bridge-is-still-refused-over-empty-space", !offShip.Accepted, $"reason={offShip.Reason}");
+        }
+        else Check("sos2-a-bridge-can-stand-on-an-upper-deck", false, $"bridge={bridge != null}, worker={hullWorker != null}");
     }
 
     /// <summary>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_HeatRiser.label>thermal riser</RL_HeatRiser.label>
+  <RL_HeatRiser.description>A thermal conduit that carries heat between decks. Place one on each layer at the same local position; the two then belong to one heat net. Ordinary conduits only join hardware on their own deck.</RL_HeatRiser.description>
+</LanguageData>

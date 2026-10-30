@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_HeatRiser.label>导热竖管</RL_HeatRiser.label>
+  <RL_HeatRiser.description>在各层之间传导热量的导热管。在同一局部位置的上、下两层各放一根，两根即并入同一张热量网。普通导热管只会连接本层的设备。</RL_HeatRiser.description>
+</LanguageData>

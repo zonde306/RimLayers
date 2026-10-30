@@ -28,6 +28,8 @@
   <RL_ShipCapacity>全船甲板基架：{0} / {1} 格</RL_ShipCapacity>
   <RL_ShipFloorOnly>飞船结构楼板必须连接合法的逆重飞船结构。</RL_ShipFloorOnly>
   <RL_StandardFloorOnly>飞船上请使用飞船结构楼板。</RL_StandardFloorOnly>
+  <RL_Sos2DeckNeedsHull>SOS2 甲板必须建在「飞船的救星 2」的船体之上，请先在下方甲板铺好船体护板。</RL_Sos2DeckNeedsHull>
+  <RL_Sos2DeckNeedsShipRoof>SOS2 甲板必须位于飞船自带的顶仓之下。下方甲板铺上船体护板即可提供。</RL_Sos2DeckNeedsShipRoof>
 <RL_LiftStop>本站停靠</RL_LiftStop>
 <RL_LiftStopHelp>关闭本站停靠后保留贯通井道，但不能在本层进出。</RL_LiftStopHelp>
 <RL_LiftShaftOnly>仅作贯通井道</RL_LiftShaftOnly>

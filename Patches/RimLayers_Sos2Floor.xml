@@ -27,8 +27,6 @@
       <value>
         <TerrainDef ParentName="FloorBase">
           <defName>RL_Sos2Deck</defName>
-          <label>SOS2 deck plating</label>
-          <description>A load-bearing upper deck built over a completed SOS2 ship roof. The hull plating directly below stays part of the ship; this deck is the floor the next storey stands on. Decorative flooring can be laid on top.</description>
           <texturePath>Terrain/Surfaces/TileHull</texturePath>
           <isFoundation>true</isFoundation>
           <layerable>false</layerable>
@@ -54,6 +52,9 @@
             <Plasteel>1</Plasteel>
           </costList>
           <resourcesFractionWhenDeconstructed>1</resourcesFractionWhenDeconstructed>
+          <!-- SOS2 ships are built from the Ship tab; a deck belongs with the hull it extends. -->
+          <designationCategory>Ship</designationCategory>
+          <uiOrder>2010</uiOrder>
           <placeWorkers>
             <li>RimLayers.Structure.PlaceWorker_LayerSupport</li>
           </placeWorkers>

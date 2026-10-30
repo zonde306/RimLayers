@@ -78,6 +78,7 @@ internal static class Sos2Compatibility
         // AnyPart covers plating, hull walls and hardpoints; the MapShipCells membership test keeps
         // this to cells SOS2 itself considers part of a ship.
         StructuralSupport.RegisterDeckSource((owner, cell) => IsShipDeck(owner, cell));
+        Sos2HullPlacementPatches.Install(harmony);
         // SOS2 roofs its hull with RoofShip (Defs/Misc/RoofDefs/Roofs.xml), which is not one of the
         // two native support roofs.
         StructuralSupport.RegisterSupportRoof(roof => roof != null && roof.defName == "RoofShip");

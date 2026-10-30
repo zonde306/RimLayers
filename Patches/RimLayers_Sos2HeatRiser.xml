@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    Vertical thermal conduit for SOS2 hulls.
+
+    SOS2 builds a heat net by walking GenAdj.CellsAdjacentCardinal from every CompShipHeat, and a
+    layered map breaks that walk at the deck boundary. RimLayers' adapter makes the walk vertical as
+    well, but only where BOTH sides of the boundary carry heat hardware (see Sos2HeatPatches).
+    Without a def like this the player would have to guess which ordinary conduit happens to sit in
+    the right column; this is the explicit, buildable answer, mirroring RL_PowerRiser.
+
+    It lives in Patches/ rather than Defs/ because it is a PatchOperation, and because a Def file
+    whose parent is absent is a hard def-load error rather than a skipped def.
+  -->
+  <Operation Class="PatchOperationConditional">
+    <xpath>Defs/ThingDef[defName="ShipHeatConduit"]</xpath>
+    <match Class="PatchOperationAdd">
+      <xpath>/Defs</xpath>
+      <value>
+        <ThingDef ParentName="ShipHeatConduit">
+          <defName>RL_HeatRiser</defName>
+          <uiIconScale>0.6</uiIconScale>
+          <uiOrder>2010</uiOrder>
+        </ThingDef>
+      </value>
+    </match>
+  </Operation>
+</Patch>
