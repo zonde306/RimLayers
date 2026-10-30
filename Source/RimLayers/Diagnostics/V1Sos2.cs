@@ -33,6 +33,13 @@ internal static partial class V1Integration
     private static Building? sos2UpperHeat;
     private static Building? sos2LowerHeat;
     private static MapComponent? sos2ShipComp;
+    /// <summary>
+    /// Two hull tiles destroyed during the fixture, one on each deck, so the foam step has real
+    /// breaches to rank. Filled in the foam step, not here: destroying a tile before the ship cache
+    /// exists would just remove a cell from the map instead of registering a breach.
+    /// </summary>
+    private static IntVec3 sos2FoamLowerCell = IntVec3.Invalid;
+    private static IntVec3 sos2FoamUpperCell = IntVec3.Invalid;
     private static int sos2Phase;
     private static bool sos2AdapterExpected;
 
@@ -326,6 +333,22 @@ internal static partial class V1Integration
             CameraJumper.TryJump(sos2Bridge!, CameraJumper.MovementMode.Cut);
             pendingScreenshot = Path.Combine(directory, "sos2-decks.png");
             screenshotHold = 3;
+            // Foam and the off-ship sweep both destroy hull tiles, so they run after the save: the load
+            // leg has to read the map the baseline was written from, not a map two breaches poorer.
+            sos2Phase = 7;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 7)
+        {
+            Sos2FoamStep();
+            sos2Phase = 8;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 8)
+        {
+            Sos2OffShipStep();
             sos2Phase = 6;
             ticks = 0;
             return;
@@ -487,8 +510,217 @@ internal static partial class V1Integration
         }
     }
 
-    private static object? CacheField(object cache, string name) =>
-        AccessTools.Field(cache.GetType(), name)?.GetValue(cache);
+    /// <summary>
+    /// Foam repairs must rank by deck before path length. Native <c>SpaceShipCache.SlowTick</c> sorts
+    /// <c>BuildingsToFoam</c> by <c>Item3</c> alone, which is the breadth-first path back to the
+    /// bridge: a breach two decks up next to the bridge outranks the hole right beside the
+    /// distributor, so a ground-deck distributor seals a hole it cannot reach through its own hull.
+    /// </summary>
+    private static void Sos2FoamStep()
+    {
+        Building? distributor = SpawnSos2("HullFoamDistributor", At(0, 64, 56), Rot4.North);
+        Check("sos2-foam-distributor-spawned", distributor != null);
+        if (distributor == null) return;
+
+        // SOS2 only registers a distributor while it caches a ship, and the cache was built before this
+        // step ran. Without the recache the breach below is queued on a ship with no distributors, so
+        // nothing is ever repaired and the assertion cannot tell a correct adapter from a no-op.
+        RecacheSos2();
+        object? cache = Sos2ShipCache();
+        int distributorCount = cache == null ? -1 : CacheCount(cache, "FoamDistributors");
+        Check("sos2-foam-distributor-is-cached", distributorCount == 1, $"distributors={distributorCount}");
+
+        // The distributor is 3x3 at (64,56), so its footprint covers x63..65 / z55..57. Anything the
+        // fixture spawns inside that rectangle is silently refused and the distributor is left with no
+        // grid at all, which looks exactly like a broken adapter.
+        ThingDef? conduitDef = DefDatabase<ThingDef>.GetNamedSilentFail("PowerConduit");
+        ThingDef? batteryDef = DefDatabase<ThingDef>.GetNamedSilentFail("Battery");
+        Thing? conduit = conduitDef == null ? null : GenSpawn.Spawn(ThingMaker.MakeThing(conduitDef), At(0, 60, 56), map);
+        Thing? battery = batteryDef == null ? null : GenSpawn.Spawn(ThingMaker.MakeThing(batteryDef), At(0, 59, 56), map);
+        Check("sos2-foam-power-parts-placed", conduit is { Spawned: true } && battery is { Spawned: true },
+            $"conduit={conduit?.Spawned}, battery={battery?.Spawned}");
+        // A spawned battery holds no energy: PowerNet only turns a trader on once the net can pay for
+        // it, so an empty battery leaves the distributor permanently off.
+        battery?.TryGetComp<CompPowerBattery>()?.AddEnergy(1000f);
+        distributor.TryGetComp<CompRefuelable>()?.Refuel(250f);
+        // Spawning a transmitter only queues it; the net does not exist until the manager rebuilds.
+        // PowerNet then turns a consumer on through a rotating 5% window gated on the tick counter, so
+        // a single pair of ticks can legitimately leave the distributor off.
+        map.powerNetManager.UpdatePowerNetsAndConnections_First();
+        for (int i = 0; i < 400 && distributor.TryGetComp<CompPowerTrader>() is { PowerOn: false }; i++)
+        {
+            Find.TickManager.DoSingleTick();
+            map.powerNetManager.PowerNetsTick();
+        }
+        Check("sos2-foam-distributor-is-powered",
+            distributor.TryGetComp<CompPowerTrader>() is { PowerOn: true },
+            $"power={distributor.TryGetComp<CompPowerTrader>()?.PowerOn}, " +
+            $"net={distributor.GetComp<CompPower>().PowerNet != null}, " +
+            $"batteryNet={battery?.TryGetComp<CompPower>()?.PowerNet != null}, " +
+            $"batteryStored={battery?.TryGetComp<CompPowerBattery>()?.StoredEnergy}, " +
+            $"nets={map.powerNetManager.AllNetsListForReading.Count}");
+
+        // Both breaches are single hull tiles. The lower one is far from the bridge, the upper one
+        // sits directly above it, so the two orderings disagree by construction.
+        IntVec3 lowerBreach = At(0, 52, 64);
+        IntVec3 upperBreach = At(1, 57, 56);
+        Thing? lowerTile = lowerBreach.GetFirstThing<Building>(map);
+        Thing? upperTile = upperBreach.GetFirstThing<Building>(map);
+        Check("sos2-foam-breach-tiles-present", lowerTile != null && upperTile != null,
+            $"lower={lowerTile?.def.defName}, upper={upperTile?.def.defName}");
+        if (lowerTile == null || upperTile == null) return;
+        // Why the breach may or may not be queued, read straight off the cache the repair loop uses.
+        object? wreck = cache == null ? null : CacheField(cache, "IsWreck");
+        object? core = cache == null ? null : CacheField(cache, "Core");
+        object? cacheOff = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "CacheOff")?.GetValue(sos2ShipComp);
+        System.Collections.IDictionary? shipCells = Sos2Compatibility.ShipCellsOf(sos2ShipComp);
+        ThingComp? partComp = null;
+        Type? partType = Sos2Compatibility.ShipCachePartType;
+        if (partType != null && lowerTile is ThingWithComps withComps)
+            partComp = withComps.AllComps.FirstOrDefault(partType.IsInstanceOfType);
+        object? under = partComp == null ? null : CacheField(partComp, "cellsUnder");
+        int underCount = under is System.Collections.ICollection underCells ? underCells.Count : -1;
+        bool moveFlag = MoveShipFlagOf();
+        bool shipPart = lowerTile.def.building?.shipPart ?? false;
+        MethodInfo? despawn = AccessTools.Method(typeof(Building), nameof(Building.DeSpawn));
+        Patches? patches = despawn == null ? null : Harmony.GetPatchInfo(despawn);
+        string owners = patches == null
+            ? "none"
+            : string.Join(",", patches.Prefixes.Select(p => p.owner));
+        string targets = despawn == null
+            ? "none"
+            : string.Join(",", patches?.Prefixes.Select(p => p.PatchMethod?.DeclaringType?.Name) ?? Array.Empty<string>());
+        lowerTile.Destroy(DestroyMode.KillFinalize);
+        upperTile.Destroy(DestroyMode.KillFinalize);
+
+        HashSet<IntVec3> pending = FoamCells(cache);
+        Check("sos2-foam-registers-both-breaches",
+            pending.Contains(lowerBreach) && pending.Contains(upperBreach),
+            $"pending={pending.Count}, any={string.Join(";", pending)}, " +
+            $"isWreck={IsWreckOf(cache)}, core={core != null}, cacheOff={cacheOff}, " +
+            $"cellsUnder={underCount}, moveFlag={moveFlag}, shipPart={shipPart}, " +
+            $"sos2Prefixes={owners}, prefixTypes={targets}, destroyed={lowerTile.Destroyed}, " +
+            $"distributors={CacheCount(cache!, "FoamDistributors")}, " +
+            $"lowerClaimed={shipCells?.Contains(lowerBreach)}, upperClaimed={shipCells?.Contains(upperBreach)}");
+
+        AccessTools.Method(cache!.GetType(), "SlowTick")?.Invoke(cache, null);
+
+        HashSet<IntVec3> after = FoamCells(cache);
+        Check("sos2-foam-repairs-the-same-deck-breach",
+            !after.Contains(lowerBreach), $"stillPending={after.Contains(lowerBreach)}");
+        Check("sos2-foam-leaves-the-other-deck-alone",
+            after.Contains(upperBreach), $"stillPending={after.Contains(upperBreach)}");
+    }
+
+    /// <summary>
+    /// <c>ShipMapComp.KillAllOffShip</c> sweeps <c>map.AllCells</c>, which on a layered map covers the
+    /// padding bands and every deck. The adapter restricts the sweep to the ground band, so the three
+    /// sentinels below pin down exactly what survives and what still dies.
+    /// </summary>
+    private static void Sos2OffShipStep()
+    {
+        int stride = owner.Layout!.Stride, height = owner.Layout.Height;
+        Check("sos2-offship-padding-band-exists", stride > height, $"stride={stride}, height={height}");
+        if (stride <= height) return;
+
+        IntVec3 padding = new(5, 0, height);
+        IntVec3 upperStray = At(1, 20, 20);
+        IntVec3 groundStray = At(0, 20, 20);
+
+        Thing? padSilver = Sentry(padding);
+        Thing? upperSilver = Sentry(upperStray);
+        Thing? groundSilver = Sentry(groundStray);
+        Check("sos2-offship-sentries-placed",
+            padSilver is { Spawned: true } && upperSilver is { Spawned: true } && groundSilver is { Spawned: true },
+            $"pad={padSilver?.Spawned}, upper={upperSilver?.Spawned}, ground={groundSilver?.Spawned}");
+        if (padSilver == null || upperSilver == null || groundSilver == null) return;
+
+        // The sweep destroys everything it finds on the ground band, and a generated ground map still
+        // carries steam geysers, which RimWorld refuses to destroy. SOS2 only ever runs this sweep on
+        // a space map, where the band holds nothing but the ship, so the fixture despawns the map's own
+        // leftover terrain features rather than teach the adapter to skip things the game protects.
+        int geysers = 0;
+        foreach (Thing geyser in map.listerThings.ThingsOfDef(ThingDefOf.SteamGeyser).ToList())
+            if (owner.TryDecode(geyser.Position, out LayerCell at) && at.LayerId == 0)
+            {
+                geyser.DeSpawn();
+                geysers++;
+            }
+        Check("sos2-offship-ground-band-is-clear", geysers >= 0, $"geysers={geysers}");
+
+        AccessTools.Method(Sos2Compatibility.ShipMapCompType, "KillAllOffShip")?.Invoke(sos2ShipComp, null);
+
+        // Destroyed things report Destroyed and vanish from the cell list; that is the only signal
+        // that distinguishes "the sweep skipped this cell" from "the sweep ran and this cell was off
+        // the ship".
+        Check("sos2-offship-keeps-the-padding-band", !padSilver.Destroyed, $"destroyed={padSilver.Destroyed}");
+        Check("sos2-offship-keeps-other-decks", !upperSilver.Destroyed, $"destroyed={upperSilver.Destroyed}");
+        Check("sos2-offship-still-clears-the-ground-deck", groundSilver.Destroyed, $"destroyed={groundSilver.Destroyed}");
+    }
+
+    private static Thing? Sentry(IntVec3 cell)
+    {
+        ThingDef? silver = DefDatabase<ThingDef>.GetNamedSilentFail("Silver");
+        if (silver == null) return null;
+        // The sweep destroys everything on the ground deck, and some of what the map generator put
+        // there cannot be destroyed at all: a steam geyser anywhere in the band turns the sweep into
+        // a runtime error before the sentinels are even checked. Clearing the band first is what a
+        // real player map looks like anyway - the ship owns its deck.
+        foreach (Thing occupant in cell.GetThingList(map).ToList())
+            if (occupant is not Pawn && occupant.def.destroyable) occupant.Destroy(DestroyMode.Vanish);
+        var thing = ThingMaker.MakeThing(silver);
+        return GenSpawn.Spawn(thing, cell, map) == null ? null : thing;
+    }
+
+    /// <summary>
+    /// SOS2 disables its whole cache path during a ship move, so a fixture that reads a queue right
+    /// after a destroy has to rule the flag out before blaming the adapter.
+    /// </summary>
+    private static bool IsWreckOf(object? cache)
+    {
+        if (cache == null) return true;
+        return cache.GetType().GetProperty("IsWreck")?.GetValue(cache) is true;
+    }
+
+    private static bool MoveShipFlagOf()
+    {
+        Type? type = AccessTools.TypeByName("SaveOurShip2.ShipInteriorMod2");
+        return type != null && AccessTools.Field(type, "MoveShipFlag")?.GetValue(null) is true;
+    }
+
+    private static object? Sos2ShipCache()
+    {
+        System.Collections.IDictionary? ships = AccessTools.PropertyGetter(Sos2Compatibility.ShipMapCompType, "ShipsOnMap")
+            ?.Invoke(sos2ShipComp, null) as System.Collections.IDictionary;
+        if (ships is not { Count: > 0 }) return null;
+        foreach (System.Collections.DictionaryEntry entry in ships) return entry.Value;
+        return null;
+    }
+
+    /// <summary>
+    /// SOS2 builds its ship cache from the bridge, and only rebuilds it on map load, on a merge, or
+    /// when it notices the ship changed shape. A fixture that spawns parts after that point is
+    /// invisible to the cache, so anything driven by a cached list needs this first.
+    /// </summary>
+    private static void RecacheSos2() =>
+        AccessTools.Method(Sos2Compatibility.ShipMapCompType, "RecacheFromRoots")?.Invoke(sos2ShipComp, null);
+
+    /// <summary>Breach cells queued for foam, read through the same reflection the patch uses.</summary>
+    private static HashSet<IntVec3> FoamCells(object? cache)
+    {
+        var cells = new HashSet<IntVec3>();
+        if (cache == null) return cells;
+        if (AccessTools.Field(cache.GetType(), "BuildingsToFoam")?.GetValue(cache) is not System.Collections.IEnumerable entries)
+            return cells;
+        foreach (object? entry in entries)
+        {
+            if (entry == null) continue;
+            if (entry.GetType().GetProperty("Item2")?.GetValue(entry) is IntVec3 cell) cells.Add(cell);
+        }
+        return cells;
+    }
+
+    private static object? CacheField(object cache, string name) =>        AccessTools.Field(cache.GetType(), name)?.GetValue(cache);
 
     private static int CacheCount(object cache, string name) =>
         CacheField(cache, name) is System.Collections.ICollection collection ? collection.Count : -1;

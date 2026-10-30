@@ -25,27 +25,32 @@ namespace RimLayers.Compatibility;
 /// </remarks>
 internal static class Sos2FoamPatches
 {
+    private static readonly Type? ShipCacheType = AccessTools.TypeByName("SaveOurShip2.SpaceShipCache");
+
     private static readonly FieldInfo? FoamTargets =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "BuildingsToFoam");
+        AccessTools.Field(ShipCacheType, "BuildingsToFoam");
 
     private static readonly FieldInfo? Distributors =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "FoamDistributors");
+        AccessTools.Field(ShipCacheType, "FoamDistributors");
 
-    private static readonly FieldInfo? ShipIsWreck =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "IsWreck");
+    // IsWreck (SpaceShipCache.cs:180) and Faction (:80) are expression-bodied properties, not fields.
+    // Looking them up with AccessTools.Field returns null, which used to make this Prefix bail out and
+    // silently hand control back to the native same-deck-blind ordering.
+    private static readonly PropertyInfo? ShipIsWreck =
+        AccessTools.Property(ShipCacheType, "IsWreck");
 
     private static readonly FieldInfo? ShipMap =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "map");
+        AccessTools.Field(ShipCacheType, "map");
 
-    private static readonly FieldInfo? ShipFaction =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "Faction");
+    private static readonly PropertyInfo? ShipFaction =
+        AccessTools.Property(ShipCacheType, "Faction");
 
     [HarmonyPatch]
     private static class SlowTickFoamPatch
     {
         private static MethodBase? TargetMethod()
         {
-            MethodInfo? original = AccessTools.Method(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "SlowTick");
+            MethodInfo? original = AccessTools.Method(ShipCacheType, "SlowTick");
             return original == null ? null : new HarmonyMethod(original).method;
         }
 
@@ -54,35 +59,47 @@ internal static class Sos2FoamPatches
         {
             if (FoamTargets == null || Distributors == null || ShipIsWreck == null) return true;
             if (ShipIsWreck.GetValue(__instance) is true) return true;
-            if (FoamTargets.GetValue(__instance) is not IList targets || targets.Count == 0) return true;
-            if (Distributors.GetValue(__instance) is not IList distributors || distributors.Count == 0) return true;
+            if (FoamTargets.GetValue(__instance) is not IEnumerable targets || CountOf(targets) == 0) return true;
+            if (Distributors.GetValue(__instance) is not IEnumerable distributors || CountOf(distributors) == 0) return true;
             Map? map = ShipMap?.GetValue(__instance) as Map;
             if (!Sos2CellGraph.BandOf(map, out LayerMapComponent owner, out _, out _, out _)) return true;
 
             foreach (ThingComp distributor in distributors)
             {
                 if (distributor?.parent is not Building { Spawned: true } building) continue;
-                if (targets.Count == 0) break;
+                if (CountOf(targets) == 0) break;
                 if (building.TryGetComp<CompRefuelable>() is not { Fuel: > 0 } fuel) continue;
                 if (building.TryGetComp<CompPowerTrader>() is not { PowerOn: true }) continue;
                 if (PickNearest(targets, owner, building.Position) is not { } target) continue;
-
                 Thing replacer = ThingMaker.MakeThing(target.Hull
                     ? ResourceBankDef("HullFoamWall")
                     : ResourceBankDef("ShipHullfoamTile"));
                 if (ShipFaction?.GetValue(__instance) is Faction faction) replacer.SetFaction(faction);
                 if (!GenPlace.TryPlaceThing(replacer, target.Cell, map, ThingPlaceMode.Direct)) continue;
-                targets.Remove(target.Entry);
+                if (FoamTargets.GetValue(__instance) is { } live) RemoveTarget(live, target.Entry);
                 fuel.ConsumeFuel(1);
             }
             return false;
         }
 
         /// <summary>
+        /// <c>BuildingsToFoam</c> is a <c>HashSet&lt;Tuple&lt;bool,IntVec3,int&gt;&gt;</c> and
+        /// <c>HashSet&lt;T&gt;</c> implements neither non-generic <see cref="ICollection"/> nor
+        /// <see cref="IList"/>, so the count and the removal both go through reflection.
+        /// </summary>
+        private static int CountOf(IEnumerable collection) =>
+            collection.GetType().GetProperty("Count")?.GetValue(collection) as int? ?? -1;
+
+        private static void RemoveTarget(object collection, object entry)
+        {
+            collection.GetType().GetMethod("Remove", new[] { entry.GetType() })?.Invoke(collection, new[] { entry });
+        }
+
+        /// <summary>
         /// Nearest breach for one distributor: same deck first, then the fewest decks away, then the
         /// native path length. Null when the entry list is empty.
         /// </summary>
-        private static FoamCandidate? PickNearest(IList targets, LayerMapComponent owner, IntVec3 from)
+        private static FoamCandidate? PickNearest(IEnumerable targets, LayerMapComponent owner, IntVec3 from)
         {
             if (!owner.TryDecode(from, out var origin)) return null;
             FoamCandidate? best = null;

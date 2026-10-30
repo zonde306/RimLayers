@@ -17,8 +17,8 @@ RimLayers 行号指 `Mods/RimLayers/Source/RimLayers/` 下的文件。
 `Structure/StructuralSupport.cs` 新增 `RegisterDeckSource` / `RegisterSupportRoof` 两个扩展点；
 `RimLayersMod.cs` 在补丁类循环前注册适配器；`About/About.xml` 的 `loadAfter` 已加 `kentington.saveourship2`。
 验收：`Tests/Sos2GeometryTests`（56 项纯逻辑检查）+ `Tests/Run-V1.ps1 -Scenario sos2 -Sos2`
-（真实游戏 generate 42 / load 13 条命名断言，0 失败，`Tests/Artifacts/v1-sos2-20261030-194202/`）
-+ `Tests/Run-UnitTests.ps1`（19 套件全绿）。
+（真实游戏 generate 57 / load 13 条命名断言，0 失败，`Tests/Artifacts/v1-sos2-20261030-204536/`）
++ `Tests/Run-UnitTests.ps1`（18 套件全绿）。
 
 九个子系统（维生、热量热容散热、炮台电容、舰桥、驾驶核心、传感器、引擎、穿梭机港口、飞船战斗）
 的逐项结论见 §8b：其中五个需要定点修正，四个经核实无需补丁但也都有断言覆盖。
@@ -417,15 +417,30 @@ if (!IsWreck && BuildingsToFoam.Any() && FoamDistributors.Any())
 
 - **前提**：修好 #1，否则 `mapComp.MapShipCells[parent.Position]` 在上层格上直接抛 `KeyNotFoundException`。
 - **path 语义**：`AttachAll`（`Comp/ShipMapComp.cs:298`）与 `RebuildCache`（`SpaceShipCache.cs:779`）的 BFS 逐圈 `path++`，
-  加了跨层边之后 path 仍然是「到核心的最少步数」，`OrderBy(Item3)` 的「由内向外」语义自动成立，不需要改排序。
-- **distributor 分层**：`SlowTick`/`FoamFill` 里过滤 `LayerOf(dist.parent.Position) == LayerOf(target.Item2)`，
-  否则上层破洞会被下层 distributor 隔着楼板补上（`GenPlace.TryPlaceThing` 到上层格是合法的，因为格子在 `Map` 里）。
-  反过来，若希望「下层 distributor 能补上层」，需要一个明确的跨层泡沫通道（复用 `ConnectorTransmission{air=true}`），
-  这一条留作可选增强，默认关闭。
+  加了跨层边之后 path 仍然是「到核心的最少步数」。**但这不足以让排序正确**：`Item3` 只是步数，
+  两层各自独立的近距破洞会互相竞争，`OrderBy(t => t.Item3).First()` 完全可能先补隔了三层楼板的那个洞。
+  实测（`Tests/Artifacts/v1-sos2-20261030-204536/`）原版排序下 `sos2-foam-repairs-the-same-deck-breach` 与
+  `sos2-foam-leaves-the-other-deck-alone` 两条都红；因此 `Sos2FoamPatches` 把排序改成
+  **「甲板距离优先、`Item3` 次之」**（`PickNearest`：`owner.Layout.Distance(target.LayerId, origin.LayerId)` 先比，再比 path）。
+  每 distributor 每 tick 仍只补一格，燃料/通电闸门与原版一致。
+- **distributor 分层**：不做硬性「只能补本层」的闸门，而是用上面的排序自然得到「先补本层」。
+  若强行 `LayerOf(dist) == LayerOf(target)` 过滤，玩家把 distributor 放在下层、破洞在上层时
+  会出现「有 distributor 但永远不修」的死局；排序式实现保留了作为跨层兜底的余量。
+  若希望更严格的「跨层泡沫通道」，可后续复用 `ConnectorTransmission{air=true}`，默认不需要。
 - **屋顶修补**：`HarmonyPatches.cs` 的 `SealHole`（`RoofCollapserImmediate.DropRoofInCells` Postfix）已经逐格 `ShipIndexOnVec(cell)`，
   多层安全，不需要改。
 - **`CompHullFoamDistributor`**（`1.7/Comp/CompHullFoamDistributor.cs`，73 行）的 gizmo 已被注释掉，
-  触发点在 `SpaceShipCache.SlowTick`/`FoamFill`，所以**不需要**给它加分层 UI。
+  触发点在 `SpaceShipCache.SlowTick`，所以**不需要**给它加分层 UI。
+- **反射踩坑（实测）**：`BuildingsToFoam` 是 `HashSet<Tuple<bool,IntVec3,int>>`，`HashSet<T>` **不实现**非泛型
+  `ICollection` 也不实现 `IList`；用 `is not IList` / `is not ICollection` 做守卫会静默返回 true 把控制权交回原版，
+  表现是「补丁装了但完全没生效」。`SpaceShipCache` 的 `IsWreck`（`:180`）与 `Faction`（`:80`）是**表达式体属性**，
+  `AccessTools.Field` 查不到 → 必须用 `AccessTools.Property`。
+- **前置依赖（致命）**：SOS2 的 `Setup`（`ShipInteriorMod2.cs:44`）在
+  `!ModIntegration.HasActiveModWithIdentifierAndOptionalSuffix("SmashPhil.VehicleFramework")` 时**在 `pat.PatchAll()` 之前 return**，
+  只加载一半补丁，`DoPreDeSpawn` 前缀不存在 → `CompShipCachePart.PreDeSpawn` 从不调用 → `BuildingsToFoam` 永远为空。
+  该检查要求**精确 id `SmashPhil.VehicleFramework`**（`ModIntegration.cs:11-16` 只拼 `_steam` 后缀，不做别名解析）；
+  Steel Horizon 的 `Baal.VehicleFramework` 能让 `Vehicles.dll` 加载，但过不了这道 id 闸门。
+  所以 `Tests/Run-V1.ps1` 的 sos2 场景必须**同时**启用 `smashphil.vehicleframework` 与 `baal.vehicleframework`。
 
 ---
 
@@ -659,6 +674,11 @@ SOS2 侧不改（第三方 mod）。
 | `sos2-upper-deck-{life-support,sensor,engine}-joins-the-ship` | 维生 / 传感器 / 引擎：上层部件重建缓存后仍归本船 |
 | `sos2-capacitor-stays-on-its-own-power-net` | 炮台电容：跨层不自动互联，需玩家铺 `RL_PowerRiser` |
 | `sos2-heat-conduit-links-both-decks` | 热量导管：上下两层的导管落在同一张网 |
+| `sos2-foam-{distributor-spawned,distributor-is-cached,power-parts-placed,distributor-is-powered}` | 泡沫 distributor 就位、进 `FoamDistributors`、接电（`CompPowerBattery.AddEnergy` + 轮询 `PowerNetTick`，因为 `PowerNetTick` 每轮只开 5% 的 trader） |
+| `sos2-foam-breach-tiles-present` / `sos2-foam-registers-both-breaches` | 两层各破一个 1×1 船体瓦片 → 两个都进 `BuildingsToFoam`（`pending=2`，上层格 `(57,0,192)` 即第 1 层） |
+| `sos2-foam-repairs-the-same-deck-breach` / `sos2-foam-leaves-the-other-deck-alone` | 一次 `SlowTick` 只补同层那个洞，另一个跨层洞**保持待补**（`stillPending=True`）——这正是原版 `OrderBy(Item3)` 会做错的地方 |
+| `sos2-offship-{padding-band-exists,sentries-placed,ground-band-is-clear}` | 夹具：`stride=136, height=120`，隔离带/上层/地面各放一个 sentry，地面层 geyser 先清掉（`KillAllOffShip` 会扫到且 RimWorld 拒绝销毁非 destroyable 物） |
+| `sos2-offship-keeps-the-padding-band` / `sos2-offship-keeps-other-decks` / `sos2-offship-still-clears-the-ground-deck` | `KillAllOffShip` 只清本层船外，隔离带与其它层的东西**不**被 Destroy |
 
 尚未自动化、需要单独补场景的意图：
 
@@ -667,11 +687,9 @@ SOS2 侧不改（第三方 mod）。
 | `sos2-deck-build` | 太空图 `EmptySpaceMap` 上：建 `RL_ShipStructuralFloor` 成功；上层 `CompShipCachePart` 加入 `MapShipCells`；`ShipsOnMap[idx].Area` 同时含两个 band 的格 |
 | `sos2-expand` | `RL_ShipDeckExpand` 触发 `EnsureElevation`；扩层后 `grid.Length == NumGridCells` 且全为 `-1`（除已建网）；`heatGridDirty` 被置真后 60 tick 内重建出跨层网 |
 | `sos2-heat-cross` | 下层散热片 + 上层炮塔（中间开放竖井）→ 同一 `ShipHeatNet.GridID`；`Connectors.HasTransferEdge` 为真时连通，铺满甲板时**不**连通 |
-| `sos2-foam` | 上层 1×1 hull 件被毁 → 进入 `BuildingsToFoam` 且 `Item3` 为跨层 path；`SlowTick` 用同层 distributor 补齐；下层 distributor 不补 |
 | `sos2-move` | 多层船 `MoveShip` 到新太空图：`MapShipCells` 键的 `layer*Stride` 部分保持不变，`CenterShipOnMap` 落在地面层而非存储带中段；`rotNum=1..3` 时层不变、local 旋转正确 |
 | `sos2-combat` | 上层炮塔 `MapEdgeCell` 落点在本层带内（`z ∈ [layer*Stride, layer*Stride+Height-1]`）；`ShipCombatTargetMap` 跨图命中不变 |
 | `sos2-save` | 存读档后 `RecacheFromRoots` 重建出同样层数的 `Area`；无 "invalid cells" 警告；`RecacheMap` 不丢层 |
-| `sos2-killoffship` | 扩层后 `KillAllOffShip` 只销毁本层船外物体，`RL_Isolation` 带与其它层的东西**不**被 Destroy/Kill |
 
 游戏内人工复核项（不在自动化里）：`MapGenFloatGrid` 扩容（§11.1）、`breathableZone.innerGrid` 尺寸（§11.2）、
 `RecacheMap` 警告（§11.6）、移动性能随层数变化（§11.7）。

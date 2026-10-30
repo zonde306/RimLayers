@@ -81,8 +81,12 @@ $active += 'rimlayers.core'
 if($Aerocraft){$active+='MYDE.AerocraftFramework'}
 # Save Our Ship 2 keeps its own ship model, so it is never a Vehicle Framework provider. It does link
 # Vehicles.dll, though: without baal.vehicleframework the ShipsHaveInsides assembly throws
-# ReflectionTypeLoadException on load and the whole adapter silently disappears.
-if($Sos2 -or $Scenario -eq 'sos2'){$active+=@('baal.vehicleframework','kentington.saveourship2')}
+# ReflectionTypeLoadException on load and the whole adapter silently disappears. Baal's build is a
+# rename of the upstream framework, so the assembly loads, but SOS2's own Setup() gate asks
+# ModLister for the exact id `SmashPhil.VehicleFramework` and returns before PatchAll() when it is
+# missing. Without both ids SOS2 loads half-patched: its DoPreDeSpawn prefix never exists, which is
+# why foam repairs silently never queue.
+if($Sos2 -or $Scenario -eq 'sos2'){$active+=@('smashphil.vehicleframework','baal.vehicleframework','kentington.saveourship2')}
 # The Dubwise family is a per-scenario dependency set; the dubs scenario needs all five at once.
 if($Dubs){$active+=@('dubwise.dubsskylights','dubwise.dubscentralheating','dubwise.dubsbadhygiene','dubwise.rimefeller','dubwise.rimatomics')}
 if($VePipes -or $Scenario -eq 'vefpipes'){
