@@ -24,6 +24,7 @@ internal static partial class V1Integration
     private static ThingDef PairPortDef => DefDatabase<ThingDef>.GetNamed("RL_CargoPort");
     private static ThingDef PairShaftDef => DefDatabase<ThingDef>.GetNamed("RL_CargoManualShaft");
     private static ThingDef PairStationDef => DefDatabase<ThingDef>.GetNamed("RL_CargoShaftStation");
+    private static ThingDef PairVehicleDef => DefDatabase<ThingDef>.GetNamedSilentFail("RL_VehicleLift")!;
 
     private static Command_Action? PairCommand(Thing thing, string key) =>
         thing.GetGizmos().OfType<Command_Action>().FirstOrDefault(g => g.defaultLabel == key.Translate().ToString());
@@ -55,6 +56,15 @@ internal static partial class V1Integration
         Check("pairing-derives-for-hoist-end",
             LayerPairing.Props(PairHoistDef) is { kind: LayerPairKind.Hoist, companion: true } && LayerPairing.Partner(PairHoistDef, 1) == PairPortDef);
         Check("pairing-skips-the-hoist-access-port", LayerPairing.Props(PairPortDef) == null);
+        // A vehicle lift is one half of its own shaft, so it pairs with itself like a riser does.
+        // Covered without spawning: a 9x9 station needs the vehicle framework loaded and a clear deck.
+        Check("pairing-derives-for-vehicle-lift",
+            PairVehicleDef == null ||
+            LayerPairing.Props(PairVehicleDef) is { kind: LayerPairKind.VehicleLift, companion: false } &&
+            LayerPairing.Partner(PairVehicleDef, 1) == PairVehicleDef &&
+            LayerPairing.Partner(PairVehicleDef, -1) == PairVehicleDef &&
+            LayerPairing.Directions(PairVehicleDef).SequenceEqual(new[] { 1, -1 }),
+            PairVehicleDef == null ? "vehicle framework absent" : LayerPairing.Partner(PairVehicleDef, 1)?.defName ?? "none");
         Check("pairing-derives-for-cargo-shaft-master",
             LayerPairing.Props(PairShaftDef) is { kind: LayerPairKind.Shaft, companion: false } &&
             LayerPairing.Partner(PairShaftDef, 1) == PairStationDef &&

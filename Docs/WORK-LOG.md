@@ -1245,3 +1245,17 @@ foreach (Thing heldThing in slotGroup.HeldThings)
 验收：新增纯几何套件 `Tests/PanelDragTests` **26938 断言 0 失败**（四种分辨率下原生锚点必须原样通过、±4000 偏移全扫不出屏、超大面板与 `NaN/∞`、偏移往返）；`Run-UnitTests.ps1` 18/18 套件通过。游戏内新增场景 `-Scenario panel-drag`：生成 **14 断言**、新进程读档 **3 断言**，零失败（[183635](../Tests/Artifacts/v1-panel-drag-20261030-183635)）——覆盖拖动跟随、抓手持久、松手保留、新矩形接管命中、旧角落不再吞点击、移动后的“+”仍能排楼层、拖不出屏、双击复位、设置文件真的写出 `floorPanelOffset`，以及读档后面板位置与尺寸不变。
 
 顺带核实两条**与本改动无关**的既有失败（已由并行会话确认）：`-Scenario transition` 的 `blend-right-click-submits-native-cross-floor-goto`（注入的右键被 `MainButtonsRoot.DoButtons` 优先吃掉）与 `-Scenario usability` 的三条 HasSurface 断言（未提交的 deck-source/`StructuralSupport` 改动）。
+
+### 追加：载具电梯漏了（遗漏，不是回归）
+
+载具电梯站 `RL_VehicleLift` 一直没有对位按钮。原因很直白：`Derive` 里三条规则分别命中电力端子/竖直管道、相邻层吊篮、竖井吊篮，载具电梯哪个都不沾——它既没有 `CompPowerRiser`/`CompLayerPort`/`CompResourcePort`，也没有 `CargoProperties`，只挂了 `VehicleConnectorProperties{lift:true}`。
+
+但需求它完全符合：def 描述里写着「A lift needs a station on both the upper and lower floor: aligned stations form one shaft, and with a single station there is no "choose floor" command.」——正对着「需要上/下层都要同时建造」。而且 `PlaceWorker_VehicleConnector` 也是走 `owner.Structure.Validate(...)`，能被 `Check` 的 `CanPlaceBlueprintAt` 覆盖到。
+
+补一条派生规则：`VehicleConnectorProperties{lift:true}` → `{kind=VehicleLift, directions={1,-1}}`，**自配对**（`partner` 留空，`Partner()` 会回落到 `def` 自身），`companion=false`（两端都是付费建筑）。斜面 `RL_VehicleRamp` 的 `lift` 为 false，不登记。
+
+**教训**：`Derive` 是按「组件/扩展的类型」分派的，所以新增一种建筑时，「它有没有被我认识的扩展」这个问题必须逐个问过，而不能只问「它看起来像不像吊篮/管道」。载具这一族单独躺在 `Vehicles/` 里、用的又是自己的 `VehicleConnectorProperties`，于是被结构性漏掉了。
+
+断言只覆盖派生结果（`pairing-derives-for-vehicle-lift`），不真的 spawn 9×9 站点：那需要载具框架已加载并且整块地板空着，在通用夹具里代价太高。**注意 `Run-V1.ps1` 默认不加载载具框架**（`-Vehicles` 才会加 `baal.vehicleframework` + `rimthunder.core` + `mo.technicalvehicles`），所以普通 `-Scenario pairing` 下这条断言会走「缺席即跳过」分支（detail 为 `vehicle framework absent`），必须 `-Vehicles` 才真正校验。
+
+验收：普通配置 `v1-pairing` **54 断言 0 失败**（载具那条为缺席跳过），纯逻辑 16/16。

@@ -25,6 +25,8 @@ public enum LayerPairKind
     Hoist,
     /// <summary>A cargo shaft: the station that gives it a stop on the adjacent layer.</summary>
     Shaft,
+    /// <summary>A vehicle lift station: paired with itself, because aligned stations form one shaft.</summary>
+    VehicleLift,
 }
 
 /// <summary>
@@ -510,6 +512,14 @@ internal static class LayerPairingBootstrap
             {
                 kind = LayerPairKind.Shaft,
                 partner = stationDef,
+                directions = new List<int> { 1, -1 },
+            };
+        // A vehicle lift is one half of a shaft: aligned stations on two layers form the cabin run, and a
+        // lone station has no "choose floor" order at all. Its def already says which one it is.
+        if (def.GetModExtension<Vehicles.VehicleConnectorProperties>() is { lift: true })
+            return new LayerPairProperties
+            {
+                kind = LayerPairKind.VehicleLift,
                 directions = new List<int> { 1, -1 },
             };
         return null;
