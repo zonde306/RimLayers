@@ -390,6 +390,28 @@ internal static class ShipBuildingDespawnDirty{static void Prefix(Building __ins
 [HarmonyPatch(typeof(TerrainGrid),nameof(TerrainGrid.SetFoundation))]
 internal static class ShipFoundationChange
 {
+    /// <summary>
+    /// Clears an inherited under terrain before a deck foundation is written.
+    /// </summary>
+    /// <remarks>
+    /// <c>SetFoundation</c> refuses a cell whose <c>underGrid</c> is occupied, and SOS2 leaves exactly that:
+    /// <c>CompShipCachePart.SetShipTerrain</c> writes <c>FakeFloorInsideShip</c>, which is layerable, so the
+    /// previous terrain is pushed down into the under layer. Both write paths - a player's
+    /// <c>Frame.CompleteConstruction</c> and this mod's own <c>InstallDeck</c> - would otherwise be refused
+    /// with "there is an under terrain there" and the deck would simply never appear.
+    /// </remarks>
+    static void Prefix(IntVec3 c,TerrainDef newTerr,Map ___map)
+    {
+        if(newTerr==null)return;
+        if(!RimLayers.Structure.StructuralSupport.IsDeckTerrain(newTerr))return;
+        var grid=___map.terrainGrid;
+        if(grid.UnderTerrainAt(c)==null)return;
+        // Removing the top layer fires DoTerrainChangedEffects, which SOS2 answers by writing its own
+        // floor back. Suppress that for this one write or the under layer returns immediately.
+        using var suppression=Compatibility.Sos2TerrainPatches.Suppressed();
+        grid.RemoveTopLayer(c,false);
+    }
+
     static void Postfix(IntVec3 c,TerrainDef newTerr,Map ___map)
     {
         // TerrainGrid.SetFoundation logs and returns on a null terrain, but Harmony still runs the
@@ -397,7 +419,21 @@ internal static class ShipFoundationChange
         // fixture) that passes it would otherwise crash us here.
         if(newTerr==null)return;
         var o=LayerMapComponent.For(___map);if(o==null)return;
-        if(newTerr.IsSubstructure&&o.TryDecode(c,out var l)&&l.LayerId>0)o.StructuralCells.Add(c);
+        // A player laying a foundation never goes through TerrainGrid.SetTerrain: for an isFoundation
+        // def, Frame.CompleteConstruction calls SetFoundation directly. Registering structure only from
+        // the SetTerrain postfix therefore left every player-built deck laid but inert - HasSurface said
+        // no, and every building on it was refused with "no floor". TerrainChanged is the single
+        // authority for that bookkeeping and is idempotent, so both entry points route through it.
+        // SetFoundation's own DoTerrainChangedEffects lets SOS2 write its layerable FakeFloorInsideShip
+        // back, and it lands in the under grid. TerrainAt prefers the under layer, so without this the
+        // cell keeps reporting the hull floor: IsBareSlab never sees the deck and the player could not
+        // dismantle what they just laid.
+        if(RimLayers.Structure.StructuralSupport.IsDeckTerrain(newTerr)&&___map.terrainGrid.TerrainAt(c)!=newTerr)
+        {
+            using var suppression=Compatibility.Sos2TerrainPatches.Suppressed();
+            if(___map.terrainGrid.UnderTerrainAt(c)!=null)___map.terrainGrid.RemoveTopLayer(c,false);
+        }
+        o.Structure.TerrainChanged(c,newTerr);
         if(newTerr.IsSubstructure&&o.Ships.ClaimAt(c)==0&&o.Ships.BuildOwner(c) is {} buildOwner)o.Ships.Assign(c,buildOwner.thingIDNumber);
         o.map.pathing.RecalculatePerceivedPathCostAt(c);
         o.Structure.RoofChanged(c);o.Invalidate(c,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);

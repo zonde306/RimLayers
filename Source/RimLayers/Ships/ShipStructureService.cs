@@ -285,6 +285,16 @@ internal static class ShipDeckTerrain
         // StructuralCells is filled by the TerrainGrid.SetTerrain postfix (IsolationPatches), and
         // SetFoundation does not go through it. Without this call the deck would be laid but never
         // registered as structure, so RoofChanged and the collapse pass would ignore it.
+        // SetFoundation fires DoTerrainChangedEffects, SOS2 answers by writing its FakeFloorInsideShip on
+        // top, and TerrainAt then prefers the under layer - so the cell keeps reporting the hull floor
+        // instead of the deck and IsBareSlab never recognizes it (the player could not dismantle it).
+        // Clearing the top layer here again, still inside the suppression, leaves the foundation as the
+        // cell's terrain.
+        if(grid.TerrainAt(cell)!=deck)
+        {
+            using var cleanup = Compatibility.Sos2TerrainPatches.Suppressed();
+            if(grid.UnderTerrainAt(cell)!=null)grid.RemoveTopLayer(cell,false);
+        }
         owner.Structure.TerrainChanged(cell,deck);
         owner.Invalidate(cell,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Light);
     }

@@ -86,6 +86,10 @@ internal static class TerrainChangePatch
     static void Postfix(IntVec3 c, TerrainDef newTerr, Map ___map)
     {
         var owner = LayerMapComponent.For(___map);
+        // A foundation def makes SetTerrain hand off to SetFoundation and return, so this write is
+        // already reported by ShipFoundationChange. Reporting it twice would run every structural
+        // update - path cost, roof invalidation, collapse booking - two times per cell.
+        if (newTerr.isFoundation) return;
         owner?.Structure.TerrainChanged(c, newTerr);
         owner?.Invalidate(c, LayerChangeKind.Structure | LayerChangeKind.Movement | LayerChangeKind.Air | LayerChangeKind.Heat | LayerChangeKind.Light);
     }

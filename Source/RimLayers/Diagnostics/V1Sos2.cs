@@ -839,6 +839,32 @@ internal static partial class V1Integration
         AcceptanceReport secondStair = worker.AllowsPlacing(RimLayersDefOf.RL_Stairs, next, Rot4.North, map);
         Check("sos2-upper-deck-can-hold-a-second-stair", secondStair.Accepted, $"reason={secondStair.Reason}");
 
+        // The player path is not InstallDeck: Frame.CompleteConstruction calls TerrainGrid.SetFoundation
+        // directly for an isFoundation def and never goes through SetTerrain. Testing only InstallDeck
+        // passed while every deck a player laid stayed inert, so the native write is exercised here.
+        IntVec3 native = next + new IntVec3(2, 0, 0);
+        SpawnSos2On(map, "ShipHullTile", native, Rot4.North);
+        RecacheSos2();
+        map.terrainGrid.SetFoundation(native, sos2Deck);
+        Check("sos2-native-foundation-write-registers-the-deck",
+            component.StructuralCells.Contains(native),
+            $"foundation={map.terrainGrid.FoundationAt(native)?.defName}, structural={component.StructuralCells.Contains(native)}");
+        Check("sos2-native-foundation-write-gives-the-cell-a-surface",
+            component.Structure.HasSurface(native),
+            $"surface={component.Structure.HasSurface(native)}, terrain={map.terrainGrid.TerrainAt(native)?.defName}");
+        // SOS2 rewrites the cell's top layer with its own layerable FakeFloorInsideShip after a terrain
+        // change, and TerrainAt prefers the under layer. Left alone, the deck never reports itself and
+        // IsBareSlab refuses to dismantle it - the player could not undo what they just laid.
+        Check("sos2-native-foundation-write-keeps-the-deck-as-the-terrain",
+            map.terrainGrid.TerrainAt(native) == sos2Deck,
+            $"terrain={map.terrainGrid.TerrainAt(native)?.defName}, under={map.terrainGrid.UnderTerrainAt(native)?.defName}");
+        if (ThingDefOf.Wall is { } wall)
+        {
+            AcceptanceReport onNativeDeck = worker.AllowsPlacing(wall, native, Rot4.North, map);
+            Check("sos2-a-building-can-stand-on-a-player-laid-deck",
+                onNativeDeck.Accepted, $"reason={onNativeDeck.Reason}");
+        }
+
         // A hull cell that has been reloaded once carries RoofConstructed, not RoofShip:
         // CompShipCachePart.SetRoof writes RoofShip only when the old roof was NOT airtight, and
         // IsRoofDefAirtight accepts RoofShip - so the second pass downgrades every ceiling to the plain
