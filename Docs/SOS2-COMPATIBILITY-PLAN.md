@@ -14,7 +14,9 @@ RimLayers 行号指 `Mods/RimLayers/Source/RimLayers/` 下的文件。
 `Sos2Geometry.cs`（纯逻辑几何，可脱离游戏单测）、`Sos2AdjacencyPatches.cs`（6 个邻接/接管补丁）、
 `Sos2GeometryPatches.cs`（3 个 `Map.Size` 语义补丁）、`Sos2HeatPatches.cs`（热量网跨层）、
 `Sos2FoamPatches.cs`（泡沫补船分层）、`Sos2SubsystemPatches.cs`（引擎排气/散热/港口/太空图尺寸/战斗边缘格）、
-`Sos2PlacementPatches.cs`（船体/装甲 footprint 不得跨甲板带）；
+`Sos2PlacementPatches.cs`（船体/装甲 footprint 不得跨甲板带）、
+`Sos2HullPlacementPatches.cs`（上层甲板上的 SOS2 建筑放行）、`Sos2DeckRegistry.cs` +
+`Sos2DeckRegistryPatches.cs`（甲板格登记为船体格）、`Sos2DeckMovePatches.cs`（甲板随船跨图搬运）；
 `Structure/StructuralSupport.cs` 新增 `RegisterDeckSource` / `RegisterSupportRoof` 两个扩展点，
 并把 `ConnectorRoof` 改为走 `IsSupportRoof`（否则注册的支撑屋顶能开上层、却永远造不出到那里的楼梯）；
 `RimLayersMod.cs` 在补丁类循环前注册适配器；`About/About.xml` 的 `loadAfter` 已加 `kentington.saveourship2`。
@@ -439,48 +441,57 @@ if (rotb == 3) return new IntVec3(targetMap.Size.x - pos.z, 0, pos.x) + adjustme
 return pos + adjustment;
 ```
 
-### 修法
+### 修法：目的地必须继承船自己的层带（已实现）
 
-统一引入三个 helper（`Sos2Geometry`）：
+实际落地比上面的草案更简单，也更接近根因。发射失败不是「镜像算错了」，而是
+**目标太空图只有一层**：带号为 1 的存储 z 在单层图里直接越界，`MoveShip` 的
+`targetMap.areaManager.Home[adjustedPos] = true` 不在 try/catch 内，于是整次发射
+抛 `IndexOutOfRangeException`，船留在原地、目标图已经生成。
 
-```csharp
-static IntVec3 GroundSize(Map map)   => new(c.Layout.Width, 1, c.Layout.Height);          // 逻辑尺寸
-static int     LayerOf(IntVec3 cell) => c.TryDecode(cell, out var at) ? at.LayerId : 0;
-static IntVec3 BandOrigin(IntVec3 cell) => new(0, 0, LayerOf(cell) * c.Layout.Stride);     // 本层带基址
-```
+三个改动：
 
-- `LaunchShip`：`size = GroundSize(originMap)`；`mapIsLarger` 比较也用 `GroundSize`。
-- `CenterShipOnMap`：`adj = new IntVec3(GroundSize.x/2, 0, GroundSize.z/2) - new IntVec3(size.x/2, 0, size.z/2)`，
-  返回的 `adj` 是**逻辑**偏移，应用时 `+ BandOrigin`。`size` 由 `SpaceShipCache.Size(out min)` 算出，本身取自 `Area` 的 min/max，多层安全。
-- `TransformForShipMove`：镜像在 local 坐标内做，再还原带基址：
+1. `Sos2SubsystemPatches.BridgeMapSizePatch` 在把 `Map.Size` 换成逻辑尺寸前，先调
+   `Sos2Compatibility.ExpectSpaceLayout(size)`，把**源图的 `LayerLayout`** 记下来。
+2. `Sos2Compatibility.LogicalSize` 优先按 `Width == x && StorageHeight == z` 精确匹配源图；
+   只按宽度匹配会在「同宽但层数不同」的两张图之间猜错，而船一离港就有这样一对图。
+3. `LayerGeneration.GenerateMapPatch.Prefix` 先 `TakeSpaceLayout()`：拿到请求就按**源图的**
+   `Width/Height/Elevations/Stride` 建 `LayerLayout`，并绕过「太空图不扩层」的守卫；
+   没拿到才走原来的 Odyssey 逻辑。`TakeSpaceLayout` 读完即清，迟到的请求不会漏给下一张图。
 
-```csharp
-int layer = LayerOf(pos);
-int localZ = pos.z - layer * stride;
-int newLocalZ = rotb switch {
-    2 => layout.Height - localZ - 1,
-    3 => pos.x,
-    _ => localZ
-};
-int newX = rotb switch { 2 => layout.Width - pos.x - 1, 3 => layout.Width - localZ - 1, _ => pos.x };
-return new IntVec3(newX, 0, layer * stride + newLocalZ) + adjustment;
-```
+`TransformForShipMove` 的跨带镜像仍然需要（`rotb == 2/3` 要按 local z 算），
+`Sos2Geometry.Mirror` 已经按「先转 local、再加带基址」实现，并有 67 项纯逻辑断言覆盖
+三种旋转 × 三层。
 
-> 注意 `rotb == 3` 时原来的写法把 `pos.x` 放进了 `z`，`pos.z` 放进了 `x`，是 90° 旋转而不是镜像，
-> 上面的 `switch` 只是把「原来的 2 个分支」逐一改成「先转 local、再加带基址」，语义等价。
+### 楼板必须随船走（已实现）
+
+`MoveShip` 的地形搬运只收 `sourceTerrain.layerable` 的格。`RL_Sos2Deck` 是
+`isFoundation=true` + `layerable=false`（这正让它成为真地板而不是一层漆），
+所以**甲板被静默跳过**：船到太空后上层没有地板，玩家无法在上面重建，
+画面上就是一片空的 `RL_OpenAir`。
+
+原版地形循环也不能复用：对 `isFoundation` 的 def 调 `SetTerrain` 写的是顶层，
+永远到不了 `foundationGrid`。因此新增 `Compatibility/Sos2DeckMovePatches.cs`：
+
+- Prefix 记住源图上每一层的甲板格（`FoundationAt(cell)` 是 `RL_Sos2Deck`）。
+- Postfix 用 `TransformForShipMove(target, cell, adjustment, 4 - rotNum)` 把每格搬到目标图上，
+  验过 `TryDecode` 且 `LayerId != 0` 后交 `ShipDeckTerrain.InstallDeck`。
+- 源图那几格用 `Sos2TerrainPatches.Suppressed()` 作用域内 `RemoveFoundation` 清掉，
+  并让**源图自己的** `Structure.TerrainChanged` 更新账本（坐标属于源图，不是目标图）。
+- 目的地若不是多层图就整体跳过 —— 不冒险半搬一半。
 
 ### 起降闸门
 
 RimLayers 的 `Ships/ShipLandingPatches.cs` 是一整套「每个入口点各一个补丁」的清单式接管，
 SOS2 的起降需要同构的一套，但**落点完全不同**（SOS2 不用 `Gravship`/`GravshipPlacementUtility`）：
 
-| SOS2 入口 | 需要做什么 |
-|---|---|
-| `ShipInteriorMod2.CanShipLandOnMap(Map, Map)` | Postfix：目标图上逐格 `CanPlaceShipOnVec` 之外，追加「本层 band 是否存在」（`Elevation >= 0`）与 `LayerExpansionQuota.For(targetMap, neededTop)` |
-| `ShipInteriorMod2.CanPlaceShipOnVec(IntVec3, Map, bool, bool)` | Prefix：`v.InNoBuildEdgeArea(map)` 用存储坐标，扩层后 `InNoBuildEdgeArea` 用的是 `Map.Size`，会把隔离带算进边界 → 改成按 `GroundSize` + band 判定 |
-| `ShipInteriorMod2.MoveShip(...)` | 入口处 `LiveMapExpansion.EnsureElevation(targetMap, neededTop)`；成功后 `Ships.MarkDirty(); Connectors.Invalidate(); Power.Rebuild(); Air.Rebuild(); Sky.Rebuild();` |
-| `ShipInteriorMod2.RemoveShipOrArea(...)` | 离开后若该图最高层已空，`Quota.Release` 但**不**自动缩层（与 RimLayers 现有策略一致：降低上限不删除旧层） |
-| `Comp/ShipMapComp.cs:2750 KillAllOffShip` | 见 #4 |
+| SOS2 入口 | 需要做什么 | 状态 |
+|---|---|---|
+| `ShipInteriorMod2.GeneratePlayerShipMap(IntVec3)` | 按源图层带建太空图，而不是按逻辑高度建单层图 | 已实现 |
+| `ShipInteriorMod2.TransformForShipMove(Map,IntVec3,IntVec3,int)` | 镜像在 local 坐标内做，再还原带基址 | 已实现 |
+| `SpaceShipCache.CenterShipOnMap()` | 居中用逻辑长度，不是 `Map.Size.z` | 已实现 |
+| `ShipInteriorMod2.MoveShip(Building,Map,IntVec3,…)` | 甲板随船搬运 + 源图清账 | 已实现 |
+| `ShipInteriorMod2.CanShipLandOnMap(Map,Map)` | 落点追加 band 存在性 + `LayerExpansionQuota` | 见 §11 |
+| `Comp/ShipMapComp.cs:2750 KillAllOffShip` | 见 #4 | 已实现 |
 
 SOS2 已有自己的「移动中」闸门 `ShipInteriorMod2.MoveShipFlag`（54 处引用，`Source/1.7` 全仓），
 RimLayers 的扩层事务必须与它互斥：扩层期间置 `MoveShipFlag = true`，或反过来在 `MoveShipFlag` 为真时拒绝扩层。
@@ -798,6 +809,9 @@ SOS2 侧不改（第三方 mod）。
 | `sos2-second-deck-gets-its-own-ship-roof` / `sos2-upper-deck-can-hold-a-second-stair` | 递归向上加层：新层铺 `ShipHullTile` → 得到本层的 `RoofShip` → 可再起一座楼梯。楼梯要的是**自己这一层**的屋顶，所以只给出口格铺瓦片不够，必须给楼梯格也铺 |
 | `sos2-deck-def-exists` / `sos2-deck-is-allowed-on-the-hull` / `sos2-deck-is-refused-off-the-hull` | SOS2 专属楼板：`RL_Sos2Deck` 在船体瓦片正上方（下方 `IsShipDeck` + `RoofShip`）可建；离船体两格处没有 plating 也没有 `RoofShip`，必须被拒 |
 | `sos2-deck-installs-on-a-plated-cell` / `sos2-deck-does-not-detach-the-hull` | `ShipDeckTerrain.InstallDeck` 把 `RL_Sos2Deck` 写成地基并记入 `StructuralCells`；同一格上的 `ShipHullTile` **仍在**（证明没打 `Substructure` tag，SOS2 没执行 `DetachFromSos2`） |
+| `sos2-a-space-map-inherits-the-ships-bands` / `-announcement-is-consumed-once` | 发射：太空图按源图的层带生成（不是逻辑高度的单层图），且请求读完即清，不会漏给下一张图 |
+| `sos2-rot-{1,2,3}-keeps-deck-{0,1,2}-inside-the-destination` | 发射：`MoveShip` 三种旋转下每一层的存储 z 都仍在合法 band 内（纯逻辑，`Sos2GeometryTests`） |
+| `a flat destination cannot store a second deck` | 反证：单层目的地装不下第二层——这就是发射抛 `IndexOutOfRangeException` 的成因 |
 
 尚未自动化、需要单独补场景的意图：
 

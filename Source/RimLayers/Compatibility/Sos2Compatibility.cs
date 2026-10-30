@@ -3,6 +3,7 @@ using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
 using RimLayers.Generation;
+using RimLayers.Layout;
 using RimLayers.Structure;
 using RimWorld;
 using Verse;
@@ -98,6 +99,7 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2SubsystemPatches));
         Patch(harmony, typeof(Sos2PlacementPatches));
         Patch(harmony, typeof(Sos2DeckRegistryPatches));
+        Patch(harmony, typeof(Sos2DeckMovePatch));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
     }
@@ -318,16 +320,47 @@ internal static class Sos2Compatibility
     /// </summary>
     internal static IntVec3 LogicalSize(IntVec3 storageSize)
     {
-        Map? map = Find.Maps.FirstOrDefault(m =>
-        {
-            LayerMapComponent? owner = LayerMapComponent.For(m);
-            return owner?.Layout is { } layout && layout.Stride > 0 && layout.Width == storageSize.x;
-        });
-        LayerMapComponent? owner = LayerMapComponent.For(map);
+        LayerMapComponent? owner = LayerMapComponent.For(SourceMapOf(storageSize));
         if (owner?.Layout is not { } found) return storageSize;
         (int x, int y, int z) = Sos2Geometry.LogicalSize(
             storageSize.x, storageSize.z, found.Height, found.Stride, found.LayerCount);
         return new IntVec3(x, y, z);
+    }
+
+    /// <summary>
+    /// The managed map whose storage rectangle is exactly <paramref name="storageSize"/>. A width-only
+    /// match is the last resort: two maps of the same width but different band counts exist as soon as
+    /// a ship leaves for its own space map.
+    /// </summary>
+    private static Map? SourceMapOf(IntVec3 storageSize)
+    {
+        Map? exact = Find.Maps.FirstOrDefault(m =>
+            LayerMapComponent.For(m)?.Layout is { } layout &&
+            layout.Width == storageSize.x && layout.StorageHeight == storageSize.z);
+        return exact ?? Find.Maps.FirstOrDefault(m =>
+            LayerMapComponent.For(m)?.Layout is { } layout && layout.Width == storageSize.x);
+    }
+
+    /// <summary>
+    /// Set by the SOS2 map-size adapter just before it asks for a space map, consumed by
+    /// <c>LayerGeneration</c>. A space map has to store the same bands as the ship it receives;
+    /// generated as a flat map it is a logical rectangle, and every cell of a second deck then lands
+    /// outside the map during the move.
+    /// </summary>
+    [ThreadStatic] private static LayerLayout? pendingSpaceLayout;
+
+    /// <summary>Announces the band structure the next generated map must have.</summary>
+    internal static void ExpectSpaceLayout(IntVec3 storageSize)
+    {
+        pendingSpaceLayout = LayerMapComponent.For(SourceMapOf(storageSize))?.Layout;
+    }
+
+    /// <summary>Reads and clears the pending band structure; a stale request must never leak.</summary>
+    internal static LayerLayout? TakeSpaceLayout()
+    {
+        LayerLayout? layout = pendingSpaceLayout;
+        pendingSpaceLayout = null;
+        return layout;
     }
 
     /// <summary>Which edge an SOS2 shot comes from, in <see cref="Sos2Geometry.EdgeCell"/>'s indexing.</summary>

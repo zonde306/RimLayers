@@ -445,6 +445,18 @@ internal static partial class V1Integration
         Check("sos2-space-map-is-generated-at-the-logical-size", logical.z == owner.Layout!.Height,
             $"size={map.Size.z}->{logical.z}, height={owner.Layout.Height}");
 
+        // A flat space map is what broke launching: the deck cells were mirrored into a map that had
+        // no second band, so the move threw. The generated map must inherit this ship's bands, and
+        // the announcement must be single-use so a later unrelated map cannot pick up a stale one.
+        Sos2Compatibility.ExpectSpaceLayout(map.Size);
+        LayerLayout? announced = Sos2Compatibility.TakeSpaceLayout();
+        Check("sos2-a-space-map-inherits-the-ships-bands",
+            announced != null && announced.LayerCount == owner.Layout.LayerCount &&
+            announced.Height == owner.Layout.Height && announced.Stride == owner.Layout.Stride,
+            $"announced={announced?.LayerCount} layers, {announced?.Height} high");
+        Check("sos2-the-space-map-announcement-is-consumed-once",
+            Sos2Compatibility.TakeSpaceLayout() == null);
+
         // --- combat: incoming fire spawns on an edge of the target's own deck ------------------
         MethodInfo? lowSpread = AccessTools.Method(Sos2Compatibility.ShipMapCompType,
             "FindClosestEdgeCellLowSpread", new[] { typeof(Map), typeof(IntVec3) });
@@ -813,6 +825,10 @@ internal static partial class V1Integration
                         if (t.def.destroyable) t.Destroy(DestroyMode.Vanish);
                         else t.DeSpawn();
                     }
+            // SetFoundation refuses a cell that still holds an under terrain. Every other fixture in
+            // this suite clears the top layer first; this one skipped it and left the run dependent on
+            // whether an earlier phase happened to push a layer down here.
+            if (map.terrainGrid.UnderTerrainAt(lower) != null) map.terrainGrid.RemoveTopLayer(lower, false);
             map.terrainGrid.SetFoundation(lower, TerrainDefOf.Substructure);
             map.terrainGrid.SetTerrain(lower, TerrainDefOf.Concrete);
             map.terrainGrid.SetTerrain(upper, RimLayersDefOf.RL_OpenAir);

@@ -222,7 +222,7 @@ public sealed class StructuralSupport
          else owner.map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_StructuralFloor);}
     }
 
-    internal void TerrainChanged(IntVec3 cell, TerrainDef terrain)
+    internal void TerrainChanged(IntVec3 cell, TerrainDef? terrain)
     {
         if (!owner.TryDecode(cell, out var logical) || logical.LayerId == 0) return;
         bool changed = IsDeckTerrain(terrain) || owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true ? owner.StructuralCells.Add(cell) :

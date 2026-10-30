@@ -28,11 +28,18 @@ internal static class GenerateMapPatch
     {
         __state = null;
         bool incoming = RimLayers.Ships.ShipLayers.IsLayerShip(RimLayers.Ships.ShipLayers.Incoming) && RimLayers.Ships.ShipLayers.RequiredLayers(RimLayers.Ships.ShipLayers.Incoming!)>1;
+        // An adapter can ask for specific bands (SOS2 generates its space map for a ship whose decks it
+        // is about to move cell by cell). A flat space map cannot hold a second deck: every cell of it
+        // lands outside the map. The request is one-shot and never outlives the next generation.
+        var requested = RimLayers.Compatibility.Sos2Compatibility.TakeSpaceLayout();
         bool fixture=GenCommandLine.CommandLineArgPassed("rimlayerstest") || GenCommandLine.CommandLineArgPassed("rimlayersv1test") && V1Preallocated();
-        if(!incoming&&!fixture)return;
+        if(requested==null&&!incoming&&!fixture)return;
         if (parent == null || isPocketMap || stepDebugger || mapGenerator == null || mapGenerator.isUnderground ||
-            mapSize.x <= 0 || mapSize.z <= 0 || (!incoming && (parent.Faction != Faction.OfPlayer || parent.Tile.Layer.Def.isSpace))) return;
-        var layout = new LayerLayout(mapSize.x, mapSize.z, incoming?RimLayers.Ships.ShipLayers.RequiredLayers(RimLayers.Ships.ShipLayers.Incoming!):LayerLayout.PrototypeLayers, LayerLayout.CalculateStride(mapSize.z));
+            mapSize.x <= 0 || mapSize.z <= 0) return;
+        if (requested == null && !incoming && (parent.Faction != Faction.OfPlayer || parent.Tile.Layer.Def.isSpace)) return;
+        var layout = requested != null
+            ? new LayerLayout(requested.Width, requested.Height, requested.Elevations, LayerLayout.CalculateStride(requested.Height))
+            : new LayerLayout(mapSize.x, mapSize.z, incoming?RimLayers.Ships.ShipLayers.RequiredLayers(RimLayers.Ships.ShipLayers.Incoming!):LayerLayout.PrototypeLayers, LayerLayout.CalculateStride(mapSize.z));
         __state = new GenerationScope { Layout = layout, Previous = GenerationScope.Active };
         GenerationScope.Active = __state;
         mapSize = __state.FullSize;

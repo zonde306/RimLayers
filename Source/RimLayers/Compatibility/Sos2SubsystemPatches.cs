@@ -116,6 +116,9 @@ internal static class Sos2SubsystemPatches
         [HarmonyPrefix]
         private static void Prefix(ref IntVec3 size)
         {
+            // The space map must keep the ship's band structure: MoveShip walks the source decks cell by
+            // cell and mirrors them onto the target. Generated flat, the second deck has nowhere to go.
+            Sos2Compatibility.ExpectSpaceLayout(size);
             size = Sos2Compatibility.LogicalSize(size);
         }
     }

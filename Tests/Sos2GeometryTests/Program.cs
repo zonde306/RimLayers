@@ -118,4 +118,25 @@ Check("the deck does not change the firing edge",
     Sos2Geometry.ProjectileSide(60, 272 + 10, Width, Height, Stride, Layers, 0, 0) ==
     Sos2Geometry.ProjectileSide(60, 10, Width, Height, Stride, Layers, 0, 0));
 
+// --- a multi-deck ship must fit a multi-deck destination --------------------------------
+// MoveShip mirrors every source cell onto the target and then writes it into MapShipCells /
+// Home without a bounds guard. A flat destination therefore throws mid-launch, which is what
+// a space map generated at the logical size used to do. Every deck must survive the transform.
+const int ShipX = 40, ShipZ = 30;
+foreach (int rot in new[] { 1, 2, 3 })
+    for (int layer = 0; layer < Layers; layer++)
+        Check($"rot {rot} keeps deck {layer} inside the destination", Inside(Sos2Geometry.Mirror(
+            ShipX, 0, layer * Stride + ShipZ, Width, Height, Stride, Layers, rot)));
+
+// The failure this guards against, stated directly: a single-layer destination has no room for
+// a second deck, so the move would address a z past the end of the map.
+Check("a flat destination cannot store a second deck",
+    Sos2Geometry.LayerOf(Stride + ShipZ, Stride, 1) < 0);
+Check("a multi-deck destination can", Sos2Geometry.LayerOf(Stride + ShipZ, Stride, Layers) == 1);
+
+bool Inside((int X, int Y, int Z) cell) =>
+    cell.X is >= 0 and < Width &&
+    Sos2Geometry.LayerOf(cell.Z, Stride, Layers) is >= 0 and < Layers &&
+    Sos2Geometry.LocalZ(cell.Z, Stride) < Height;
+
 Console.WriteLine($"{checks} sos2 geometry checks passed (subsystems).");
