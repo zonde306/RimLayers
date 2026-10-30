@@ -19,7 +19,7 @@ internal static partial class V1Integration
         map.terrainGrid.SetTerrain(surfaceProbe,DefDatabase<TerrainDef>.GetNamed("WaterShallow"));
         Check("vehicle-facilities-do-not-create-water-foundations",!VehicleFacilitySpace.NativeSurface(owner,surfaceProbe));
         map.terrainGrid.SetTerrain(surfaceProbe,originalTerrain);
-        var provider=LoadedModManager.RunningModsListForReading.Single(m=>m.PackageId.Equals("baal.vehicleframework",StringComparison.OrdinalIgnoreCase));
+        var provider=LoadedModManager.RunningModsListForReading.Single(m=>m.PackageId.Equals("baal.vehicleframework",StringComparison.OrdinalIgnoreCase)||m.PackageId.Equals("smashphil.vehicleframework",StringComparison.OrdinalIgnoreCase));
         var patherType=provider.assemblies.loadedAssemblies.Single(a=>a.GetName().Name=="Vehicles").GetType("Vehicles.VehiclePathFollower",true)!;
         new HarmonyLib.Harmony("rimlayers.vehicles.fixture").Patch(FrameworkVehicleAdapter.Method(patherType,"PatherFailed",typeof(void)),prefix:new HarmonyLib.HarmonyMethod(typeof(V1Integration),nameof(VehiclePatherFailed)));
         GenCommandLine.TryGetCommandLineArg("rimlayersvehicledef",out var requestedDef);

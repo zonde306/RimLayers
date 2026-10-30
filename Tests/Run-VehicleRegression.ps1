@@ -1,4 +1,4 @@
-param([ValidateSet('elevators','cargo','gravship','structure')][string[]]$Scenarios=@('elevators','cargo','gravship'),[switch]$NoFramework)
+param([ValidateSet('elevators','cargo','gravship','structure')][string[]]$Scenarios=@('elevators','cargo','gravship'),[switch]$NoFramework,[switch]$Upstream)
 $ErrorActionPreference='Stop'
 if(Get-Process RimWorld -ErrorAction SilentlyContinue){throw 'Close RimWorld before running isolated regression.'}
 $root=Split-Path -Parent $PSScriptRoot
@@ -10,16 +10,17 @@ Copy-Item -LiteralPath $live -Destination $backup
 try {
     foreach($scenario in $Scenarios){
         if(Get-Process RimWorld -ErrorAction SilentlyContinue){throw 'A RimWorld process is active; regression did not swap another candidate.'}
-        & (Join-Path $PSScriptRoot 'Run-V1.ps1') -Scenario $scenario -Vehicles:(!$NoFramework)
+        & (Join-Path $PSScriptRoot 'Run-V1.ps1') -Scenario $scenario -Vehicles:(!$NoFramework) -Upstream:$Upstream
         if($LASTEXITCODE -ne 0){throw "Regression failed: $scenario"}
     }
 } finally {
+    while(Get-Process RimWorld -ErrorAction SilentlyContinue){Start-Sleep -Milliseconds 250}
     # The renderer/loader can briefly retain the DLL after its test process exits.
     # Retry the same scoped restore; never terminate another game to acquire the file.
     for($attempt=0;;$attempt++){
         try {Copy-Item -LiteralPath $backup -Destination $live; break}
         catch [System.IO.IOException] {
-            if($attempt -ge 19 -or (Get-Process RimWorld -ErrorAction SilentlyContinue)){throw}
+            if($attempt -ge 19){throw}
             Start-Sleep -Milliseconds 250
         }
     }

@@ -2,6 +2,8 @@ using System.Collections;
 using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Generation;
+using RimLayers.Layout;
 using Verse;
 using Verse.AI;
 
@@ -34,17 +36,21 @@ internal static class VehicleCompatibility
         if(!probe||prototype)Install();
         if(probe)Probe();
     }
-    private static FrameworkVehicleAdapter? Bind()
+    private static ModContentPack? GetProvider()
     {
-        // Steel Horizon aliases ModsConfig.IsActive for upstream content. Provider identity must use the actual loaded packs.
         bool Enabled(string id)=>LoadedModManager.RunningModsListForReading.Any(m=>m.PackageId.Equals(id,StringComparison.OrdinalIgnoreCase));
         bool steel=Enabled("Baal.VehicleFramework"),upstream=Enabled("SmashPhil.VehicleFramework");
         if(steel&&upstream)throw new InvalidOperationException("Both Vehicle Framework providers are enabled. Enable only one.");
-        if(!steel&&!upstream){Diagnostic="No Vehicle Framework provider enabled";return null;}
-        // Upstream 1.7 has not yet been validated. An old 1.6 DLL must never opt itself into these hooks.
-        if(upstream)throw new NotSupportedException("Upstream Vehicle Framework requires a verified RimWorld 1.7 adapter.");
-        var provider=LoadedModManager.RunningModsListForReading.Single(m=>m.PackageId.Equals("baal.vehicleframework",StringComparison.OrdinalIgnoreCase));
-        var assembly=provider.assemblies.loadedAssemblies.Single(a=>a.GetName().Name=="Vehicles");
+        if(!steel&&!upstream)return null;
+        string targetId=steel?"baal.vehicleframework":"smashphil.vehicleframework";
+        return LoadedModManager.RunningModsListForReading.Single(m=>m.PackageId.Equals(targetId,StringComparison.OrdinalIgnoreCase));
+    }
+    private static FrameworkVehicleAdapter? Bind()
+    {
+        var provider=GetProvider();
+        if(provider==null){Diagnostic="No Vehicle Framework provider enabled";return null;}
+        var assembly=provider.assemblies.loadedAssemblies.SingleOrDefault(a=>a.GetName().Name=="Vehicles")
+            ??throw new InvalidOperationException($"Vehicles assembly not found in provider {provider.PackageId}.");
         return new FrameworkVehicleAdapter(assembly,provider.PackageId);
     }
     private static void Probe()
@@ -53,7 +59,7 @@ internal static class VehicleCompatibility
         {
             if(GenCommandLine.CommandLineArgPassed("rimlayersvehiclesprototype"))
             {if(Adapter!=null)Diagnostic="Ground hook installation accepted";}
-            else {var result=Bind();Diagnostic=result==null?Diagnostic:"Steel Horizon ground binding signatures accepted";}
+            else {var result=Bind();Diagnostic=result==null?Diagnostic:$"{result.Provider} ground binding signatures accepted";}
         }
         catch(Exception e){Diagnostic=e.ToString();}
         Log.Message("[RimLayers vehicles] "+Diagnostic);
@@ -101,11 +107,17 @@ internal static class VehicleCompatibility
             var despawn=FrameworkVehicleAdapter.Method(bindings.VehicleType,"DeSpawn",typeof(void),typeof(DestroyMode));
             ground.Patch(despawn,prefix:new HarmonyMethod(typeof(VehicleCompatibility),nameof(BeforeDeSpawn)),finalizer:new HarmonyMethod(typeof(VehicleCompatibility),nameof(AfterDeSpawn)));
             ground.Patch(FrameworkVehicleAdapter.Method(bindings.VehicleType,"GetGizmos",typeof(IEnumerable<Gizmo>)),postfix:new HarmonyMethod(typeof(VehicleCompatibility),nameof(GizmosPostfix)));
+            var accelType=bindings.VehicleType.Assembly.GetType("Vehicles.AccelerationController");
+            if(accelType!=null)
+            {
+                var recalc=accelType.GetMethod("Recalculate",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public);
+                if(recalc!=null)ground.Patch(recalc,postfix:new HarmonyMethod(typeof(VehicleCompatibility),nameof(FixAccelerationCoast)));
+            }
             Adapter=bindings;Capabilities=VehicleCapabilities.GroundMovement;
             if(FrameworkWorldAdapter.TryInstall(bindings,out var worldDiagnostic))Capabilities|=VehicleCapabilities.WorldTravel;
             else Log.Warning("[RimLayers vehicles] "+worldDiagnostic);
-            var pack=LoadedModManager.RunningModsListForReading.Single(m=>m.PackageId.Equals("baal.vehicleframework",StringComparison.OrdinalIgnoreCase));
-            var enhancementAssembly=pack.assemblies.loadedAssemblies.SingleOrDefault(a=>a.GetName().Name=="VehicleFramework.LocalUpgrade");
+            var pack=GetProvider();
+            var enhancementAssembly=pack?.assemblies.loadedAssemblies.SingleOrDefault(a=>a.GetName().Name=="VehicleFramework.LocalUpgrade");
             if(enhancementAssembly!=null&&!GenCommandLine.CommandLineArgPassed("rimlayersvehiclebasic"))
             {
                 var enhancement=SteelGroundMotionAdapter.TryInstall(enhancementAssembly,bindings,out var detail);
@@ -121,6 +133,7 @@ internal static class VehicleCompatibility
             }
             try{VehicleCapabilityGuards.Install(bindings,enhancementAssembly);}
             catch(Exception e){Log.Error("[RimLayers vehicles] Capability entry-point guards unavailable: "+e);}
+            LiveMapExpansion.Committed+=OnLayerExpansionCommitted;
             Diagnostic="Enabled provider capabilities: "+Capabilities;
             Log.Message("[RimLayers vehicles] "+Diagnostic);
         }
@@ -128,6 +141,53 @@ internal static class VehicleCompatibility
         {
             ground.UnpatchAll(ground.Id);Adapter=null;bindings=null;Capabilities=VehicleCapabilities.None;
             Diagnostic=e.ToString();Log.Error("[RimLayers vehicles] Ground integration disabled: "+Diagnostic);
+        }
+    }
+    private static void FixAccelerationCoast(object __instance)
+    {
+        try
+        {
+            var type=__instance.GetType();
+            var throttleField=type.GetField("throttle",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public);
+            if(throttleField!=null&&Convert.ToInt32(throttleField.GetValue(__instance))==2)
+            {
+                var vehicleField=type.GetField("vehicle",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public);
+                var vehicle=vehicleField?.GetValue(__instance);
+                if(vehicle!=null)
+                {
+                    var statDefOf=vehicle.GetType().Assembly.GetType("Vehicles.VehicleStatDefOf");
+                    var moveSpeedStat=statDefOf?.GetField("MoveSpeed")?.GetValue(null);
+                    if(moveSpeedStat!=null)
+                    {
+                        var getStat=vehicle.GetType().GetMethod("GetStatValue",new[]{moveSpeedStat.GetType()});
+                        if(getStat!=null)
+                        {
+                            float speed=(float)getStat.Invoke(vehicle,new[]{moveSpeedStat})!;
+                            if(speed>0f)
+                            {
+                                var targetProp=type.GetProperty("TargetMoveSpeed",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public);
+                                var moveProp=type.GetProperty("MoveSpeed",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public);
+                                targetProp?.SetValue(__instance,speed);
+                                moveProp?.SetValue(__instance,speed);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch(Exception e){Log.Warning("[RimLayers vehicles] Failed to fix acceleration coast: "+e);}
+    }
+    private static void OnLayerExpansionCommitted(Map map,LayerLayout layout)
+    {
+        if(map==null||bindings==null)return;
+        try
+        {
+            if(VehiclePathingExpansion.NeedsSync(map))
+                VehiclePathingExpansion.SyncMapSize(map,bindings);
+        }
+        catch(Exception e)
+        {
+            Log.Warning("[RimLayers vehicles] Failed to sync vehicle systems on map expansion: "+e);
         }
     }
     private static bool RestoreRampPrefix(Building building,Map map,bool respawningAfterLoad)

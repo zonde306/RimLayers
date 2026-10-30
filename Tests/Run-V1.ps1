@@ -1,5 +1,6 @@
 ﻿param(
     [switch]$Vehicles,
+    [switch]$Upstream,
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
@@ -71,7 +72,8 @@ $active += 'brrainz.harmony'
 if($Vehicles){
     # Steel Horizon's global VehicleDef patches require concrete vehicle content.
     # Exercise the user's verified, XML-only Technical Vehicles pack rather than an empty framework install.
-    $active += @('baal.vehicleframework','rimthunder.core','mo.technicalvehicles')
+    $framework = if($Upstream){'smashphil.vehicleframework'}else{'baal.vehicleframework'}
+    $active += @($framework,'rimthunder.core','mo.technicalvehicles')
 }
 $active += 'rimlayers.core'
 # Aerocraft Framework is an optional third-party pack; only the aerocraft scenario needs it.

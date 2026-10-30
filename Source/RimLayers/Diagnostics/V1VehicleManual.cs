@@ -13,8 +13,9 @@ internal static partial class V1Integration
     private static FieldInfo manualBrake=null!;
     private static void BindManualTest()
     {
-        var control=AppDomain.CurrentDomain.GetAssemblies().Single(a=>a.GetName().Name=="VehicleFramework.LocalUpgrade")
-            .GetType("VehicleFramework.LocalUpgrade.GroundVehicleDirectControlUtility",true)!;
+        var asm=AppDomain.CurrentDomain.GetAssemblies().SingleOrDefault(a=>a.GetName().Name=="VehicleFramework.LocalUpgrade");
+        if(asm==null)return;
+        var control=asm.GetType("VehicleFramework.LocalUpgrade.GroundVehicleDirectControlUtility",true)!;
         manualToggle=FrameworkVehicleAdapter.Method(control,"Toggle",typeof(void),testVehicle.GetType());
         manualBrake=FrameworkVehicleAdapter.Field(control,"brakeInput");
         manualInput=FrameworkVehicleAdapter.Method(control,"SetDriveInput",typeof(void),typeof(float),typeof(float));

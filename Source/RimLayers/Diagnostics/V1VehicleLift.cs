@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using RimLayers.Core;
 using RimLayers.Vehicles;
@@ -126,7 +127,10 @@ internal static partial class V1Integration
             if(GenCommandLine.CommandLineArgPassed("rimlayersvehicleexpansion"))
             {
                 var size=map.Size;var layout=owner.Layout;var system=map.components.Single(c=>c.GetType().FullName=="Vehicles.VehiclePathingSystem");
-                var field=FrameworkVehicleAdapter.Field(system.GetType(),"vehicleData");var before=field.GetValue(system);
+                var field=system.GetType().GetField("vehicleData",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public)
+                    ??system.GetType().GetField("<PathData>k__BackingField",BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public)
+                    ??FrameworkVehicleAdapter.Field(system.GetType(),"vehicleData");
+                var before=field.GetValue(system);
                 RimLayersMod.Settings.UpperLimit=3;
                 var activeJob=JobMaker.MakeJob(JobDefOf.Goto,LiftAt(0,85,81));testVehicle.jobs.TryTakeOrderedJob(activeJob);
                 bool rolledBack=false;
@@ -232,11 +236,18 @@ internal static partial class V1Integration
                     g.disabledReason=="RL_VehicleParkedOutside".Translate().ToString()),
                 string.Join("|",offGizmos.Select(g=>g.defaultLabel+":"+g.disabledReason)));
             VehicleTraffic.Command(()=>VehicleCompatibility.Adapter!.Commit(testVehicle,destination,0));
-            BindManualTest();Find.Selector.ClearSelection();Find.Selector.Select(testVehicle);
-            LayerView.Switch(owner,LiftLayer(1));manualToggle.Invoke(null,new object[]{testVehicle});
-            Check("manual-driver-can-select-elevator-floor",SteelManualAdapter.Active(testVehicle));
-            Check("floor-command-starts-original-native-goto",traffic.RequestFloor(testVehicle,vehicleStations[0]));
-            Check("elevator-floor-command-releases-native-manual-drive",!SteelManualAdapter.Active(testVehicle));
+            if(VehicleCompatibility.Capabilities.HasFlag(VehicleCapabilities.ManualDriving))
+            {
+                BindManualTest();Find.Selector.ClearSelection();Find.Selector.Select(testVehicle);
+                LayerView.Switch(owner,LiftLayer(1));manualToggle.Invoke(null,new object[]{testVehicle});
+                Check("manual-driver-can-select-elevator-floor",SteelManualAdapter.Active(testVehicle));
+                Check("floor-command-starts-original-native-goto",traffic.RequestFloor(testVehicle,vehicleStations[0]));
+                Check("elevator-floor-command-releases-native-manual-drive",!SteelManualAdapter.Active(testVehicle));
+            }
+            else
+            {
+                Check("floor-command-starts-original-native-goto",traffic.RequestFloor(testVehicle,vehicleStations[0]));
+            }
             liftVehicleJob=testVehicle.CurJob!.loadID;vehiclePhase=12;ticks=0;return;
         }
         if(vehiclePhase==12)

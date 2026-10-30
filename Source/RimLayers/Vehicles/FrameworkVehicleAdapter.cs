@@ -23,6 +23,11 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
     private readonly PropertyInfo fullRotation,canMove,drafted;
     private readonly MethodInfo start,stop,fail,reclaim,teleported,findPath,dispose;
     private readonly PropertyInfo pathFound,pathNodes,indexer,pathFinder;
+    private readonly PropertyInfo? systemPathFinder;
+    private readonly MethodInfo? systemFindPath;
+    private readonly Type? nodeType;
+    private readonly MethodInfo? pathSettingsFor;
+    private readonly MethodInfo? fromCoreLibPath;
     private readonly Type pathingType;
     private readonly MethodInfo rotFromAngle;
     private readonly PropertyInfo rotationAngle;
@@ -61,6 +66,19 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
         pathFound=Property(path,"Found");pathNodes=Property(path,"Nodes");
         currentPath=Field(PatherType,"curPath");pathCurrent=Property(path,"Current");
         dispose=Method(path,"Dispose",typeof(void));
+        systemPathFinder=pathingType.GetProperty("PathFinder");
+        fromCoreLibPath=path.GetMethod("FromCoreLibPath",BindingFlags.Public|BindingFlags.Static);
+        if(systemPathFinder!=null&&fromCoreLibPath!=null)
+        {
+            var rawPathType=fromCoreLibPath.GetParameters()[0].ParameterType;
+            nodeType=rawPathType.GetNestedType("Node");
+            var settingsType=assembly.GetType("Vehicles.PathSettings");
+            if(settingsType!=null&&nodeType!=null)
+            {
+                pathSettingsFor=AccessTools.Method(settingsType,"For",new[]{VehicleType});
+                systemFindPath=AccessTools.Method(systemPathFinder.PropertyType,"FindPath",new[]{nodeType,nodeType,settingsType});
+            }
+        }
         // Compile the hot pose/occupancy accessors once, without a hard dependency on Vehicles or SmashTools.
         var pawn=Expression.Parameter(typeof(Pawn),"pawn");
         var vehicle=Expression.Convert(pawn,VehicleType);
@@ -89,7 +107,15 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
             Expression.Assign(rendered,Expression.Call(Expression.Property(vehicle,graphic),render,transform,Expression.Constant(true),Expression.Convert(pawn,typeof(Thing)),Expression.Constant(0f))),packet),pawn,drawAt).Compile();
     }
     internal static FieldInfo Field(Type type,string name)=>AccessTools.Field(type,name)??throw new MissingFieldException(type.FullName,name);
-    internal static PropertyInfo Property(Type type,string name)=>AccessTools.Property(type,name)??throw new MissingMemberException(type.FullName,name);
+    internal static PropertyInfo Property(Type type,string name)
+    {
+        for(Type? current=type;current!=null;current=current.BaseType)
+        {
+            var match=current.GetProperties(BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance|BindingFlags.Static|BindingFlags.DeclaredOnly).FirstOrDefault(p=>p.Name==name);
+            if(match!=null)return match;
+        }
+        return AccessTools.Property(type,name)??throw new MissingMemberException(type.FullName,name);
+    }
     internal static MethodInfo Method(Type type,string name,Type result,params Type[] args)
     {
         var method=AccessTools.Method(type,name,args)??throw new MissingMethodException(type.FullName,name);
@@ -122,19 +148,48 @@ internal sealed class FrameworkVehicleAdapter:IVehicleAdapter
     {
         var owner=LayerMapComponent.For(vehicle.Map);
         if(owner==null||!owner.TryDecode(from,out var origin)||!owner.TryDecode(target.Cell,out var end)||origin.LayerId!=end.LayerId)return null;
+        if(VehiclePathingExpansion.NeedsSync(vehicle.Map))
+        {
+            try{VehiclePathingExpansion.SyncMapSize(vehicle.Map,this);}catch{}
+        }
         // Do not move the real vehicle to a hypothetical endpoint to make native validation pass.
         var system=vehicle.Map.components.FirstOrDefault(pathingType.IsInstanceOfType);
         if(system==null)return null;
         using var pause=VehiclePathingExpansion.PauseWorker(system);
         var data=indexer.GetValue(system,new object[]{vehicle.def});
-        var updater=regionUpdater.GetValue(data)!;
-        rebuildRegions.Invoke(updater,null);
-        var finder=pathFinder.GetValue(data);
+        var updater=regionUpdater.GetValue(data);
+        if(updater!=null)
+        {
+            try{rebuildRegions.Invoke(updater,null);}catch{}
+        }
         object? path=null;bool previous=FindingLeg;
         try
         {
             FindingLeg=true;
-            path=findPath.Invoke(finder,new object[]{from,target,vehicle,CancellationToken.None,endMode});
+            if(systemFindPath!=null&&systemPathFinder!=null&&nodeType!=null&&pathSettingsFor!=null&&fromCoreLibPath!=null)
+            {
+                var sysFinder=systemPathFinder.GetValue(system);
+                if(sysFinder!=null)
+                {
+                    var startNode=Activator.CreateInstance(nodeType,from.x,from.z);
+                    var endNode=Activator.CreateInstance(nodeType,target.Cell.x,target.Cell.z);
+                    var settings=pathSettingsFor.Invoke(null,new object[]{vehicle});
+                    var rawPath=systemFindPath.Invoke(sysFinder,new object[]{startNode!,endNode!,settings!});
+                    if(rawPath!=null)
+                    {
+                        var isValidProp=rawPath.GetType().GetProperty("IsValid");
+                        if(isValidProp==null||(bool)isValidProp.GetValue(rawPath)!)
+                        {
+                            path=fromCoreLibPath.Invoke(null,new object[]{rawPath});
+                        }
+                    }
+                }
+            }
+            if(path==null)
+            {
+                var finder=pathFinder.GetValue(data);
+                if(finder!=null)path=findPath.Invoke(finder,new object[]{from,target,vehicle,CancellationToken.None,endMode});
+            }
             if(path==null||!(bool)pathFound.GetValue(path)!)return null;
             var nodes=((IEnumerable<IntVec3>)pathNodes.GetValue(path)!).Reverse().ToArray();
             if(nodes.Any(c=>!owner.TryDecode(c,out var at)||at.LayerId!=origin.LayerId||!owner.Structure.HasSurface(c)))return null;
