@@ -904,9 +904,15 @@ internal static partial class V1Integration
             sos2StairSite.Contains(new IntVec3(c.x, 0, c.z)) ||
             component.TryDecode(c, out var marked) && sos2StairSite.Contains(new IntVec3(marked.X, 0, marked.Z)));
         map.regionAndRoomUpdater.RebuildAllRegionsAndRooms();
-        Check("sos2-stair-deck-carries-the-ship-roof",
-            sos2StairSite.All(c => map.roofGrid.RoofAt(new IntVec3(c.x, 0, c.z))?.defName == "RoofShip"),
-            $"roof={map.roofGrid.RoofAt(new IntVec3(76, 0, 76))?.defName}");
+        // Report every cell that kept the wrong roof, not one sample: the previous detail printed a
+        // single fixed cell and said "roof=RoofShip" even on the run where this check failed, so a
+        // real failure carried no information about where it happened.
+        var roofMisses = sos2StairSite
+            .Where(c => map.roofGrid.RoofAt(new IntVec3(c.x, 0, c.z))?.defName != "RoofShip")
+            .Select(c => $"{c.x},{c.z}={map.roofGrid.RoofAt(new IntVec3(c.x, 0, c.z))?.defName ?? "none"}")
+            .ToList();
+        Check("sos2-stair-deck-carries-the-ship-roof", roofMisses.Count == 0,
+            $"misses={roofMisses.Count}: {string.Join(", ", roofMisses.Take(8))}");
 
         var worker = new PlaceWorker_LayerSupport();
         sos2StairCell = new IntVec3(79, 0, 79);

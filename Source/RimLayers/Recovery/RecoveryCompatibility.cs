@@ -25,6 +25,14 @@ public static class RecoveryCompatibility
     internal static bool SupportedKind(Thing thing)=>thing is Pawn or Corpse||thing.def.category==ThingCategory.Item;
     internal static bool ValidFloorConstruction(Thing thing,LayerMapComponent owner,IntVec3 at)
     {
+        // EntityRecoveryService.Notice only asks this after RecoveryLanding.HasSupport already said the
+        // thing has no support. A finished SOS2 hull part is normal here: hull parts are spawned while
+        // MoveShipFlag is set, so CompShipCachePart.PostSpawnSetup returns before registering them and
+        // the deck cannot be seen yet. Warning on every one of them turned a launch into hundreds of
+        // "reason=UnknownBuilding result=not-moved" lines. Check the building's own comps instead of
+        // MapShipCells, so a hull part is recognised before the cache catches up.
+        if (thing is Building building && Compatibility.Sos2Compatibility.Active &&
+            Compatibility.Sos2Compatibility.HasShipCachePart(building)) return true;
         if(thing is not (Blueprint or Frame))return false;
         if(thing.def.entityDefToBuild is ThingDef connector&&RimLayers.Vehicles.VehicleFacilitySpace.IsConnector(connector))
             return owner.Structure.Validate(connector,at,thing.Rotation,planning:true).Accepted;

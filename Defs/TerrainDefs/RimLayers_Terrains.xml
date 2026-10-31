@@ -23,7 +23,18 @@
   <TerrainDef ParentName="RL_EmptyBase">
     <defName>RL_OpenAir</defName>
     <changeable>true</changeable>
-    <affordances><li>RL_FloorSupport</li></affordances>
+    <!--
+      Open air has to answer the same terrain questions the vacuum does. Every SOS2 hull part is a
+      plain Building whose parent template asks for Light/Medium/Heavy, and SOS2's space map is filled
+      with EmptySpace, which grants all three. An upper band filled with a terrain that grants none of
+      them makes the whole deck read as "wrong terrain" to parts that place fine on the ground band -
+      hardpoints, engines and every other BuildingBase child.
+
+      Granting them is safe because they only decide what may be placed. Whether a cell has a floor
+      is StructuralSupport.HasSurface, which rejects RL_OpenAir by name, so a building still cannot
+      stand in open air without a deck under it.
+    -->
+    <affordances><li>Light</li><li>Medium</li><li>Heavy</li><li>RL_FloorSupport</li></affordances>
     <label>open air</label>
     <description>Empty space on an upper layer. It is not a walkable floor.</description>
   </TerrainDef>

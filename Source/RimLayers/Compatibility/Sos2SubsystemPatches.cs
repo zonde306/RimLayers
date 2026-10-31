@@ -46,6 +46,29 @@ internal static class Sos2SubsystemPatches
     }
 
     /// <summary>
+    /// <c>CompEngineTrail.PostDraw</c> paints its exhaust trail as a <c>Graphic_Multi</c> at
+    /// <c>parent.DrawPos + offset</c> with <c>MoteGlow</c> — outside the map mesh. That bypasses
+    /// <see cref="EngineExhaustPatch"/>, which only trims <c>GetExhaustArea</c>'s cell set, so an engine on
+    /// the deck below still paints its flame over the deck above. Skip the draw while the player is
+    /// looking at another floor; the engine's own floor still gets it.
+    /// </summary>
+    [HarmonyPatch]
+    private static class EngineTrailDrawPatch
+    {
+        private static MethodBase? TargetMethod() =>
+            AccessTools.Method(AccessTools.TypeByName("SaveOurShip2.CompEngineTrail"), "PostDraw", Type.EmptyTypes);
+
+        private static bool Prefix(ThingComp? __instance)
+        {
+            if (__instance?.parent?.Map is not { } map) return true;
+            LayerMapComponent? owner = LayerMapComponent.For(map);
+            if (owner?.Layout is not { LayerCount: > 1 } layout) return true;
+            if (!owner.TryDecode(__instance.parent.Position, out LayerCell engine)) return true;
+            return layout.ElevationOf(engine.LayerId) == layout.ElevationOf(owner.ViewedLayer);
+        }
+    }
+
+    /// <summary>
     /// Heat sinks bleed into the room they touch. <c>TryPushHeat</c> pushes into an arbitrary cell via
     /// <c>GenTemperature.PushHeat</c>, which is a storage-cell write: without this guard a sink on the
     /// deck above warms the room on the deck below, and the <c>CellsAdjacent8Way</c> walk in
