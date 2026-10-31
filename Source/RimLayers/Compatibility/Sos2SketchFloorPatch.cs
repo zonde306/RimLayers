@@ -283,7 +283,13 @@ internal static class Sos2LowestCornerPatch
 
     private static bool Prefix(object __instance, byte rotb, Map map, ref IntVec3 __result)
     {
-        if (rotb != 1) return true;
+        // 1 turns the hull a quarter and 2 flips it, but both do the same shape of arithmetic: SOS2
+        // measures the mirrored corner against Map.Size.z, which on a layered map is the storage height
+        // (every band stacked, ~510) and not the deck's own side (~250). The corner then lands roughly
+        // one band per deck outside the map, the adjustment derived from it inherits that, and MoveShip
+        // asks for a cell with a negative z - the "Got ThingsListAt out of bounds: (127, 0, -397)" that
+        // starts the half-moved-shop cascade. Both rotations need the same correction.
+        if (rotb is not (1 or 2)) return true;
         if (!Sos2CellGraph.BandOf(map, out LayerMapComponent owner, out int stride, out int height, out _)) return true;
         // A quarter turn only makes sense on a square footprint; SOS2 never checks that, and neither
         // does it need to while one map is one plane. Correcting a non-square one is guesswork, so it
@@ -300,8 +306,11 @@ internal static class Sos2LowestCornerPatch
         }
         // The side that pairs with local z is the layout height, which equals Map.Size.x on a square
         // layered map. That is what SOS2 means by Map.Size.z here; the storage Map.Size.z spans every
-        // band and is the wrong number by roughly one band per deck.
-        __result = new IntVec3(height - minZ, 0, minX);
+        // band and is the wrong number by roughly one band per deck. The x half is already right on a
+        // square map because Size.x == height, so only the z half ever needed replacing.
+        __result = rotb == 1
+            ? new IntVec3(height - minZ, 0, minX)
+            : new IntVec3(height - minX, 0, height - minZ);
         return false;
     }
 }

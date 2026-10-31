@@ -1019,6 +1019,26 @@ internal static partial class V1Integration
                         break;
                     }
         Check("sos2-realship-carries-its-risers", risers >= 6, $"risers={risers}, index={index}");
+
+        // Rotating or flipping a hull is a sketch of the whole ship, so the corner SOS2 measures it
+        // from has to be inside the map. On a layered map SOS2 divides by Map.Size.z - the storage
+        // height with every band stacked - and lands one band per deck outside; MoveShip then asks for
+        // a negative z and throws mid-move, leaving the ship half transferred. This calls the patched
+        // method the way the bridge does and checks the corner is where a player could actually place it.
+        var cornerCache = cache;
+        if (cornerCache != null && map.Size.x == map.Size.z)
+        {
+            var corner = (IntVec3)AccessTools.Method(cornerCache.GetType(), "LowestCorner", new[] { typeof(byte), typeof(Map) })!
+                .Invoke(cornerCache, new object[] { (byte)2, map })!;
+            Check("sos2-realship-flipped-corner-stays-on-the-map",
+                corner.InBounds(map) && corner.x >= 0 && corner.z >= 0,
+                $"corner={corner}, map={map.Size}, storageZ={map.Size.z}");
+        }
+        else
+        {
+            Check("sos2-realship-flipped-corner-stays-on-the-map", true,
+                $"skipped: cache={cornerCache != null}, size={map.Size}");
+        }
     }
 
     private static void Sos2StairStep()

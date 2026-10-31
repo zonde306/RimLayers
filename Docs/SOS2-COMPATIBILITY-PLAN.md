@@ -855,3 +855,53 @@ SOS2 的数据结构本来就是「一张 Map 上的格字典」，RimLayers 的
 **唯一真正的冲突是「四邻接 BFS」和「`Map.Size.z` 当南北长度」这两类假设**，加上 SOS2 的船顶/船体不被 RimLayers 认作楼板。
 把这三处做成可注册的扩展点 + 一组精确锚点的 Transpiler，就能拿到「多层飞船、太空造多层船、泡沫补船、多层战斗、跨层设施链接」，
 且不需要改 SOS2 一行源码、不需要迁移存档。
+
+---
+
+## 14. 真实存档船夹具与两处未验证项（2026-11-01）
+
+### 14.1 为什么改用真实船
+
+直到 `813d0ac` 之前，所有 SOS2 夹具都是「**当前相位需要的那几个零件拼出来的小台子**」，最宽的也只有 9×7。
+它们没有一次具备玩家真实结构的特征：
+
+- **上甲板是实心船体、中间层是空腔**——`SOS测试5.rws` 的船就是这个形状（band2 有 169 块 `ShipHullTile`，band1 一块都没有）；
+- **每层边界各有一根 `RL_PowerRiser` / `RL_HeatRiser`**——跨层电网与热网的真实接点；
+- 引擎、反应堆、散热片分散在不同层。
+
+`Tests/Fixtures/realship.json` 是从 `SOS测试5.rws` 的 map 1 抽出的 **890 个物件 / 58 种 def**（`{"w","h","parts":[{"b":层,"d":def,"x","z","r":朝向}]}`），
+`Diagnostics/V1Sos2.cs` 的 `Sos2RealShipStep()` 原样重放，断言 9 条：
+
+| 断言 | 实测 |
+|---|---|
+| `sos2-realship-parts-spawn` | `spawned=824, missing=45`（缺的是其它 mod 的 race def，非船件） |
+| `sos2-realship-every-deck-is-populated` | `L0=328, L1=171, L2=325` |
+| `sos2-realship-keeps-all-three-decks` | `decks=0,1,2, cells=492` |
+| `sos2-realship-caches-its-engines` | `engines=6` |
+| `sos2-realship-caches-its-heat-sinks` | `sinks=6, storage=2400` |
+| `sos2-realship-carries-its-risers` | `risers=6` |
+
+**教训：夹具的形状必须来自玩家，不能来自我这一轮要测什么。** 之前的「绿」有相当一部分是夹具太简单买来的。
+
+### 14.2 `MoveShip` 半途崩溃的成因
+
+`MinifiedThingShipMove.Tick()` 会反复重试 `MoveShip`，日志里同一个 `KeyNotFoundException: The given key '(142, 0, 130)'` 出现 4601 次。顺序是：
+
+1. `TransformForShipMove` 算出负 z（日志 `Got ThingsListAt out of bounds: (127, 0, -397)`）；
+2. `MoveShip` 在 `sourceMapComp.MapShipCells[pos]`（`ShipInteriorMod2.cs:2634`，**方括号取键，不 `TryGetValue`**）抛异常，事务半途而废；
+3. 此时 `Area` 还在但 `MapShipCells` 已清空，重试必然再炸。
+
+负 z 的唯一来源是 `SpaceShipCache.LowestCorner` 用 `map.Size.z` 当船体南北边长。**分层图上 `Size.z` 是全部 band 叠起来的存储高度**，
+实测 `map.Size = (250, 1, 1020)`（4 带），而逻辑边长是 250 —— 差 770，正好把幽灵推到图外。
+
+`Sos2LowestCornerPatch` 现在同时接管 `rotb==1` 与 `rotb==2`，都换成 `height`（逻辑边长）。
+
+### 14.3 仍未验证的部分（诚实记录）
+
+`sos2-realship-flipped-corner-stays-on-the-map` 这条断言**当前是跳过的**：
+`if (cornerCache != null && map.Size.x == map.Size.z)` 在分层图上恒假（`250 != 1020`），detail 打印 `skipped`。
+也就是说 `LowestCorner` 的补丁**没有被测试真正执行过一次**，只是「编译通过 + 其它断言没红」。
+
+要真正闭上这个缺口，断言得改成直接调用 `LowestCorner(2, map)` 并要求 `corner.z` 落在 `[0, height)` 内，
+不能借道 `Size.x == Size.z` 这种在分层图上永远不成立的前置条件。
+**写断言时不要用会在目标场景里恒假的条件来「保护」它——那和没写是一样的，而且更危险，因为它还打印 PASS。**
