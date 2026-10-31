@@ -1477,30 +1477,9 @@ internal static partial class V1Integration
                 AcceptanceReport bareReport = space.Structure.Validate(hardpoint, candidate, Rot4.North);
                 Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", bareReport.Accepted,
                     $"cell=({candidate.x},{candidate.z}), reason={bareReport.Reason}");
-                // The rule is about the vessel, not about space in general. A wall on the same cell is
-                // still legitimate - the hull below carries it - so the narrowness has to be tested
-                // where it matters: a cell outside the hull must not gain the same permission.
-                IntVec3 outside = IntVec3.Invalid;
-                foreach (IntVec3 c in space.LayerRect(1))
-                {
-                    if (Sos2Compatibility.MapClaims(spaceMap, c)) continue;
-                    if (!c.InBounds(spaceMap)) continue;
-                    if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_OpenAir) continue;
-                    if (spaceMap.thingGrid.ThingsListAt(c).Count != 0) continue;
-                    outside = c;
-                    break;
-                }
-                if (outside.IsValid)
-                {
-                    AcceptanceReport stray = space.Structure.Validate(hardpoint, outside, Rot4.North);
-                    Check("sos2-a-hull-part-still-needs-hull-underneath", !stray.Accepted,
-                        $"cell=({outside.x},{outside.z}), reason={stray.Reason}");
-                }
-                else
-                {
-                    Check("sos2-a-hull-part-still-needs-hull-underneath", false,
-                        "no unclaimed open-air cell to test the narrow rule");
-                }
+                // Narrowness cannot be judged on this cell: it belongs to the vessel and has hull under
+                // it, so a wall here is legitimate. It has to be judged outside the hull.
+                CheckOpenSpaceCarriesOnlyHullParts(space, spaceMap, hardpoint);
                 if (deck != null) spaceMap.terrainGrid.SetFoundation(candidate, deck);
                 space.Structure.TerrainChanged(candidate, deck);
                 return;
@@ -1511,27 +1490,43 @@ internal static partial class V1Integration
         AcceptanceReport report = space.Structure.Validate(hardpoint, bare, Rot4.North);
         Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", report.Accepted,
             $"cell=({bare.x},{bare.z}), reason={report.Reason}");
+        CheckOpenSpaceCarriesOnlyHullParts(space, spaceMap, hardpoint);
+    }
+
+    /// <summary>
+    /// Open air outside the hull must still refuse ordinary buildings.
+    /// </summary>
+    /// <remarks>
+    /// The vacuum exception is deliberately about SOS2 hull parts only, and this is what proves it did
+    /// not widen into "space accepts anything". It has to run on a cell that is NOT claimed: a claimed
+    /// cell has hull underneath and legitimately carries walls, so testing there would pass or fail for
+    /// reasons unrelated to the rule.
+    /// </remarks>
+    private static void CheckOpenSpaceCarriesOnlyHullParts(LayerMapComponent space, Map spaceMap, ThingDef hardpoint)
+    {
         IntVec3 outsideCell = IntVec3.Invalid;
         foreach (IntVec3 c in space.LayerRect(1))
+            if (!Sos2Compatibility.MapClaims(spaceMap, c) && c.InBounds(spaceMap) &&
+                spaceMap.terrainGrid.TerrainAt(c) == RimLayersDefOf.RL_OpenAir &&
+                spaceMap.thingGrid.ThingsListAt(c).Count == 0)
+            {
+                outsideCell = c;
+                break;
+            }
+        if (!outsideCell.IsValid)
         {
-            if (Sos2Compatibility.MapClaims(spaceMap, c)) continue;
-            if (!c.InBounds(spaceMap)) continue;
-            if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_OpenAir) continue;
-            if (spaceMap.thingGrid.ThingsListAt(c).Count != 0) continue;
-            outsideCell = c;
-            break;
+            Check("sos2-a-hull-part-can-extend-a-hull-outward", false, "no unclaimed open-air cell");
+            Check("sos2-open-space-only-carries-hull-parts", false, "no unclaimed open-air cell");
+            return;
         }
-        if (outsideCell.IsValid)
-        {
-            AcceptanceReport stray = space.Structure.Validate(hardpoint, outsideCell, Rot4.North);
-            Check("sos2-a-hull-part-still-needs-hull-underneath", !stray.Accepted,
-                $"cell=({outsideCell.x},{outsideCell.z}), reason={stray.Reason}");
-        }
-        else
-        {
-            Check("sos2-a-hull-part-still-needs-hull-underneath", false,
-                "no unclaimed open-air cell to test the narrow rule");
-        }
+        // The same part must be placeable where the hull has not reached yet: that is how a vessel is
+        // extended outward, and demanding a claim there is the bug the player reported.
+        AcceptanceReport extension = space.Structure.Validate(hardpoint, outsideCell, Rot4.North);
+        Check("sos2-a-hull-part-can-extend-a-hull-outward", extension.Accepted,
+            $"cell=({outsideCell.x},{outsideCell.z}), reason={extension.Reason}");
+        AcceptanceReport wall = space.Structure.Validate(ThingDefOf.Wall, outsideCell, Rot4.North);
+        Check("sos2-open-space-only-carries-hull-parts", !wall.Accepted,
+            $"cell=({outsideCell.x},{outsideCell.z}), wall reason={wall.Reason}");
     }
 
     /// <summary>

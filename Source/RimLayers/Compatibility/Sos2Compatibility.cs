@@ -180,22 +180,13 @@ internal static class Sos2Compatibility
         if (!Active || shipCachePart == null || !IsSpaceMap(owner.map)) return false;
         if (buildable is not ThingDef def || !def.HasComp(shipCachePart)) return false;
         foreach (IntVec3 cell in GenAdj.OccupiedRect(center, rotation, buildable.Size))
-        {
             if (!owner.TryDecode(cell, out LayerCell logical) || logical.LayerId == 0) return false;
-            if (MapClaims(owner.map, cell)) continue;
-            if (!HasDeckSourceBelow(owner, cell)) return false;
-        }
+        // In vacuum SOS2 itself is the authority. PlaceWorker_ShipPlating returns true outright on empty
+        // Odyssey space, and elsewhere it only demands Heavy affordance - which RL_OpenAir now offers.
+        // Demanding more than that here (a ship claim on this very cell, or deck already underneath)
+        // rejects the part players use to EXTEND a vessel outward: a new hardpoint hangs on bare space
+        // by design. SOS2 still vetoes blocks, fog and rock roof inside its own place worker.
         return true;
-    }
-
-    /// <summary>True when the cell directly below belongs to a vessel, i.e. this one hangs off a hull.</summary>
-    private static bool HasDeckSourceBelow(LayerMapComponent owner, IntVec3 cell)
-    {
-        IntVec3 under = owner.Adjacent(cell, -1);
-        if (!under.IsValid) return false;
-        if (MapClaims(owner.map, under)) return true;
-        return StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(under)) ||
-               StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(under));
     }
 
     /// <summary>True when the cell holds an SOS2 ship part and belongs to some SOS2 ship.</summary>

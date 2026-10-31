@@ -264,6 +264,11 @@ public sealed class StructuralSupport
     internal void TerrainChanged(IntVec3 cell, TerrainDef? terrain)
     {
         if (!owner.TryDecode(cell, out var logical) || logical.LayerId == 0) return;
+        // Skipping vanilla's DoTerrainChangedEffects skips its mesh invalidation too, and that is the
+        // first thing the method does. Without this the old floor keeps its baked texture: a hull that
+        // moves away leaves its outline painted on the map, and the outline fills in when that band is
+        // rebuilt later. Callers that suppress the chain rely on this to keep the screen honest.
+        owner.map.mapDrawer?.MapMeshDirty(cell, MapMeshFlagDefOf.Terrain | MapMeshFlagDefOf.Things, true, true);
         bool changed = IsDeckTerrain(terrain) || owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true ? owner.StructuralCells.Add(cell) :
             (terrain == RimLayersDefOf.RL_OpenAir || terrain == RimLayersDefOf.RL_Isolation) && owner.StructuralCells.Remove(cell);
         if (changed)
@@ -279,7 +284,12 @@ public sealed class StructuralSupport
         if (IsSos2DeckTerrain(terrain) || IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(cell)) ||
             IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(cell)))
             Compatibility.Sos2DeckRegistry.SyncCell(owner.map, cell);
-        if(RimLayersMod.Settings.AutoRecovery)
+        // SettlingNow means another system is already moving this grid's contents: an SOS2 hull is
+        // being carried to another map, or a deck is being torn out from under a ship. Recording
+        // recovery entries there is wrong twice over - the hull parts belong to the vessel that is
+        // leaving, and the ones we did not carry are about to be deleted along with the map. Left in,
+        // they fall back onto the source band and get stranded where the ship used to be.
+        if(RimLayersMod.Settings.AutoRecovery&&!SettlingNow)
             foreach(var thing in cell.GetThingList(owner.map).ToArray())RimLayers.Recovery.EntityRecoveryService.Current?.Notice(thing,owner.map,"Structure");
     }
 
