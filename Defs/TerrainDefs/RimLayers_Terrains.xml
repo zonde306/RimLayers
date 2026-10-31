@@ -39,19 +39,26 @@
     <description>Empty space on an upper layer. It is not a walkable floor.</description>
   </TerrainDef>
   <!--
-    The same role as RL_OpenAir, but drawn like SOS2's own vacuum so a space map keeps its look: a
-    ship that fills three bands must not turn the two empty ones into untextured holes. This is the
-    terrain a band gets only when the map it belongs to is a space map; ground, underground and
-    Odyssey gravship maps keep RL_OpenAir and never see this def.
+    The same role as RL_OpenAir, but it is the def a band gets when the map it belongs to is a space
+    map. Ground, underground and Odyssey gravship maps keep RL_OpenAir and never see this def.
 
-    Rendering it matters for a second reason. RL_OpenAir is dontRender, so the first band that gets
-    painted is the one that shows through; SOS2's vacuum renderPrecedence is 20, which is low enough
-    that deck floors and hull tiles still draw over it exactly as they do on the native map.
+    It is dontRender for the same reason RL_OpenAir is, and that reason is not cosmetic. A band is a
+    range of cells in the same map, so painting it paints over whatever the renderer would otherwise
+    show at that screen position: the band below and the map's own background. An empty band that
+    draws an opaque texture therefore hides the deck underneath it and the starfield behind it, which
+    is exactly what happens if this def gets a texture.
+
+    The vacuum look a space map has comes from the map background, not from the empty bands standing
+    in front of it. Leaving the band unseen is what lets that background show through.
+
+    So the def is about identity, not appearance: it is what tells the player this is the space above
+    an orbiting hull rather than the space above a basement, it carries the Space tag and it
+    extinguishes fire. StructuralSupport.IsOpenAir accepts both defs, so nothing that asks "is this
+    empty air?" has to know which map it is on.
   -->
   <TerrainDef ParentName="RL_EmptyBase">
     <defName>RL_SpaceAir</defName>
-    <dontRender>false</dontRender>
-    <texturePath>Terrain/Surfaces/Vacuum</texturePath>
+    <dontRender>true</dontRender>
     <renderPrecedence>20</renderPrecedence>
     <pathCost>50</pathCost>
     <changeable>true</changeable>
