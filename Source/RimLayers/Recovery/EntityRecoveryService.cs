@@ -299,6 +299,12 @@ public sealed class EntityRecoveryService:GameComponent,IThingHolder,ISuspendabl
         int id=thing.thingIDNumber,now=Find.TickManager?.TicksGame??0;
         if(warnings.TryGetValue(id,out int prior)&&now-prior<1800)return;
         warnings[id]=now;pendingWarnings[thing]=reason;
+        // A finished building that RecoveryCompatibility.ValidFloorConstruction rejects is the ordinary
+        // case on a ship: SupportedKind only accepts pawns, corpses and items, so every deck building the
+        // support test dislikes lands here. Writing one WARNING per building per 1800 ticks turned a
+        // single launch into hundreds of log lines and real disk traffic. The situation is already
+        // reported to the player as a count by FlushWarnings, so the per-object line adds nothing.
+        if(reason=="UnknownBuilding"&&thing is not (Blueprint or Frame))return;
         if(reason=="UnknownBuilding")Log.Warning($"[RimLayers.Recovery] id={thing?.ThingID} def={thing?.def.defName} from={thing?.Position} reason={reason} result=not-moved");
     }
     private void FlushWarnings(int now)
