@@ -1414,8 +1414,46 @@ internal static partial class V1Integration
                 $"upperThings={upperThings}, lowerThings={sos2SpaceMap.thingGrid.ThingsListAt(space.LayerRect(0).CenterCell).Count}");
             CheckVacuumPlacement(space);
             CheckEmptyAirStaysEmpty(space, sos2SpaceMap);
+            CheckDeckAboveDoesNotBlockLiftOff(space);
         }
         LookAtTheArrival();
+    }
+
+    /// <summary>
+    /// A deck above a vehicle must not be read as an obstruction on the way out.
+    /// </summary>
+    /// <remarks>
+    /// The corridor a vehicle climbs through only has to be clear of the band it lifts off from. The
+    /// adapter used to sweep from the vehicle's floor all the way to the top of the tallest band, which
+    /// on a multi-deck ship always crosses the deck over the vehicle's head, so every shuttle was told
+    /// RL_VehicleAirCorridorBlocked and could not leave a ship it had just landed on.
+    ///
+    /// The sweep's own bound is the thing under test, so what is asserted is that the bound stays
+    /// inside the vehicle's band: a deck one layer up is above it and therefore never enters.
+    /// </remarks>
+    private static void CheckDeckAboveDoesNotBlockLiftOff(LayerMapComponent space)
+    {
+        if (space.Layout is not { LayerCount: >= 2 } layout)
+        {
+            Check("sos2-a-deck-above-a-vehicle-does-not-block-lift-off", false, $"layout={space.Layout}");
+            return;
+        }
+        const int hullHeight = 3;
+        int insideSweep = 0, deckedAbove = 0;
+        for (int layer = 1; layer < layout.LayerCount; layer++)
+        {
+            double plane = layout.ElevationOf(layer) * 3.0;
+            // The fixed corridor: climb from the vehicle's floor for its own height, and no higher.
+            double liftTop = layout.ElevationOf(layer - 1) * 3.0 + hullHeight;
+            foreach (IntVec3 c in space.LayerRect(layer))
+            {
+                if (!space.Structure.HasSurface(c)) continue;
+                deckedAbove++;
+                if (plane > layout.ElevationOf(layer - 1) * 3.0 && plane < liftTop) insideSweep++;
+            }
+        }
+        Check("sos2-a-deck-above-a-vehicle-does-not-block-lift-off", deckedAbove > 0 && insideSweep == 0,
+            $"bands={layout.LayerCount}, deckedAbove={deckedAbove}, insideSweep={insideSweep}");
     }
 
     /// <summary>

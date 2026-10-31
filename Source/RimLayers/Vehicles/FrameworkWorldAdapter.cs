@@ -88,7 +88,13 @@ internal sealed class FrameworkWorldAdapter
         reason="RL_VehicleLandingUnavailable";
         if(LayerMapComponent.For(map) is not {} owner)return true;
         if(!VehicleSpace.CanStand(owner,pawn,cell,rotation.AsAngle,out reason,ignoreThing:ignore))return false;
-        var pose=VehicleSpace.Pose(owner,pawn,cell,rotation.AsAngle);double top=Enumerable.Range(0,owner.Layout!.LayerCount).Max(owner.Elevation)*3+basic.Hull(pawn).Height+3;
+        var pose=VehicleSpace.Pose(owner,pawn,cell,rotation.AsAngle);
+        // Only the band the vehicle itself is standing in has to be clear. The corridor is the column
+        // of air this hull climbs through, so a deck above it does not block the climb: it is the
+        // reason there is a ship here at all. Sweeping every band instead reported
+        // RL_VehicleAirCorridorBlocked on any multi-deck ship, because the band above the hull always
+        // has a floor, and that made shuttles unable to leave a ship they had just landed on.
+        double top=owner.Elevation(owner.TryDecode(cell,out var liftOff)?liftOff.LayerId:0)*3+basic.Hull(pawn).Height+3;
         var entry=new RampBody(pose.Position with{Height=pose.Position.Height+.001},pose.Heading,0);
         var to=entry with{Bottom=entry.Bottom with{Height=top}};
         var snapshot=VehicleAirspace.Snapshot(owner,pawn,entry,to);
@@ -166,8 +172,15 @@ internal sealed class FrameworkWorldAdapter
     }
     private static void AfterTouchdown(Pawn __state)
     {
-        if(!__state.Spawned||LayerMapComponent.For(__state.Map)==null)return;
+        if(!__state.Spawned||LayerMapComponent.For(__state.Map) is not {} owner)return;
         if(VehicleWorldTravel.Current.State(__state) is {} s){s.Waiting=false;s.HasDestination=false;s.Skyfaller=null;}
+        // Put the camera on the floor the vehicle actually landed on. The player is still looking at
+        // whatever band they were on when they gave the order, which on a multi-deck ship at orbit is
+        // the band above the one the shuttle came down onto: the vehicle lands, and from the player's
+        // seat it lands nowhere. This is the arrival counterpart of AerocraftCompatibility.ShowFloor,
+        // which already does the same for the base point a grounded aircraft returns to.
+        if(owner.TryDecode(__state.Position,out var landed)&&owner.ViewedLayer!=landed.LayerId)
+            Compatibility.AerocraftCompatibility.ShowFloor(owner,landed.LayerId);
         __state.Map.GetComponent<VehicleFlight>().Begin(__state);RecoveryCompatibility.DeferFor(__state,120);
     }
     private static void WorldGizmos(object __instance,ref IEnumerable<Gizmo> __result)
