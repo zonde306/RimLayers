@@ -674,6 +674,68 @@ foreach (IntVec3 cell in GenAdj.CellsAdjacentCardinal(comp.parent))    // ← �
    （`ShipHeatNet.Register` 的 `br.TacCon` 分支）。跨层连通后，上层舰桥的炮术加成会传导到下层炮塔 —— 这是**期望行为**，
    但要确认不会把「另一艘船的舰桥」连进来：用 `SpaceShipCache.Index` 做网的分组上限（#12）。
 
+### 8.4 炮台跨层控制：规则、实测数据与结论（2026-11-01）
+
+用户提问：「多层战斗吧，既然是按整艘船来决定的，炮台之类也是可以跨层控制的吧」。
+
+**SOS2 侧的判据只看热网，不看高程。** `1.7/Building/Building_ShipTurret.cs:45-50`：
+
+```csharp
+public bool ConnectedToBridge
+{
+    get
+    {
+        return heatComp != null && heatComp.myNet != null &&
+            (heatComp.myNet.PilCons.Any() || heatComp.myNet.AICores.Any() || heatComp.myNet.TacCons.Any());
+    }
+}
+```
+
+`PilCons`/`AICores`/`TacCons` 由 `ShipHeatNet.Register`（`ShipHeatNet.cs:214-226`）按
+`br.mannableComp == null → AICores`、`br.TacCon → TacCons`、否则 `PilCons` 分装，**与层无关**。
+这与 `VecHasLS`（`Comp/ShipMapComp.cs:876`，只看「这艘船有没有任意一个在线维生」）是同一套设计思路：
+整艘船共享，不分层。
+
+**因此能不能跨层开火，完全取决于「炮台所在热网里有没有控制台」**，而跨层热网由
+`Sos2HeatPatches.AccumulateToNetNewPatch` 的 `SameShip` 判定（`Compatibility/Sos2HeatPatches.cs:60`）：
+
+```csharp
+if (!CarriesHeat(map, from) || !CarriesHeat(map, to)) return false;
+return Sos2Compatibility.ShipIndexAt(map, from) == Sos2Compatibility.ShipIndexAt(map, to);
+```
+
+即：**上下两格都必须有热硬件**（导热管 / 散热片 / 反应堆 / 炮台本身），且必须属于同一艘船。
+刻意不按 `owner.Structure.HasSurface` 放行，因为那会让「导热管」这个概念在分层图上失去意义。
+
+**真实存档船的实测拓扑**（`Tests/Fixtures/realship.json` 来源的 `SOS测试5.rws`，断言
+`sos2-realship-heat-topology-is-readable`）：
+
+```text
+nets=5 | net0: parts=2, consoles=1, decks=2
+        net1: parts=1, consoles=0, decks=1
+        net2: parts=1, consoles=0, decks=1
+        net3: parts=1, consoles=0, decks=1
+        net4: parts=1, consoles=0, decks=1
+withConsole=1, withoutConsole=4, widestSpan=2
+```
+
+**结论：跨层热量网是工作的，不是坏的。** `net0` 一个网里既有控制台又跨了 2 层，
+说明 `SameShip` 的垂直边在真实船上确实生效。其余 4 个网各只有一个部件且没有控制台，
+那是铺管方式的结果（那些导热管没接回舰桥），不是适配层缺陷。
+
+**因此这一条不改代码。** 玩家想让上层炮台开火，正确做法是：在炮台旁铺导热管，
+一路接到「带控制台的网」上。若要放宽这条规则（按整船连通而非同列硬件），
+会破坏导热管的存在意义，需要先和玩家确认设计意图。
+
+**读这套数据时的坑**（三次都让我误判成适配层 bug）：
+1. 读 `grid[]` 不行 —— 它只在 `MapComponentUpdate` 里填，phases 中途跑会得到 `-1`；
+2. `CacheCount` 不能用 `is ICollection` —— `HashSet<T>` 只实现 `ICollection<T>`，恒返回 `-1`，
+   被读成「这个网没有控制台」（`ShipHeatNet.PilCons` 就是 `HashSet<Building_ShipBridge>`）；
+3. 用贪心走线给夹具铺管子会被 `BuildSos2Pad` 每 4 格一根的柱子挡住，差一格没接上，
+   结果和「适配层不支持跨层」一模一样。夹具后来改成 BFS 绕路（`V1Sos2.cs` 的 `LayHeatRun`）。
+4. 夹具直接 `GenSpawn` 出来的部件不会进 `cachedPipes`（那是 `CompShipHeat.PostSpawnSetup` 干的），
+   热网重建时看不见它 —— 测试里要手动补进列表。
+
 ---
 
 ## 8b. 九个子系统的逐项结论

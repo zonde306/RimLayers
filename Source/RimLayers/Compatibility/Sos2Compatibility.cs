@@ -466,6 +466,7 @@ internal static class Sos2Compatibility
 
     internal static Type? ShipMapCompType => shipMapComp;
     internal static Type? ShipCachePartType => shipCachePart;    internal static Type? ShipBridgeType => shipBridge;
+    internal static Type? ShipHeatType => shipHeatComp;
     internal static Type? ShipInteriorType => shipInterior;
 
     /// <summary>True when both cells sit on the same deck; always true on an unmanaged map.</summary>

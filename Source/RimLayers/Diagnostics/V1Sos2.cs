@@ -431,6 +431,16 @@ internal static partial class V1Integration
         }
         if (sos2Phase == 12)
         {
+            // Combat runs before the flip on purpose. The flip is still broken (MoveShip throws a
+            // NullReferenceException partway through), and it leaves the hull half moved, so anything
+            // queued behind it never gets a clean ship to fire from.
+            Sos2CombatStep();
+            sos2Phase = 13;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 13)
+        {
             Sos2RealShipFlipStep();
             sos2Phase = 6;
             ticks = 0;
@@ -1082,6 +1092,104 @@ internal static partial class V1Integration
         // The corner and the flip move are exercised once the flight phase is done. MoveShip transfers
         // the hull out of this map, so running it in the middle of the scenario would leave every later
         // phase looking at an empty map (that is exactly what "no valid ship index found" was).
+        ReportHeatNetTopology(map, index, component);
+    }
+
+    /// <summary>
+    /// Writes down how a real hull's heat nets are actually wired, deck by deck.
+    /// </summary>
+    /// <remarks>
+    /// <c>Building_ShipTurret.ConnectedToBridge</c> asks only whether the turret's own net holds a
+    /// <c>PilCons</c>, <c>AICores</c> or <c>TacCons</c>. It never looks at elevation, so a turret can
+    /// fire from any deck - but only if the flood fill actually reaches a console. On a layered map
+    /// that depends on <c>Sos2HeatPatches.SameShip</c>, which lets a vertical edge through only where
+    /// BOTH stacked cells hold heat hardware.
+    /// <para>
+    /// Whether a given ship satisfies that is a property of how its owner laid the conduits, not of
+    /// the adapter, so this reports rather than asserts: which nets exist, how big they are, whether
+    /// each one carries a console, and how many decks each one spans. A hull whose consoles sit on a
+    /// net of their own is a hull whose turrets never fire, and that is worth knowing before deciding
+    /// whether the rule or the ship needs to change.
+    /// </para>
+    /// </remarks>
+    private static void ReportHeatNetTopology(Map target, int index, LayerMapComponent component)
+    {
+        List<object>? nets = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "cachedNets")
+            ?.GetValue(sos2ShipComp) as List<object>;
+        System.Collections.IList? raw = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "cachedNets")
+            ?.GetValue(sos2ShipComp) as System.Collections.IList;
+        int[]? grid = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "grid")
+            ?.GetValue(sos2ShipComp) as int[];
+        if (raw == null || grid == null)
+        {
+            Check("sos2-realship-heat-topology-is-readable", false, "cachedNets or grid unavailable");
+            return;
+        }
+
+        var connectors = new Dictionary<int, int>();
+        var decks = new Dictionary<int, SortedSet<int>>();
+        var cells = new Dictionary<int, int>();
+        Type? heatType = Sos2Compatibility.ShipHeatType;
+        // Walk the nets themselves rather than the heat grid. The grid is only filled by
+        // MapComponentUpdate, which this phase has not necessarily run for this hull, so reading it
+        // answers -1 for every part and reports an empty topology on a ship that has five nets.
+        // ShipHeatNet.Connectors is the list the flood fill actually built, so it is the ground truth.
+        for (int net = 0; net < raw.Count; net++)
+        {
+            object? entry = raw[net];
+            if (entry == null) continue;
+            if (AccessTools.Field(entry.GetType(), "Connectors")?.GetValue(entry) is not System.Collections.IEnumerable parts)
+                continue;
+            var seen = new SortedSet<int>();
+            int count = 0, consoles = 0;
+            foreach (object? part in parts)
+            {
+                count++;
+                if (part is ThingComp comp && comp.parent != null)
+                {
+                    if (component.TryDecode(comp.parent.Position, out LayerCell logical)) seen.Add(logical.LayerId);
+                    // A console lives on the net itself, so the net-level counters below are the
+                    // authority; this per-part pass only measures which decks the net reaches.
+                }
+            }
+            consoles = CacheCount(entry, "PilCons") + CacheCount(entry, "AICores") + CacheCount(entry, "TacCons");
+            cells[net] = count;
+            decks[net] = seen;
+            connectors[net] = consoles;
+        }
+        if (cells.Count == 0)
+        {
+            // Fall back to the heat grid for builds where Connectors is not where it was expected.
+            foreach (Thing thing in target.listerThings.AllThings)
+            {
+                if (thing is not Building building || Sos2Compatibility.ShipIndexAt(target, building.Position) != index) continue;
+                int at = target.cellIndices.CellToIndex(building.Position);
+                if (at < 0 || at >= grid.Length || grid[at] < 0) continue;
+                int net = grid[at];
+                cells[net] = cells.GetValueOrDefault(net) + 1;
+                if (!decks.TryGetValue(net, out SortedSet<int>? seen2))
+                    decks[net] = seen2 = new SortedSet<int>();
+                if (component.TryDecode(building.Position, out LayerCell logical2)) seen2.Add(logical2.LayerId);
+            }
+        }
+
+        var lines = new List<string>();
+        int netsWithConsole = 0, netsWithout = 0, decksSpanned = 0;
+        foreach (int net in cells.Keys.OrderBy(k => k))
+        {
+            int consoles = connectors.GetValueOrDefault(net);
+            int span = decks.TryGetValue(net, out SortedSet<int>? d) ? d.Count : 0;
+            if (consoles > 0) netsWithConsole++;
+            else netsWithout++;
+            decksSpanned = Math.Max(decksSpanned, span);
+            lines.Add($"net{net}: parts={cells[net]}, consoles={consoles}, decks={span}");
+        }
+        // The property that decides whether turrets work: every net that holds a turret has to hold a
+        // console too. Reporting the tally rather than asserting a number keeps this a measurement of
+        // the save, which is what it is for.
+        Check("sos2-realship-heat-topology-is-readable", lines.Count > 0,
+            $"nets={raw.Count}, " + string.Join("; ", lines.Take(8)) +
+            $" | withConsole={netsWithConsole}, withoutConsole={netsWithout}, widestSpan={decksSpanned}");
     }
 
     /// <summary>
@@ -1107,6 +1215,202 @@ internal static partial class V1Integration
     {
         if (sos2FirstChanceFrame != null || e.Exception is not null && e.Exception.GetType().Name != "NullReferenceException") return;
         sos2FirstChanceFrame = string.Join("\n", (e.Exception.StackTrace ?? "").Split('\n').Take(12));
+    }
+
+    /// <summary>
+    /// A turret covers the whole ship, so the deck it stands on must not matter.
+    /// </summary>
+    /// <remarks>
+    /// <c>Building_ShipTurret.ConnectedToBridge</c> asks one question: does the turret's heat net hold
+    /// any <c>PIICons</c>, <c>AICores</c> or <c>TacCons</c>. It never looks at elevation. That mirrors
+    /// <c>ShipMapComp.VecHasLS</c>, where any active life support covers every deck of the hull. So a
+    /// turret three decks up from the only bridge has to fire, and the adapter's vertical heat
+    /// adjacency is what makes that true - without it the upper deck is its own net with no console
+    /// on it and the turret is permanently dead, which reads as "multi-deck ships cannot fight".
+    /// </remarks>
+    private static void Sos2CombatStep()
+    {
+        Map target = sos2Bridge?.Map ?? map;
+        LayerMapComponent? hull = LayerMapComponent.For(target);
+        if (sos2Bridge == null || hull?.Layout is not { LayerCount: > 1 } layout)
+        {
+            Check("sos2-combat-needs-a-hull", false, $"bridge={(sos2Bridge == null ? "none" : "ok")}");
+            return;
+        }
+
+        // The deck above the bridge, which is the highest one this fixture actually plates. Asking for
+        // HighestElevation instead lands on an empty band four decks up with no hull under it, and a
+        // turret there has no vertical heat edge to follow - which reads as an adapter bug but is just
+        // a turret standing in the air.
+        int deck = 1;
+        if (!hull.TryDecode(hull.AtElevation(deck, sos2DeckRect.minX, sos2DeckRect.minZ), out _))
+        {
+            Check("sos2-a-turret-can-stand-on-an-upper-deck", false, $"deck={deck}, layout={layout}");
+            return;
+        }
+        IntVec3 turretCell = hull.AtElevation(deck, sos2DeckRect.minX + 2, sos2DeckRect.minZ + 14);
+        foreach (IntVec3 c in GenAdj.OccupiedRect(turretCell, Rot4.North, new IntVec2(2, 2)))
+            foreach (Thing t in c.GetThingList(target).ToList())
+                if (t is not Pawn)
+                {
+                    if (t.def.destroyable) t.Destroy(DestroyMode.Vanish);
+                    else t.DeSpawn();
+                }
+
+        // A vertical heat edge only exists where both stacked cells hold heat hardware, so a turret
+        // with nothing but hull plating beneath it is on its own net. That is the rule, and it is the
+        // rule on a real multi-deck save too: the player's own ship carries ShipHeatConduit on every
+        // deck (48 / 47 / 46 tiles across its three bands). Build the same shape here - conduit under
+        // the turret and a run back to the bridge - instead of expecting the hull alone to carry heat.
+        //
+        // OccupiedRect returns STORAGE cells whose z already includes the band offset, so the logical
+        // x/z have to come back out of TryDecode before AtElevation is asked for the deck below:
+        // LayerMapComponent.LayerRect z is storage, and LayerLayout.ToStorage adds stride again. That
+        // double offset threw ArgumentOutOfRangeException out of AtElevation the first time.
+        var riserPath = new List<IntVec3>();
+        foreach (IntVec3 c in GenAdj.OccupiedRect(turretCell, Rot4.North, new IntVec2(2, 2)))
+        {
+            if (!hull.TryDecode(c, out LayerCell logical)) continue;
+            IntVec3 below = hull.AtElevation(0, logical.X, logical.Z);
+            foreach (IntVec3 stacked in new[] { c, below })
+                foreach (Thing t in stacked.GetThingList(target).ToList())
+                    if (t is not Pawn && t.def.defName == "ShipHeatConduit") t.Destroy(DestroyMode.Vanish);
+            SpawnSos2On(target, "ShipHeatConduit", c, Rot4.North);
+            SpawnSos2On(target, "ShipHeatConduit", below, Rot4.North);
+            riserPath.Add(below);
+        }
+        // Walk the ground deck from the riser to the BRIDGE, not to the reactor. The point of the
+        // fixture is whether a turret two decks up can reach a console, and a run that stops at the
+        // reactor would only prove the turret shares a net with a heat source. Bridge first: a turret
+        // whose net holds a reactor but no console is still dead (ConnectedToBridge asks for
+        // PilCons/AICores/TacCons, never for heat).
+        //
+        // Breadth first, and around the support columns BuildSos2Pad drops every 4 cells. A greedy
+        // step-then-step walk hits the first column and stops, which leaves the riser on its own net
+        // and reads exactly like an adapter that cannot cross decks.
+        int laid = LayHeatRun(target, hull, riserPath, sos2Bridge.Position);
+
+        Building? turret = SpawnSos2On(target, "ShipTurret_ACI", turretCell, Rot4.North);
+        Check("sos2-a-turret-can-stand-on-an-upper-deck",
+            turret != null && hull.TryDecode(turret.Position, out LayerCell at) && at.LayerId == deck,
+            $"turret={(turret == null ? "none" : turret.Position.ToString())}, deck={deck}, layout={layout.Width}x{layout.Height}");
+        if (turret == null) return;
+
+        Type? heatType = Sos2Compatibility.ShipHeatType;
+        ThingComp? heat = heatType == null ? null : (turret as ThingWithComps)?.AllComps
+            .FirstOrDefault(c => heatType.IsInstanceOfType(c));
+        // CompShipHeat.PostSpawnSetup is what puts a part on cachedPipes, and the flood fill walks
+        // that list - so a part spawned after the list was last rebuilt is invisible to it. The real
+        // path does not hit this because SOS2 recaches from roots when the ship is loaded or a part is
+        // placed through the build system; a fixture that calls GenSpawn directly has to do it here.
+        // Without this the turret reads "no net" for a reason that has nothing to do with decks.
+        if (heat != null && Sos2Compatibility.ShipMapCompType != null)
+        {
+            object? pipesBefore = AccessTools.Field(Sos2Compatibility.ShipMapCompType, "cachedPipes")
+                ?.GetValue(sos2ShipComp);
+            bool listed = false;
+            if (pipesBefore is System.Collections.IEnumerable known)
+                foreach (object? p in known)
+                    if (ReferenceEquals(p, heat)) { listed = true; break; }
+            if (!listed)
+                AccessTools.Method(pipesBefore?.GetType(), "Add")?.Invoke(pipesBefore, new[] { (object)heat });
+        }
+
+        // Rebuilding the heat grid is what assigns nets, so do it after the turret exists.
+        AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "heatGridDirty")?.SetValue(sos2ShipComp, true);
+        AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "loaded")?.SetValue(sos2ShipComp, false);
+        AccessTools.Method(Sos2Compatibility.ShipMapCompType!, "MapComponentUpdate", Type.EmptyTypes)
+            ?.Invoke(sos2ShipComp, null);
+
+        // "not on a net" has three very different causes and the detail has to say which one it is:
+        // the comp never reached cachedPipes, the flood fill could not reach it, or it reached a net
+        // that simply has no console. Reading myNet alone cannot tell them apart, and the first of
+        // those is a fixture bug while the third would be a real adapter gap.
+        object? pipes = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "cachedPipes")
+            ?.GetValue(sos2ShipComp);
+        int pipeCount = Count(pipes);
+        int turretInPipes = 0;
+        if (pipes is System.Collections.IEnumerable pipeList)
+            foreach (object? p in pipeList)
+                if (ReferenceEquals(p, heat)) turretInPipes++;
+        int[]? heatGrid = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "grid")
+            ?.GetValue(sos2ShipComp) as int[];
+        int turretGrid = heatGrid == null ? -2 : heatGrid[target.cellIndices.CellToIndex(turret.Position)];
+        int bridgeGrid = heatGrid == null || sos2Bridge == null
+            ? -2
+            : heatGrid[target.cellIndices.CellToIndex(sos2Bridge.Position)];
+        object? net = heat == null ? null : AccessTools.Field(heatType!, "myNet")?.GetValue(heat);
+        Check("sos2-an-upper-deck-turret-is-on-a-heat-net", net != null,
+            $"turret={turret.Position}, net={(net == null ? "none" : "ok")}, heatComp={heat != null}, " +
+            $"pipes={pipeCount}, turretInPipes={turretInPipes}, runLaid={laid}, risers={riserPath.Count}, " +
+            $"bridge={sos2Bridge.Position}, map={target}, " +
+            $"turretGrid={turretGrid}, bridgeGrid={bridgeGrid}");
+        if (net == null) return;
+
+        // The whole point: that net carries a console, and the turret is therefore active.
+        int pilots = CacheCount(net, "PilCons");
+        int cores = CacheCount(net, "AICores");
+        int tacticals = CacheCount(net, "TacCons");
+        Check("sos2-an-upper-deck-turret-reaches-the-bridge", pilots + cores + tacticals > 0,
+            $"pilots={pilots}, cores={cores}, tacticals={tacticals}");
+        bool active = AccessTools.Property(turret.GetType(), "Active")?.GetValue(turret) is true;
+        Check("sos2-an-upper-deck-turret-is-live", active,
+            $"active={active}, pilots={pilots}, cores={cores}, tacticals={tacticals}, " +
+            $"power={AccessTools.Field(turret.GetType(), "powerComp")?.GetValue(turret) != null}");
+    }
+
+    /// <summary>
+    /// Runs a heat conduit from one of the riser cells to <paramref name="to"/>, going around
+    /// whatever is already standing on the ground deck.
+    /// </summary>
+    /// <remarks>
+    /// Breadth first rather than greedy: <c>BuildSos2Pad</c> drops a support column every four
+    /// cells, and a step-then-step walk walks straight into one, stops, and leaves the riser on its
+    /// own net. That reads as "the adapter cannot carry heat between decks" when it is really "the
+    /// fixture never connected the two ends".
+    /// </remarks>
+    private static int LayHeatRun(Map target, LayerMapComponent hull, List<IntVec3> from, IntVec3 to)
+    {
+        if (from.Count == 0) return -1;
+        var previous = new Dictionary<IntVec3, IntVec3>();
+        var queue = new Queue<IntVec3>();
+        foreach (IntVec3 start in from)
+        {
+            previous[start] = start;
+            queue.Enqueue(start);
+        }
+        var blocked = new HashSet<IntVec3>();
+        while (queue.Count > 0 && !previous.ContainsKey(to))
+        {
+            IntVec3 at = queue.Dequeue();
+            foreach (IntVec3 step in GenAdj.CellsAdjacentCardinal(at, Rot4.North, IntVec2.One))
+            {
+                if (previous.ContainsKey(step) || blocked.Contains(step)) continue;
+                if (!hull.TryDecode(step, out LayerCell logical) || logical.LayerId != 0) continue;
+                Building? standing = step.GetFirstThing<Building>(target);
+                // A pipe, a reactor or a console already carries heat, so the run may pass through it.
+                // Anything else (a column, a wall) is a detour, not a stop: mark it and keep looking.
+                if (standing != null && standing.def.defName != "ShipHeatConduit" &&
+                    !Sos2Compatibility.IsHeatPart(standing))
+                {
+                    blocked.Add(step);
+                    continue;
+                }
+                previous[step] = at;
+                queue.Enqueue(step);
+            }
+        }
+        if (!previous.ContainsKey(to)) return -2;
+        int laid = 0;
+        for (IntVec3 at = to; at != previous[at]; at = previous[at])
+        {
+            if (!from.Contains(at) && at.GetFirstThing<Building>(target) == null)
+            {
+                SpawnSos2On(target, "ShipHeatConduit", at, Rot4.North);
+                laid++;
+            }
+        }
+        return laid;
     }
 
     private static void Sos2RealShipFlipStep()
@@ -2625,7 +2929,19 @@ internal static partial class V1Integration
     private static object? CacheField(object cache, string name) =>        AccessTools.Field(cache.GetType(), name)?.GetValue(cache);
 
     private static int CacheCount(object cache, string name) =>
-        CacheField(cache, name) is System.Collections.ICollection collection ? collection.Count : -1;
+        Count(CacheField(cache, name));
+
+    /// <summary>
+    /// Element count for any collection, generic or not.
+    /// </summary>
+    /// <remarks>
+    /// <c>HashSet&lt;T&gt;</c> implements <c>ICollection&lt;T&gt;</c> and not the non-generic
+    /// <see cref="System.Collections.ICollection"/>, so an <c>is ICollection</c> test answers -1 for
+    /// <c>ShipHeatNet.PilCons</c> / <c>AICores</c> / <c>TacCons</c>. That reads as "no console on this
+    /// net" and made a live turret look dead.
+    /// </remarks>
+    private static int Count(object? collection) =>
+        collection?.GetType().GetProperty("Count")?.GetValue(collection) as int? ?? -1;
 
     private static bool CacheHolds(object cache, string name, object? member)
     {
