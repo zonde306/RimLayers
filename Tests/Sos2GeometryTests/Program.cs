@@ -148,6 +148,57 @@ Check("a flat destination cannot store a second deck",
     Sos2Geometry.LayerOf(Stride + ShipZ, Stride, 1) < 0);
 Check("a multi-deck destination can", Sos2Geometry.LayerOf(Stride + ShipZ, Stride, Layers) == 1);
 
+// --- the move ghost must not smear a deck's band offset into its offsets -----------------
+// SpaceShipCache.Area holds every hull tile, so a two-deck hull mixes storage bands. SOS2 builds the
+// ghost with `pos - lowestCorner`, which is a distance only while all cells share one band. The
+// failure is silent: the ghost lands about a band away and the designator then refuses every cell.
+// These two mirrors reproduce SOS2's arithmetic exactly, so the claims below are about the real
+// formulas rather than about a helper that only exists to be tested.
+const int HullX = 50, HullZ = 40, MinX = 45, MinZ = 40;
+
+(int X, int Y, int Z) Offset(int x, int z, int rot)
+{
+    int local = Sos2Geometry.LocalZ(z, Stride);
+    var (cx, _, cz) = Corner(rot);
+    return rot switch
+    {
+        1 => (Height - local - cx, 0, x - cz),
+        2 => (Width - x - cx, 0, Height - local - cz),
+        _ => (x - cx, 0, local - cz),
+    };
+}
+// rot 1's corner is measured against the map's logical side; the storage Map.Size.z would make it a
+// band too tall per deck, which is the bug that made the rotate button look dead.
+(int X, int Y, int Z) Corner(int rot) => rot switch
+{
+    1 => (Height - MinZ, 0, MinX),
+    2 => (Width - MinX, 0, Height - MinZ),
+    _ => (MinX, 0, MinZ),
+};
+
+var onGround = Offset(HullX, HullZ, 0);
+var onDeck = Offset(HullX, Stride + HullZ, 0);
+Check("a ground cell of the hull keeps its place", onGround == (HullX - MinX, 0, HullZ - MinZ));
+Check("a deck cell does not gain a band of offset", onDeck == onGround);
+
+// The raw subtraction SOS2 ships, for contrast: same ship, same local position, a stride apart.
+Check("the naive subtraction is what broke it", Stride + HullZ - MinZ != HullZ - MinZ);
+
+// A quarter turn of a layered hull must stay a hull-sized rectangle. With storage z it grows by one
+// band per deck, which is how the ghost ended up drawn off the map.
+foreach (int rot in new[] { 1, 2 })
+{
+    var groundTurned = Offset(HullX, HullZ, rot);
+    var deckTurned = Offset(HullX, Stride + HullZ, rot);
+    Check($"rot {rot} offsets the same on every deck", groundTurned == deckTurned);
+    Check($"rot {rot} keeps the ghost hull sized",
+        Math.Abs(groundTurned.X) <= Width && Math.Abs(groundTurned.Z) <= Height);
+}
+
+Check("rot 1 corner is measured against the logical side", Corner(1).X == Height - MinZ);
+Check("the storage length would have pushed the corner out", StorageLength - MinZ != Corner(1).X);
+Check("rot 0 corner is just the minimum", Corner(0) == (MinX, 0, MinZ));
+
 bool Inside((int X, int Y, int Z) cell) =>
     cell.X is >= 0 and < Width &&
     Sos2Geometry.LayerOf(cell.Z, Stride, Layers) is >= 0 and < Layers &&

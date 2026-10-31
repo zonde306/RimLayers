@@ -213,17 +213,22 @@ internal static class LiveMapExpansion
             Validate(map,layout);
             Lap("validate");beforeCommit?.Invoke();
         }
-        catch
+        catch(Exception rollback)
         {
             if(applied)
             {
+                // Free the Vehicle Framework grids' event hooks before anything is destroyed. Their
+                // BuildingGrid handler runs on BuildingDespawned and touches a native bit array that
+                // Dispose() already released, so a despawn while still subscribed is an
+                // AccessViolationException that kills the process before this frame can be logged.
+                try {vehicleExpansion?.DetachEvents();}
+                catch(Exception detach) {Log.Error("[RimLayers] Failed to detach vehicle path grids before rollback."+detach);}
                 RimLayers.Mountains.MountainService.RemoveSpawned(mountainThings);owner.Mountains.Restore(mountainState);owner.Underground.Restore(undergroundState);owner.Environment.Restore(environmentState);
                 map.roofCollapseBuffer.CellsMarkedToCollapse.Clear();map.roofCollapseBuffer.CellsMarkedToCollapse.AddRange(oldRoofCollapses);
                 newFinder?.Dispose();newPathing?.Dispose();DisposeDrawer(newDrawer);
                 if(configured)owner.ReplaceLayout(layout,previous);
                 changes.Restore();map.info.Size=oldSize;map.cellIndices=new CellIndices(map);owner.Sky.Rebuild();
-                vehicleExpansion?.Restore();
-                map.pathFinder=oldFinder;map.pathing=oldPathing;map.mapDrawer=oldDrawer;
+                vehicleExpansion?.Restore();                map.pathFinder=oldFinder;map.pathing=oldPathing;map.mapDrawer=oldDrawer;
                 // The retained finder still receives map events while the temporary larger graph is live.
                 // Recompute its sources after rollback instead of feeding appended-cell deltas into old arrays.
                 AccessTools.Method(typeof(PathFinderMapData),"Notify_MapDirtied").Invoke(oldFinder.MapData,null);
@@ -232,7 +237,11 @@ internal static class LiveMapExpansion
                 map.glowGrid.DevDirtyRect(new CellRect(0,0,oldSize.x,oldSize.z));
                 ResumePaths(paths);
             }
-            changes.Discard();throw;
+            changes.Discard();
+            // An AccessViolation in a rollback hook is not catchable, so the original failure used to be
+            // lost entirely: the log showed only the crash and no reason. Record it before rethrowing.
+            Log.Error("[RimLayers] Layered map expansion rolled back."+rollback);
+            throw;
         }
         // All persistent state and derivatives are now usable. Release old owners exactly once.
         oldFinder.Dispose();oldPathing.Dispose();

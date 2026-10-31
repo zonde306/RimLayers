@@ -20,7 +20,7 @@ internal sealed class VehiclePathingExpansion:IDisposable
     private readonly List<(Pawn Pawn,LocalTargetInfo Target,PathEndMode Mode)> paths=new();
     private readonly object? oldMgr;
     private readonly List<(FieldInfo field,Delegate del)> removedEventDelegates=new();
-    private bool installed,disposed;
+    private bool installed,disposed,releasedOld;
     private static PropertyInfo? ManagerProp(Type type)=>
         type.GetProperty("PathFinderManager",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic);
     private VehiclePathingExpansion(Map map,FrameworkVehicleAdapter adapter)
@@ -85,12 +85,33 @@ internal sealed class VehiclePathingExpansion:IDisposable
     {
         if(oldMgr!=null)
         {
+            // The old manager's native grids are about to be freed. Nothing may keep calling into it
+            // afterwards, so detach first even though Install normally already has.
+            UnhookManagerEvents(map,oldMgr,null);
             DisposeManager(oldMgr);
+            releasedOld=true;
             removedEventDelegates.Clear();
         }
         regenerate.Invoke(system,new[]{allGrids,forced});
         RecacheVehiclePatherComponents(map,adapter);
         ReclaimVehiclePositions(map,adapter);
+    }
+    /// <summary>
+    /// Detaches every Vehicle Framework grid from <c>map.events</c> without touching the managers, so a
+    /// rollback can destroy things while no disposed grid is listening.
+    /// </summary>
+    /// <remarks>
+    /// <c>Vehicles.BuildingGrid</c> subscribes itself to <c>BuildingDespawned</c>, and its handler calls
+    /// <c>PathFinderManager.SetDirty</c>, which indexes <c>dirtyGrids[..].SetDirty</c> - a native bit array
+    /// that <c>Dispose()</c> frees but leaves the field pointing at. A disposed grid that still hears a
+    /// despawn reads freed memory and takes the process down with an <c>AccessViolationException</c>
+    /// instead of a managed exception, which is why the crash reported no cause at all.
+    /// </remarks>
+    internal void DetachEvents()
+    {
+        var mgr=ManagerProp(system.GetType())?.GetValue(system);
+        if(mgr!=null&&!ReferenceEquals(mgr,oldMgr))UnhookManagerEvents(map,mgr,null);
+        if(oldMgr!=null)UnhookManagerEvents(map,oldMgr,removedEventDelegates);
     }
     internal void Restore()
     {
@@ -101,6 +122,15 @@ internal sealed class VehiclePathingExpansion:IDisposable
         {
             UnhookManagerEvents(map,newMgr,null);
             DisposeManager(newMgr);
+        }
+        if(releasedOld)
+        {
+            // Rebuild already freed the old manager's grids, so re-attaching its handlers or pointing the
+            // system back at it would resurrect a corpse. Build one fresh for the rolled-back map instead.
+            dataField.SetValue(system,oldData);deferredField.SetValue(system,oldDeferred);installed=false;
+            removedEventDelegates.Clear();
+            SyncMapSize(map,adapter);
+            return;
         }
         mgrProp?.SetValue(system,oldMgr);
         if(oldMgr!=null&&removedEventDelegates.Count>0)
