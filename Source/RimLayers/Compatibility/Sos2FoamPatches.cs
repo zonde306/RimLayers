@@ -9,18 +9,23 @@ using Verse;
 namespace RimLayers.Compatibility;
 
 /// <summary>
-/// Keeps hull foam repairs on the deck that was actually damaged.
+/// Makes hull foam repair the nearest breach on the whole ship, not the shallowest one.
 /// </summary>
 /// <remarks>
 /// <c>SpaceShipCache.SlowTick</c> repairs one breached cell per distributor per tick, chosen by
 /// <c>BuildingsToFoam.OrderBy(t =&gt; t.Item3).First()</c>. <c>Item3</c> is the breadth-first path
-/// length back to the bridge, which on a layered ship is meaningless across decks: a breach on deck 3
-/// next to the distributor can outrank one on deck 0, so a foam distributor on the ground deck seals a
-/// hole three decks up while the hull next to it stays open.
+/// length back to the bridge, and on a multi-deck hull that number is no longer a distance: the path
+/// walks the whole ship, so a hole three decks up beside the bridge can outrank the hole next to the
+/// distributor. Foam then travels past a nearby breach to seal a distant one, and on a hull whose
+/// repair budget runs out mid-flight that leaves the adjacent hole open.
 /// <para>
 /// The replacement keeps the native shape — one repair per distributor per tick, fuel gated the same
-/// way — but ranks candidates by deck distance first and path length second. Deck distance comes from
-/// the layout, so a distributor never repairs a deck it cannot reach through its own hull.
+/// way — and ranks candidates by how many decks away the breach is, then by the native path length.
+/// This is an ordering only. Foam deliberately still reaches every deck of the ship, the way
+/// <c>ShipMapComp.VecHasLS</c> lets any active life support cover the whole hull: a hull with one
+/// distributor on the ground deck must still be able to seal a top-deck breach, otherwise that hole
+/// stays open forever. Verified by <c>sos2-foam-covers-the-whole-ship</c> and
+/// <c>sos2-foam-spends-its-own-fuel-across-decks</c>.
 /// </para>
 /// </remarks>
 internal static class Sos2FoamPatches
@@ -96,8 +101,10 @@ internal static class Sos2FoamPatches
         }
 
         /// <summary>
-        /// Nearest breach for one distributor: same deck first, then the fewest decks away, then the
-        /// native path length. Null when the entry list is empty.
+        /// Nearest breach for one distributor: fewest decks away first, then the native path length.
+        /// Null when the entry list is empty. This only decides the order candidates are repaired in;
+        /// a breach on any deck stays eligible, so a lone ground-deck distributor still covers the
+        /// whole hull.
         /// </summary>
         private static FoamCandidate? PickNearest(IEnumerable targets, LayerMapComponent owner, IntVec3 from)
         {

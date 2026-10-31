@@ -790,8 +790,25 @@ internal static partial class V1Integration
         HashSet<IntVec3> after = FoamCells(cache);
         Check("sos2-foam-repairs-the-same-deck-breach",
             !after.Contains(lowerBreach), $"stillPending={after.Contains(lowerBreach)}");
-        Check("sos2-foam-leaves-the-other-deck-alone",
+        Check("sos2-foam-leaves-the-other-deck-queued",
             after.Contains(upperBreach), $"stillPending={after.Contains(upperBreach)}");
+
+        // Foam covers the whole ship, the same way life support does: ShipMapComp.VecHasLS asks only
+        // whether any CompShipLifeSupport on this hull is active, never which deck it sits on. A
+        // distributor on the ground deck must therefore seal a breach three decks up on its next
+        // tick, spending its own fuel to do it. Anything narrower would leave a top-deck hole open
+        // forever on a hull whose only distributor is below.
+        CompRefuelable? foamFuel = distributor.TryGetComp<CompRefuelable>();
+        float fuelBefore = foamFuel?.Fuel ?? -1f;
+        for (int i = 0; i < 4 && FoamCells(cache).Contains(upperBreach); i++)
+            AccessTools.Method(cache!.GetType(), "SlowTick")?.Invoke(cache, null);
+        HashSet<IntVec3> later = FoamCells(cache);
+        float fuelAfter = foamFuel?.Fuel ?? -1f;
+        Check("sos2-foam-covers-the-whole-ship", !later.Contains(upperBreach),
+            $"upperPatched={!later.Contains(upperBreach)}, fuelBefore={fuelBefore}, " +
+            $"fuelAfter={fuelAfter}, pending={later.Count}");
+        Check("sos2-foam-spends-its-own-fuel-across-decks", fuelAfter < fuelBefore,
+            $"fuelBefore={fuelBefore}, fuelAfter={fuelAfter}");
     }
 
     /// <summary>
