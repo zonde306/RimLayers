@@ -1213,8 +1213,8 @@ internal static partial class V1Integration
 
     private static void Sos2FirstChance(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
     {
-        if (sos2FirstChanceFrame != null || e.Exception is not null && e.Exception.GetType().Name != "NullReferenceException") return;
-        sos2FirstChanceFrame = string.Join("\n", (e.Exception.StackTrace ?? "").Split('\n').Take(12));
+        if (sos2FirstChanceFrame != null || e.Exception is not { } fault || fault.GetType().Name != "NullReferenceException") return;
+        sos2FirstChanceFrame = string.Join("\n", (fault.StackTrace ?? "").Split('\n').Take(12));
     }
 
     /// <summary>
@@ -1339,13 +1339,13 @@ internal static partial class V1Integration
         int bridgeGrid = heatGrid == null || sos2Bridge == null
             ? -2
             : heatGrid[target.cellIndices.CellToIndex(sos2Bridge.Position)];
-        object? net = heat == null ? null : AccessTools.Field(heatType!, "myNet")?.GetValue(heat);
-        Check("sos2-an-upper-deck-turret-is-on-a-heat-net", net != null,
+        object? net = heat == null ? null : AccessTools.Field(heatType, "myNet")?.GetValue(heat);
+        Check("sos2-an-upper-deck-turret-is-on-a-heat-net", heat != null && net != null,
             $"turret={turret.Position}, net={(net == null ? "none" : "ok")}, heatComp={heat != null}, " +
             $"pipes={pipeCount}, turretInPipes={turretInPipes}, runLaid={laid}, risers={riserPath.Count}, " +
-            $"bridge={sos2Bridge.Position}, map={target}, " +
+            $"bridge={(sos2Bridge == null ? "none" : sos2Bridge.Position.ToString())}, map={target}, " +
             $"turretGrid={turretGrid}, bridgeGrid={bridgeGrid}");
-        if (net == null) return;
+        if (heat == null || net == null) return;
 
         // The whole point: that net carries a console, and the turret is therefore active.
         int pilots = CacheCount(net, "PilCons");
