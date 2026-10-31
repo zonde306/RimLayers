@@ -116,6 +116,8 @@ internal static class VehicleCompatibility
             Adapter=bindings;Capabilities=VehicleCapabilities.GroundMovement;
             if(FrameworkWorldAdapter.TryInstall(bindings,out var worldDiagnostic))Capabilities|=VehicleCapabilities.WorldTravel;
             else Log.Warning("[RimLayers vehicles] "+worldDiagnostic);
+            try{LandingSnapPatches.Install();}
+            catch(Exception e){Log.Error("[RimLayers vehicles] Landing preview unavailable: "+e);}
             var pack=GetProvider();
             var enhancementAssembly=pack?.assemblies.loadedAssemblies.SingleOrDefault(a=>a.GetName().Name=="VehicleFramework.LocalUpgrade");
             if(enhancementAssembly!=null&&!GenCommandLine.CommandLineArgPassed("rimlayersvehiclebasic"))

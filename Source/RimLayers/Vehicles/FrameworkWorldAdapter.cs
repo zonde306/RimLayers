@@ -89,16 +89,32 @@ internal sealed class FrameworkWorldAdapter
         if(LayerMapComponent.For(map) is not {} owner)return true;
         if(!VehicleSpace.CanStand(owner,pawn,cell,rotation.AsAngle,out reason,ignoreThing:ignore))return false;
         var pose=VehicleSpace.Pose(owner,pawn,cell,rotation.AsAngle);
-        // Only the band the vehicle itself is standing in has to be clear. The corridor is the column
-        // of air this hull climbs through, so a deck above it does not block the climb: it is the
-        // reason there is a ship here at all. Sweeping every band instead reported
-        // RL_VehicleAirCorridorBlocked on any multi-deck ship, because the band above the hull always
-        // has a floor, and that made shuttles unable to leave a ship they had just landed on.
-        double top=owner.Elevation(owner.TryDecode(cell,out var liftOff)?liftOff.LayerId:0)*3+basic.Hull(pawn).Height+3;
+        if(!landing)
+        {
+            // Leaving. Nothing to sweep and nothing to restrict: the vehicle climbs out of its own band
+            // through whatever is over its head, which is what NoRoofPunch is for. The sweep that used
+            // to live here tested a corridor against the next band up, and on a ship that band always
+            // has a floor, so every lift-off from a deck was refused with
+            // RL_VehicleAirCorridorBlocked. Restricting a departure would also be wrong on its own:
+            // the vehicle is already here, so there is no arrival to vet.
+            reason="";
+            return true;
+        }
+        int landingLayer=owner.TryDecode(cell,out var landingAt)?landingAt.LayerId:0;
+        double hullTop=pose.Position.Height+basic.Hull(pawn).Height;
+        // The corridor is the air gap of the storey the vehicle lands in, and nothing else. Anything at
+        // or above that storey's ceiling belongs to the band above: on a multi-deck SOS2 ship every
+        // ceiling is also the deck of the next floor, so counting it as an obstacle refused every
+        // landing onto a ship - and because BeforeTouchdown returns false on a blocked corridor, the
+        // vehicle never arrived and the camera had nothing to follow. That is one cause for both
+        // "the corridor is blocked" and "it did not switch floors".
+        double storeyTop=owner.Elevation(landingLayer)*3+3;
+        double top=Math.Max(hullTop,storeyTop);
         var entry=new RampBody(pose.Position with{Height=pose.Position.Height+.001},pose.Heading,0);
         var to=entry with{Bottom=entry.Bottom with{Height=top}};
         var snapshot=VehicleAirspace.Snapshot(owner,pawn,entry,to);
-        var boxes=snapshot.Surfaces.Where(s=>(ignore==null||s.Thing!=ignore)&&(!s.Horizontal||s.Bounds.Top>pose.Position.Height+1e-6)).Select(s=>s.Bounds).ToArray();
+        bool InCorridor(double plane)=>plane>pose.Position.Height+1e-6&&plane<storeyTop-1e-6;
+        var boxes=snapshot.Surfaces.Where(s=>(ignore==null||s.Thing!=ignore)&&(!s.Horizontal||InCorridor(s.Bounds.Top))).Select(s=>s.Bounds).ToArray();
         if(VehicleFlightSweep.FirstHit(basic.Hull(pawn),entry,to,boxes)!=null){reason="RL_VehicleAirCorridorBlocked";return false;}
         if(landing)
         {
@@ -146,7 +162,17 @@ internal sealed class FrameworkWorldAdapter
     {
         if(LayerMapComponent.For(map)==null)return;
         var original=targetValidator;var a=Installed!;
-        targetValidator=cell=>(original?.Invoke(cell)??true)&&a.Clear(vehicle,map,cell.Cell,a.targeterRotation(__instance),out _);
+        targetValidator=cell=>
+        {
+            if(original?.Invoke(cell)==false){LandingSnapPatches.Report("RL_VehicleLandingRestriction",cell.Cell);return false;}
+            if(a.Clear(vehicle,map,cell.Cell,a.targeterRotation(__instance),out var reason))return true;
+            // The ghost is already red by the time this runs, so the reason is the only thing the player
+            // can act on: name the floor above when there is one, otherwise repeat the refual as is.
+            var layer=RimLayers.Core.LayerMapComponent.For(map);
+            if(layer!=null&&LandingSnapPatches.BlockedByFloorAbove(layer,cell.Cell))reason="RL_VehicleLandingNoFloor";
+            LandingSnapPatches.Report(reason,cell.Cell);
+            return false;
+        };
     }
     private static void SkySpawned(Thing __instance)
     {
@@ -179,8 +205,16 @@ internal sealed class FrameworkWorldAdapter
         // the band above the one the shuttle came down onto: the vehicle lands, and from the player's
         // seat it lands nowhere. This is the arrival counterpart of AerocraftCompatibility.ShowFloor,
         // which already does the same for the base point a grounded aircraft returns to.
-        if(owner.TryDecode(__state.Position,out var landed)&&owner.ViewedLayer!=landed.LayerId)
-            Compatibility.AerocraftCompatibility.ShowFloor(owner,landed.LayerId);
+        if(owner.TryDecode(__state.Position,out var landed))
+        {
+            // ShowFloor only moves the camera when this component is the one being looked at: its
+            // fallback is SetViewedLayer, which changes the band number without touching the camera.
+            // The shuttle usually lands on a map the player is not looking at (it was viewing a world
+            // tile, or another map), so jump first and then switch bands.
+            if(Find.CurrentMap!=owner.map)CameraJumper.TryJump(__state.Position,owner.map);
+            if(owner.ViewedLayer!=landed.LayerId&&Find.CurrentMap==owner.map)
+                Compatibility.AerocraftCompatibility.ShowFloor(owner,landed.LayerId);
+        }
         __state.Map.GetComponent<VehicleFlight>().Begin(__state);RecoveryCompatibility.DeferFor(__state,120);
     }
     private static void WorldGizmos(object __instance,ref IEnumerable<Gizmo> __result)

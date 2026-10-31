@@ -46,6 +46,7 @@
   <RL_VehicleLandingUnavailable>目标楼层或地图已失效。</RL_VehicleLandingUnavailable>
   <RL_VehicleAirCorridorBlocked>整机进出空域被阻挡。</RL_VehicleAirCorridorBlocked>
   <RL_VehicleLandingRestriction>不符合该机型的降落限制。</RL_VehicleLandingRestriction>
+  <RL_VehicleLandingNoFloor>这格上方还有楼板，载具无法穿过楼层降落。请往下层选落点。</RL_VehicleLandingNoFloor>
   <RL_VehicleLandingHeld>{0}：已暂停降落。{1} 请重新选择落点。</RL_VehicleLandingHeld>
   <RL_VehicleChooseLanding>重新选择落点</RL_VehicleChooseLanding>
   <RL_VehicleDigNeedStation>先在紧邻下层的同位置建好载具升降机站。</RL_VehicleDigNeedStation>

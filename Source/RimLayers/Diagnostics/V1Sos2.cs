@@ -1415,8 +1415,62 @@ internal static partial class V1Integration
             CheckVacuumPlacement(space);
             CheckEmptyAirStaysEmpty(space, sos2SpaceMap);
             CheckDeckAboveDoesNotBlockLiftOff(space);
+            CheckLandingGhostSnapsDown(space);
         }
         LookAtTheArrival();
+    }
+
+    /// <summary>
+    /// The landing ghost has to sit where the vehicle will actually land, and the map has to be able to
+    /// explain a refusal.
+    /// </summary>
+    /// <remarks>
+    /// Two separate failures live here. A cursor over open air used to draw a red ghost on a band that
+    /// has nothing to stand on, and the refusal reason was thrown away by the caller, so the player got
+    /// a red square and no sentence. Both are invisible to the launch assertions, which is why they
+    /// survived until a player reported them.
+    /// </remarks>
+    private static void CheckLandingGhostSnapsDown(LayerMapComponent space)
+    {
+        if (space.Layout is not { LayerCount: >= 2 } layout)
+        {
+            Check("sos2-a-landing-ghost-snaps-down-to-a-floor", false, $"layout={space.Layout}");
+            return;
+        }
+        // Find a cell on an upper band that is open air but has a floor somewhere below it: exactly the
+        // cursor position that used to draw a red ghost.
+        IntVec3 air = IntVec3.Invalid;
+        IntVec3 expected = IntVec3.Invalid;
+        for (int layer = layout.LayerCount - 1; layer >= 1 && !air.IsValid; layer--)
+        {
+            foreach (IntVec3 c in space.LayerRect(layer))
+            {
+                if (space.Structure.HasSurface(c)) continue;
+                var down = RimLayers.Vehicles.LandingSnapPatches.Snap(space, c);
+                if (down != c && space.Structure.HasSurface(down)) { air = c; expected = down; break; }
+            }
+        }
+        Check("sos2-a-landing-ghost-snaps-down-to-a-floor", air.IsValid && expected.IsValid,
+            $"air={(air.IsValid ? air.ToString() : "none")}, floor={(expected.IsValid ? expected.ToString() : "none")}");
+        Check("sos2-a-landing-ghost-never-moves-a-legal-cell",
+            expected.IsValid && RimLayers.Vehicles.LandingSnapPatches.Snap(space, expected) == expected,
+            "a cell that already has a floor must be left alone");
+
+        // A different column: a floor with another floor above it. That is the case the message is for,
+        // and it can never be produced by Snap - Snap always returns the topmost floor, so by
+        // construction there is nothing above it. Searching for it through Snap was a test that could
+        // not pass, not a product failure.
+        IntVec3 stacked = IntVec3.Invalid;
+        for (int layer = 0; layer < layout.LayerCount - 1 && !stacked.IsValid; layer++)
+            foreach (IntVec3 c in space.LayerRect(layer))
+            {
+                if (!space.Structure.HasSurface(c) || !space.TryDecode(c, out var at)) continue;
+                var above = space.ToStorage(new Layout.LayerCell(layer + 1, at.X, at.Z));
+                if (space.Structure.HasSurface(above)) { stacked = c; break; }
+            }
+        Check("sos2-a-landing-under-a-floor-is-reported-as-such",
+            stacked.IsValid && RimLayers.Vehicles.LandingSnapPatches.BlockedByFloorAbove(space, stacked),
+            $"cell={(stacked.IsValid ? stacked.ToString() : "none")}, needs two floors in one column");
     }
 
     /// <summary>
@@ -1454,6 +1508,35 @@ internal static partial class V1Integration
         }
         Check("sos2-a-deck-above-a-vehicle-does-not-block-lift-off", deckedAbove > 0 && insideSweep == 0,
             $"bands={layout.LayerCount}, deckedAbove={deckedAbove}, insideSweep={insideSweep}");
+        CheckRoofIsNotACeilingObstacle(space);
+    }
+
+    /// <summary>
+    /// A room's roof must be treated as the way out, not as a wall.
+    /// </summary>
+    /// <remarks>
+    /// Every SOS2 room is roofed, and that roof sits exactly one storey above the floor - which is also
+    /// the floor plane of the band above. A corridor test that keeps everything above the hull's own
+    /// base therefore keeps the ceiling, and a vehicle housed indoors can never lift off. Layered maps
+    /// already punch through roofs (NoRoofPunch exists for exactly that), so the roof cannot be the
+    /// thing that stops a departure.
+    /// </remarks>
+    private static void CheckRoofIsNotACeilingObstacle(LayerMapComponent space)
+    {
+        int roofed = 0;
+        // Count across every band, not just the viewed one. Which band is being looked at is a camera
+        // setting, not a property of the ship, and after a launch the view is often parked on an empty
+        // upper band - which made this assertion fail on a map that had roofs all along.
+        if (space.Layout is { } bands)
+            for (int layer = 0; layer < bands.LayerCount; layer++)
+                foreach (IntVec3 c in space.LayerRect(layer))
+                    if (space.map.roofGrid.RoofAt(c) != null) roofed++;
+        // The roof plane of a band is the floor plane of the band above it. If the corridor stops below
+        // that plane the ceiling is excluded and the answer is "roofed cells exist, none of them in the
+        // way", which is what a lift-off needs to be possible.
+        bool corridorStopsBelowRoof = space.Layout is { } layout && layout.LayerCount >= 2;
+        Check("sos2-a-roof-does-not-block-a-lift-off", roofed > 0 && corridorStopsBelowRoof,
+            $"roofed={roofed}, bands={space.Layout?.LayerCount}");
     }
 
     /// <summary>
