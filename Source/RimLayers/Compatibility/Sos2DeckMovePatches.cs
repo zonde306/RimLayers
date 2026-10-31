@@ -44,26 +44,35 @@ internal static class Sos2DeckMovePatch
         __state = null;
         if (!Sos2Compatibility.Active || core?.Map == null || targetMap == null) return;
 
-        // The target must be at least as tall as the hull before anything is written into it.
-        // MapShipCells, the home area and the terrain loop all index the target with storage
-        // coordinates taken from the source, so a hull that gained a deck upstairs and then lands on a
-        // map generated with fewer bands throws on the first out-of-range cell - mid-move, with half
-        // the hull already transferred. Growing here covers launch, landing, and in-place moves alike,
-        // because every one of them goes through MoveShip.
-        Generation.LiveMapExpansion.EnsureRequirements(targetMap);
-
         Map source = core.Map;
+        // Rotating or flipping a hull moves it within the map it is already on. There is nothing to
+        // grow: a layered map always has room for the ship it is carrying, and asking for the hull's
+        // own elevation made every flip add a deck to the map (4000ms of work, once per click).
+        bool inPlace = targetMap == source;
+        if (!inPlace)
+        {
+            // The target must be at least as tall as the hull before anything is written into it.
+            // MapShipCells, the home area and the terrain loop all index the target with storage
+            // coordinates taken from the source, so a hull that gained a deck upstairs and then lands
+            // on a map generated with fewer bands throws on the first out-of-range cell - mid-move,
+            // with half the hull already transferred.
+            Generation.LiveMapExpansion.EnsureRequirements(targetMap);
+        }
+
         LayerMapComponent? owner = LayerMapComponent.For(source);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return;
         // The requirement queries answer "how tall is this map", and the hull that needs the height is
         // still on the source map, so landing on a map generated with fewer bands reports zero and
         // grows nothing. Ask for the elevation the source hull actually occupies instead.
-        int hullElevation = 0;
-        if (Sos2Compatibility.ShipCellsOf(source) is { } claims)
-            foreach (object? key in claims.Keys)
-                if (key is IntVec3 claimCell && owner.TryDecode(claimCell, out LayerCell claimed))
-                    hullElevation = Math.Max(hullElevation, owner.Elevation(claimed.LayerId));
-        if (hullElevation > 0) Generation.LiveMapExpansion.EnsureElevationFor(targetMap, hullElevation);
+        if (!inPlace)
+        {
+            int hullElevation = 0;
+            if (Sos2Compatibility.ShipCellsOf(source) is { } claims)
+                foreach (object? key in claims.Keys)
+                    if (key is IntVec3 claimCell && owner.TryDecode(claimCell, out LayerCell claimed))
+                        hullElevation = Math.Max(hullElevation, owner.Elevation(claimed.LayerId));
+            if (hullElevation > 0) Generation.LiveMapExpansion.EnsureElevationFor(targetMap, hullElevation);
+        }
         var decks = new List<IntVec3>();
         for (int layer = 1; layer < layout.LayerCount; layer++)
             foreach (IntVec3 cell in owner.LayerRect(layer))
@@ -76,6 +85,12 @@ internal static class Sos2DeckMovePatch
     private static void Postfix(Move? __state)
     {
         if (__state == null || !Sos2Compatibility.Active) return;
+        try { DropOldDecks(__state); }
+        catch (Exception e) { Log.Error("[RimLayers] SOS2 deck move postfix failed: " + e); }
+    }
+
+    private static void DropOldDecks(Move __state)
+    {
         TerrainDef? deck = StructuralSupport.Sos2Deck;
         if (deck == null) return;
         LayerMapComponent? target = LayerMapComponent.For(__state.Target);
@@ -130,4 +145,33 @@ internal static class Sos2DeckMovePatch
     }
 
     private sealed record Move(Map Source, Map Target, IntVec3 Adjustment, byte RotNum, List<IntVec3> Cells);
+}
+
+/// <summary>
+/// Keeps <c>ShipMapComp.KillAllOffShip</c> from destroying a hull that is halfway moved.
+/// </summary>
+/// <remarks>
+/// <c>TransitSlowTick</c> ends every tick with <c>KillAllOffShip()</c>, which walks the whole map and
+/// destroys everything standing on a cell that is not in <c>MapShipCells</c>. That is a reasonable
+/// sweep for debris left behind by a landing. It is ruinous at any other time: while a move is in
+/// flight the table is being rewritten cell by cell, so for a moment most of the hull is "off ship"
+/// and the sweep deletes the ship the player is moving. That is the reported symptom - a flip finishes,
+/// then the ship is gone - and it is why a half-finished move is unrecoverable rather than merely
+/// failed: the sweep finishes what the exception started.
+/// </remarks>
+[HarmonyPatch]
+internal static class Sos2KillOffShipPatch
+{
+    private static MethodBase? TargetMethod()
+    {
+        MethodInfo? original = AccessTools.Method(Sos2Compatibility.ShipMapCompType, "KillAllOffShip");
+        return original == null ? null : new HarmonyMethod(original).method;
+    }
+
+    private static bool Prefix()
+    {
+        // Only the move itself is skipped. A genuine landing still sweeps its own map at the end of the
+        // tick, because MoveShipFlag is cleared before TransitSlowTick returns.
+        return !Sos2Compatibility.MoveRunning;
+    }
 }

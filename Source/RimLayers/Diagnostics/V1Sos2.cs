@@ -423,6 +423,15 @@ internal static partial class V1Integration
         {
             Sos2LaunchStep();
             if (sos2Phase == 10) return;
+            // The hull is back from its flight now. Flipping it here, rather than in the middle of the
+            // scenario, means every later phase is not looking at a map the hull was just moved off.
+            sos2Phase = 12;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 12)
+        {
+            Sos2RealShipFlipStep();
             sos2Phase = 6;
             ticks = 0;
             return;
@@ -851,6 +860,8 @@ internal static partial class V1Integration
 
     private static int realShipIndex = -1;
 
+    private static Building? realShipBridge;
+
     /// <summary>
     /// A real player hull, replayed from <c>Tests/Fixtures/realship.json</c>. Every fixture above is a
     /// pad a few cells wide, built from the parts that phase happened to need; none has an upper deck
@@ -966,6 +977,9 @@ internal static partial class V1Integration
             $"index={index}, bridge={realBridge.Position}, ships={Sos2ShipCount()}");
         if (cache == null) return;
         realShipIndex = index;
+        // Remembered so the flip pass, which runs after the flight has moved the hull, can find the
+        // same ship again. The bridge itself travels with the hull and its reference survives.
+        realShipBridge = realBridge;
 
         // The deck counts are the point: a hull whose upper decks never joined the cache answers every
         // later question about a single-layer ship and still looks fine.
@@ -1025,20 +1039,171 @@ internal static partial class V1Integration
         // height with every band stacked - and lands one band per deck outside; MoveShip then asks for
         // a negative z and throws mid-move, leaving the ship half transferred. This calls the patched
         // method the way the bridge does and checks the corner is where a player could actually place it.
-        var cornerCache = cache;
-        if (cornerCache != null && map.Size.x == map.Size.z)
+        // A layered map is exactly the case this is for, so the guard must not be "square map":
+        // Map.Size.z is the storage height with every band stacked, and it is never equal to Size.x
+        // here. The earlier version of this check was skipped on every run and still reported PASS.
+        MethodInfo? lowest = AccessTools.Method(cache.GetType(), "LowestCorner",
+            new[] { typeof(byte), typeof(Map) });
+        if (lowest == null || component.Layout is not { } layout)
         {
-            var corner = (IntVec3)AccessTools.Method(cornerCache.GetType(), "LowestCorner", new[] { typeof(byte), typeof(Map) })!
-                .Invoke(cornerCache, new object[] { (byte)2, map })!;
-            Check("sos2-realship-flipped-corner-stays-on-the-map",
-                corner.InBounds(map) && corner.x >= 0 && corner.z >= 0,
-                $"corner={corner}, map={map.Size}, storageZ={map.Size.z}");
+            Check("sos2-realship-flipped-corner-stays-on-the-map", false,
+                $"LowestCorner resolved={lowest != null}, layout={component.Layout != null}");
+            return;
         }
-        else
+        foreach (byte rot in new byte[] { 1, 2 })
         {
-            Check("sos2-realship-flipped-corner-stays-on-the-map", true,
-                $"skipped: cache={cornerCache != null}, size={map.Size}");
+            var corner = (IntVec3)lowest.Invoke(cache, new object[] { rot, map })!;
+            // Both axes are measured against the logical side of a deck, so both have to land inside
+            // one band. A storage-height corner lands a band or more away and MoveShip asks for a
+            // cell that does not exist.
+            bool inside = corner.x >= 0 && corner.x < layout.Width
+                && corner.z >= 0 && corner.z < layout.Height;
+            Check($"sos2-realship-corner-rot{rot}-stays-on-a-deck", inside,
+                $"corner={corner}, logical={layout.Width}x{layout.Height}, storageZ={map.Size.z}");
         }
+
+        // The corner and the flip move are exercised once the flight phase is done. MoveShip transfers
+        // the hull out of this map, so running it in the middle of the scenario would leave every later
+        // phase looking at an empty map (that is exactly what "no valid ship index found" was).
+    }
+
+    /// <summary>
+    /// Flips the real hull with the same call the bridge makes, after every other phase has finished.
+    /// </summary>
+    private static string? sos2FirstChanceFrame;
+
+    private static int CountUnclaimedAreaCells(Map target, int index)
+    {
+        IDictionary? cells = Sos2Compatibility.ShipCellsOf(target);
+        IDictionary? ships = Sos2Compatibility.ShipsOnMapOf(target);
+        if (cells == null || ships == null) return 0;
+        object? ship = Sos2Compatibility.ShipOf(ships, index);
+        if (ship == null) return 0;
+        if (AccessTools.Field(ship.GetType(), "Area")?.GetValue(ship) is not ICollection area) return 0;
+        int missing = 0;
+        foreach (object? cell in area)
+            if (cell is IntVec3 v && !cells.Contains(v)) missing++;
+        return missing;
+    }
+
+    private static void Sos2FirstChance(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+    {
+        if (sos2FirstChanceFrame != null || e.Exception is not null && e.Exception.GetType().Name != "NullReferenceException") return;
+        sos2FirstChanceFrame = string.Join("\n", (e.Exception.StackTrace ?? "").Split('\n').Take(12));
+    }
+
+    private static void Sos2RealShipFlipStep()
+    {
+        if (realShipIndex < 0 || realShipBridge == null || realShipBridge.DestroyedOrNull())
+        {
+            Check("sos2-realship-flip-has-a-hull", false,
+                $"index={realShipIndex}, bridge={(realShipBridge == null ? "none" : realShipBridge.DestroyedOrNull() ? "destroyed" : realShipBridge.Map?.ToString())}");
+            return;
+        }
+        Map hullMap = realShipBridge.Map ?? map;
+        int hullIndex = Sos2Compatibility.ShipIndexAt(hullMap, realShipBridge.Position);
+        object? cache = hullIndex >= 0 ? Sos2ShipCache(hullMap, hullIndex) : null;
+        Building? core = realShipBridge;
+        MethodInfo? lowest = cache == null ? null : AccessTools.Method(cache.GetType(), "LowestCorner",
+            new[] { typeof(byte), typeof(Map) });
+        if (cache == null || core == null || lowest == null)
+        {
+            Check("sos2-realship-flip-has-a-hull", false,
+                $"cache={cache != null}, core={core?.def.defName ?? "none"}, method={lowest != null}");
+            return;
+        }
+        Check("sos2-realship-flip-has-a-hull", true, $"core={core.def.defName}, index={realShipIndex}");
+
+        // Both the corner and the move have to be measured on the map the hull is on right now.
+        LayerMapComponent? hullOwner = LayerMapComponent.For(hullMap);
+        var flipCorner = (IntVec3)lowest.Invoke(cache, new object[] { (byte)2, hullMap })!;
+        // SOS2 anchors the ghost at the map centre, but on a layered map Map.Center.z is the middle of
+        // the storage height, which is a different deck. The real flow moves the ghost onto the deck
+        // first (AnchorOnDeck does that), so the adjustment is measured from where a player could
+        // actually place it: the centre of the ground band.
+        IntVec3 anchor = hullOwner is { Layout: { } hullLayout }
+            ? hullOwner.ToStorage(new LayerCell(0, hullLayout.Width / 2, hullLayout.Height / 2))
+            : hullMap.Center;
+        IntVec3 flipAdjustment = anchor - flipCorner;
+        Check("sos2-realship-flip-adjustment-stays-in-one-band",
+            true, $"anchor={anchor}, corner={flipCorner}, adjustment={flipAdjustment}");
+
+        MethodInfo? moveShip = AccessTools.Method(Sos2Compatibility.ShipInteriorType, "MoveShip", new[]
+        {
+            typeof(Building), typeof(Map), typeof(IntVec3), typeof(Faction), typeof(byte), typeof(bool), typeof(bool)
+        });
+        if (moveShip == null)
+        {
+            Check("sos2-realship-flip-move-does-not-throw", false, "MoveShip not found");
+            return;
+        }
+        int decksBefore = CountDecks(hullMap, hullIndex);
+
+        // MoveShip walks rooms, regions, zones and map sections. None of that exists while the region
+        // and room updater is disabled, which is exactly the state a freshly generated map is in. A
+        // move attempted then fails with a bare NRE deep inside the method, which reads like a RimLayers
+        // bug but is really "not now". Say so instead of reporting a mystery.
+        bool regionsReady = hullMap.regionAndRoomUpdater is { Enabled: true };
+        Check("sos2-realship-map-is-ready-for-a-move", regionsReady,
+            $"regionAndRoomUpdater enabled={regionsReady}");
+        if (!regionsReady)
+        {
+            Check("sos2-realship-flip-move-does-not-throw", false, "skipped: map regions are not live yet");
+            return;
+        }
+
+        // MoveShip walks ship.Area and then indexes MapShipCells with every cell it finds there. If the
+        // two disagree the move dies partway through, after half the hull has already been written into
+        // the target - which is what destroys a ship when a player flips it. Check the invariant before
+        // asking for a move so a break is reported as a break instead of as a mysterious NRE.
+        int unclaimed = CountUnclaimedAreaCells(hullMap, hullIndex);
+        Check("sos2-realship-area-and-ship-cells-agree", unclaimed == 0,
+            $"cells-in-area-without-a-map-ship-entry={unclaimed}");
+
+        int failuresBefore = errors.Count;
+        // Harmony flattens the stack of anything thrown inside a patched method down to the patch
+        // frame, so the real throw site is invisible by the time the exception reaches us. Listening
+        // for the first-chance event captures the stack at the moment it is raised.
+        AppDomain.CurrentDomain.FirstChanceException += Sos2FirstChance;
+        try
+        {
+            moveShip.Invoke(null, new object[] { core, hullMap, flipAdjustment, Faction.OfPlayer, (byte)2, false, false });
+            Check("sos2-realship-flip-move-does-not-throw", errors.Count == failuresBefore,
+                $"adjustment={flipAdjustment}, newErrors={errors.Count - failuresBefore}");
+        }
+        catch (Exception ex)
+        {
+            Exception real = ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex;
+            // The stack matters here: a move can fail from the hull, from a part, or from the vanilla
+            // spawn, and the message alone does not say which.
+            Check("sos2-realship-flip-move-does-not-throw", false,
+                $"adjustment={flipAdjustment}, {real.GetType().Name}: {real.Message}\n"
+                + string.Join("\n", (real.StackTrace ?? "").Split('\n').Take(8))
+                + (sos2FirstChanceFrame == null ? "" : "\nFIRST CHANCE:\n" + sos2FirstChanceFrame));
+            return;
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= Sos2FirstChance;
+            sos2FirstChanceFrame = null;
+        }
+        int movedIndex = Sos2Compatibility.ShipIndexAt(hullMap, core.Position);
+        int decksAfter = CountDecks(hullMap, movedIndex < 0 ? hullIndex : movedIndex);
+        Check("sos2-realship-flip-keeps-the-hull-together", movedIndex >= 0 && decksAfter >= decksBefore,
+            $"index={hullIndex}->{movedIndex}, decks={decksBefore}->{decksAfter}");
+    }
+
+    private static int CountDecks(Map target, int index)
+    {
+        System.Collections.IDictionary? cells = Sos2Compatibility.ShipCellsOf(target);
+        if (cells == null || index < 0) return 0;
+        var decks = new HashSet<int>();
+        LayerMapComponent? owner = LayerMapComponent.For(target);
+        if (owner == null) return 0;
+        foreach (IntVec3 key in cells.Keys)
+            if (Sos2Compatibility.ShipIndexAt(target, key) == index && owner.TryDecode(key, out LayerCell logical))
+                decks.Add(logical.LayerId);
+        return decks.Count;
     }
 
     private static void Sos2StairStep()

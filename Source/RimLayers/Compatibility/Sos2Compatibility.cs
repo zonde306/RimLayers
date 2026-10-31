@@ -98,12 +98,15 @@ internal static class Sos2Compatibility
         // instead of every later RimLayers patch class.
         Patch(harmony, typeof(Sos2AdjacencyPatches));
         Patch(harmony, typeof(Sos2GeometryPatches));
+        Patch(harmony, typeof(Sos2ReSpawnRotatePatch));
+
         Patch(harmony, typeof(Sos2HeatPatches));
         Patch(harmony, typeof(Sos2FoamPatches));
         Patch(harmony, typeof(Sos2SubsystemPatches));
         Patch(harmony, typeof(Sos2PlacementPatches));
         Patch(harmony, typeof(Sos2DeckRegistryPatches));
         Patch(harmony, typeof(Sos2DeckMovePatch));
+        Patch(harmony, typeof(Sos2KillOffShipPatch));
         Patch(harmony, typeof(Sos2RepowerPatches));
         Patch(harmony, typeof(Sos2MoveGhostPatches));
         Patch(harmony, typeof(Sos2SketchFloorPatch));
@@ -343,6 +346,16 @@ internal static class Sos2Compatibility
     }
 
     private static FieldInfo? MoveShipFlagGet;
+
+    /// <summary>
+    /// True while <c>ShipInteriorMod2.MoveShip</c> is running.
+    /// </summary>
+    /// <remarks>
+    /// Read straight from the field rather than from <see cref="MapTransactionRunning"/>, which is only
+    /// refreshed once per frame by the heat patch and would answer "not moving" for the whole of a move
+    /// that starts and finishes inside one tick.
+    /// </remarks>
+    internal static bool MoveRunning => MoveShipFlagGet?.GetValue(null) is true;
 
     /// <summary>The live <c>MapShipCells</c> dictionary, or null when SOS2 is absent.</summary>
     internal static IDictionary? ShipCellsOf(Map? map) => ShipCellsOf(ShipCompOf(map));

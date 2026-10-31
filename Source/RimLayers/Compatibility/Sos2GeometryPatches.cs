@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using RimLayers.Core;
+using RimLayers.Layout;
 using RimWorld;
 using Verse;
 
@@ -127,5 +128,87 @@ internal static class Sos2GeometryPatches
             __result = new IntVec3(x, y, z);
             return false;
         }
+    }
+}
+
+/// <summary>
+/// <c>ShipInteriorMod2.ReSpawnThingOnMap</c> is the second half of a ship move: every part is moved
+/// here and then spawned. It does not call <c>TransformForShipMove</c>; it repeats the rotation
+/// arithmetic inline, and for both rotb 2 and 3 it subtracts <c>Position.z</c> from <c>Map.Size.x</c>.
+/// </summary>
+/// <remarks>
+/// On a layered map those are different quantities. <c>Size.x</c> is one logical side (250) while a
+/// part on deck 3 has <c>Position.z</c> around 630, so <c>250 - 630 = -380</c> and the part is spawned
+/// at <c>z = -397</c> once the adjustment is added. Vanilla destroys it with "tried to register out of
+/// bounds" and the move throws, which is what a player sees when flipping a multi-deck hull: the parts
+/// vanish and the ship is left half transferred.
+/// </remarks>
+[HarmonyPatch]
+internal static class Sos2ReSpawnRotatePatch
+{
+    private static MethodBase? TargetMethod()
+    {
+        MethodInfo? original = AccessTools.Method(Sos2Compatibility.ShipInteriorType, "ReSpawnThingOnMap", new[]
+        {
+            typeof(Thing), typeof(Map), typeof(IntVec3), typeof(int), typeof(Faction)
+        });
+        return original == null ? null : new HarmonyMethod(original).method;
+    }
+
+    private static bool Prefix(Thing spawnThing, Map targetMap, IntVec3 adjustment, int rotb, Faction fac)
+    {
+        if (!Sos2Compatibility.Active || rotb is not (2 or 3)) return true;
+        if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out int stride, out int height, out int layers))
+            return true;
+        if (owner.Layout is not { } layout) return true;
+        if (spawnThing.Destroyed) return true;
+        if (!owner.TryDecode(spawnThing.Position, out LayerCell local)
+            && !TryLocal(targetMap, spawnThing.Position, stride, layers, out local)) return true;
+
+        // SOS2's arithmetic is right on a one-deck map, where every position it reads is band-local.
+        // Rotating the band-local cell and putting the band back is that same computation with the
+        // storage offset removed, so a part on deck 3 is not mirrored against deck 0's coordinates.
+        (int x, int y, int z) = Sos2Geometry.Mirror(local.X, spawnThing.Position.y, local.Z,
+            layout.Width, height, stride, layers, (byte)rotb);
+        IntVec3 mirrored = new IntVec3(x, y, z) + adjustment;
+
+        // Rotating the thing itself happens before any coordinate work in the original and does not
+        // depend on the map, so it is kept exactly as it was.
+        if (spawnThing.def.rotatable)
+            spawnThing.Rotation = new Rot4(spawnThing.Rotation.AsByte + rotb);
+        spawnThing.Position = mirrored;
+        if (fac != null && spawnThing is not Pawn && spawnThing.def.CanHaveFaction)
+            spawnThing.SetFaction(fac);
+        // The original skips respawn post-processing for defs carrying SOS2's override extension; the
+        // check is repeated by name because RimLayers does not reference the SOS2 assembly.
+        spawnThing.SpawnSetup(targetMap, !HasSpawnOverride(spawnThing.def));
+        if (spawnThing is Pawn pawn) pawn.pather.ResetToCurrentPosition();
+        return false;
+    }
+
+    private static bool TryLocal(Map map, IntVec3 storage, int stride, int layers, out LayerCell local)
+    {
+        local = default;
+        if (!storage.InBounds(map)) return false;
+        int band = Sos2Geometry.LayerOf(storage.z, stride, layers);
+        if (band < 0) return false;
+        local = new LayerCell(band, storage.x, Sos2Geometry.LocalZ(storage.z, stride));
+        return true;
+    }
+
+    private static Type? spawnOverride;
+    private static bool spawnOverrideLooked;
+
+    private static bool HasSpawnOverride(ThingDef def)
+    {
+        if (!spawnOverrideLooked)
+        {
+            spawnOverrideLooked = true;
+            spawnOverride = AccessTools.TypeByName("SaveOurShip2.SoSSpawnOverride");
+        }
+        if (spawnOverride == null || def.modExtensions == null) return false;
+        foreach (DefModExtension extension in def.modExtensions)
+            if (spawnOverride.IsInstanceOfType(extension)) return true;
+        return false;
     }
 }
