@@ -905,3 +905,36 @@ SOS2 的数据结构本来就是「一张 Map 上的格字典」，RimLayers 的
 要真正闭上这个缺口，断言得改成直接调用 `LowestCorner(2, map)` 并要求 `corner.z` 落在 `[0, height)` 内，
 不能借道 `Size.x == Size.z` 这种在分层图上永远不成立的前置条件。
 **写断言时不要用会在目标场景里恒假的条件来「保护」它——那和没写是一样的，而且更危险，因为它还打印 PASS。**
+
+
+### 14.4 翻转会摧毁飞船：三个独立缺陷（提交 3e0ae00）
+
+玩家报「按一下翻转，蓝图没出来，变成了卸载，然后飞船被摧毁了」。拆开是三件事：
+
+1. **`ReSpawnThingOnMap` 用 `Map.Size.x` 减 `Position.z`**（`ShipInteriorMod2.cs:3283`）。
+   分层图上 lxx=250 与 z=630 不是同一量纲，甲板 3 的部件被spawn到 z=-397，原版判越界就地销毁。
+   修法：`Sos2ReSpawnRotatePatch` 先 `TryDecode` 成带内局部坐标再调 `Sos2Geometry.Mirror`。
+2. **原地旋转也在扩层**。`Sos2DeckMovePatch.Prefix` 拿「源船最高仰角」要求目标图，而翻转是
+   `targetMap == source` → 每点一次翻转地图长高一层，卡 4 秒。修法：`inPlace` 时跳过扩层。
+3. **`KillAllOffShip` 在移动中途清场**。`Comp/ShipMapComp.cs:2590` 每 tick 无条件调它，
+   扫全图销毁「不在 `MapShipCells` 里」的东西。移动正在逐格改写该表，此刻大半个船「不在船上」，
+   于是一次比异常更彻底的销毁。修法：`Sos2KillOffShipPatch` 在 `MoveShipFlag` 期间跳过。
+
+### 14.5 仍未解决：`MoveShip` 内部的 `NullReferenceException`
+
+翻转测试仍失败：
+
+```
+FAIL sos2-realship-flip-move-does-not-throw:
+adjustment=(95, 0, 97), NullReferenceException
+   at SaveOurShip2.ShipInteriorMod2.MoveShip_Patch1(...)
+```
+
+- 栈在 `MoveShip_Patch1` 一层就断了；挂 `AppDomain.FirstChanceException` 拿到的仍是同一帧。
+  这是 Waylith 下 Harmony 改写方法帧的已知表现，异常发生在方法机器码内部。
+- 已排除：`Area` 与 `MapShipCells` 完全一致（新断言 `sos2-realship-area-and-ship-cells-agree`
+  → `missing=0`）、region/room 系统已就绪（`sos2-realship-map-is-ready-for-a-move` → `enabled=True`）、
+  `KillAllOffShip` 已不参与、扩层已不在原地发生、`ReSpawnThingOnMap` 越界已消失。
+- 未排除：直接调 `MoveShip` 与玩家真实路径（蓝图 → `MinifiedThingShipMove.Tick()`）的环境差异。
+  测试在 generate 阶段调用，那时 UI、zone、selector 状态与真实游玩不同。
+- **不要把它算成已修。** 现在翻转仍然不成功，只是不再销毁船只。
