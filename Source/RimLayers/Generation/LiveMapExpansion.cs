@@ -62,6 +62,30 @@ internal static class LiveMapExpansion
         requirements.Add(requirement);
     }
 
+    /// <summary>
+    /// Makes <paramref name="map"/> tall enough for <paramref name="elevation"/> even though nothing
+    /// on it asks for that yet.
+    /// </summary>
+    /// <remarks>
+    /// A requirement query answers "what does this map already hold", which is the wrong question when
+    /// the thing that needs the height has not arrived. On landing, the ship is still on the source map,
+    /// so <see cref="Sos2Compatibility.RequiredElevation"/> sees an empty destination and reports zero -
+    /// the hull then writes its upper decks into bands the destination does not have, and because
+    /// <c>MoveShip</c> writes per cell the exception lands mid-move with the ship half transferred.
+    /// Callers that know the height they are about to need pass it here instead.
+    /// </remarks>
+    internal static void EnsureElevationFor(Map map,int elevation)
+    {
+        if(map==null||elevation<=0)return;
+        var layout=LayerMapComponent.For(map)?.Layout;
+        if(layout!=null&&layout.TryGetLayerAtElevation(elevation,out _))return;
+        try {EnsureElevation(map,elevation);}
+        catch(InvalidOperationException quota)
+        {
+            Log.Warning("[RimLayers] A map could not grow tall enough for an incoming ship: "+quota.Message);
+        }
+    }
+
     /// <summary>Highest elevation any adapter still needs on this map; 0 when nothing is registered.</summary>
     private static int RequiredElevation(Map map)
     {

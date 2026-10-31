@@ -151,14 +151,77 @@ internal static class Sos2Compatibility
         assembly.GetType(name, throwOnError: false) ??
         throw new InvalidOperationException($"[RimLayers] SOS2 type not found: {name}");
 
+    /// <summary>True when the map is an SOS2 space map, where empty cells are vacuum rather than air.</summary>
+    /// <remarks>
+    /// Read from the biome instead of calling SOS2's <c>Map.IsSpace()</c>: that extension indexes
+    /// <c>ShipGameComp.Utility</c>, which is null until SOS2's own game component has spawned, and this
+    /// predicate runs inside placement validation on freshly generated maps.
+    /// </remarks>
+    internal static bool IsSpaceMap(Map? map) =>
+        map != null && map.Biome != null && map.Biome.defName == "OuterSpaceBiome";
+
+    /// <summary>
+    /// True when <paramref name="buildable"/> is an SOS2 hull part that SOS2 itself would allow here.
+    /// </summary>
+    /// <remarks>
+    /// SOS2 has no "needs a floor" rule for its own parts: <c>PlaceWorker_ShipPlating</c> asks for an
+    /// affordance, no blocking building, and nothing else, and it returns early for Odyssey space
+    /// terrain. RimLayers used to answer first and reject with <c>RL_NoSurface</c>, because a cell with
+    /// no deck yet is bare <c>RL_OpenAir</c> and has no surface. In space nobody is standing on anything
+    /// - the vacuum carries the metal - so a hull part anywhere on an owned vessel is legitimate.
+    /// <para>
+    /// Deliberately narrow: only while SOS2 is loaded, only for defs that carry SOS2's ship-part comp,
+    /// only on a space map, and only when the cell is already part of the vessel (or the deck below it
+    /// is). Ordinary buildings, every other mod, and every ground map keep the normal rules.
+    /// </para>
+    /// </remarks>
+    internal static bool AllowsHullPartInVacuum(LayerMapComponent owner, BuildableDef buildable, IntVec3 center, Rot4 rotation)
+    {
+        if (!Active || shipCachePart == null || !IsSpaceMap(owner.map)) return false;
+        if (buildable is not ThingDef def || !def.HasComp(shipCachePart)) return false;
+        foreach (IntVec3 cell in GenAdj.OccupiedRect(center, rotation, buildable.Size))
+        {
+            if (!owner.TryDecode(cell, out LayerCell logical) || logical.LayerId == 0) return false;
+            if (MapClaims(owner.map, cell)) continue;
+            if (!HasDeckSourceBelow(owner, cell)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>True when the cell directly below belongs to a vessel, i.e. this one hangs off a hull.</summary>
+    private static bool HasDeckSourceBelow(LayerMapComponent owner, IntVec3 cell)
+    {
+        IntVec3 under = owner.Adjacent(cell, -1);
+        if (!under.IsValid) return false;
+        if (MapClaims(owner.map, under)) return true;
+        return StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(under)) ||
+               StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(under));
+    }
+
     /// <summary>True when the cell holds an SOS2 ship part and belongs to some SOS2 ship.</summary>
     internal static bool IsShipDeck(LayerMapComponent owner, IntVec3 cell)
     {
         if (!Active || shipCachePart == null || !owner.TryDecode(cell, out _)) return false;
+        // A hull tile on a lower band answers for itself. On the third deck and above the cell below is
+        // another RimLayers deck, which carries no SOS2 ship-part comp, so the deck itself has to count
+        // as hull - otherwise the player can lay two decks and never a third.
+        if (StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(cell)) ||
+            StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(cell)))
+            return MapClaims(owner.map, cell) || HasRegisteredDeckBelow(owner, cell);
         if (!MapClaims(owner.map, cell)) return false;
         foreach (Thing thing in cell.GetThingList(owner.map))
             if (thing.def.HasComp(shipCachePart)) return true;
         return false;
+    }
+
+    /// <summary>True when some cell below this one is registered by the deck registry.</summary>
+    private static bool HasRegisteredDeckBelow(LayerMapComponent owner, IntVec3 cell)
+    {
+        IntVec3 under = owner.Adjacent(cell, -1);
+        return under.IsValid &&
+               (MapClaims(owner.map, under) ||
+                StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.FoundationAt(under)) ||
+                StructuralSupport.IsSos2DeckTerrain(owner.map.terrainGrid.TerrainAt(under)));
     }
 
     /// <summary>True when the thing carries SOS2's heat comp, which is what a heat net is built from.</summary>

@@ -55,6 +55,15 @@ internal static class Sos2DeckMovePatch
         Map source = core.Map;
         LayerMapComponent? owner = LayerMapComponent.For(source);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return;
+        // The requirement queries answer "how tall is this map", and the hull that needs the height is
+        // still on the source map, so landing on a map generated with fewer bands reports zero and
+        // grows nothing. Ask for the elevation the source hull actually occupies instead.
+        int hullElevation = 0;
+        if (Sos2Compatibility.ShipCellsOf(source) is { } claims)
+            foreach (object? key in claims.Keys)
+                if (key is IntVec3 claimCell && owner.TryDecode(claimCell, out LayerCell claimed))
+                    hullElevation = Math.Max(hullElevation, owner.Elevation(claimed.LayerId));
+        if (hullElevation > 0) Generation.LiveMapExpansion.EnsureElevationFor(targetMap, hullElevation);
         var decks = new List<IntVec3>();
         for (int layer = 1; layer < layout.LayerCount; layer++)
             foreach (IntVec3 cell in owner.LayerRect(layer))
@@ -96,6 +105,15 @@ internal static class Sos2DeckMovePatch
         // letting the chain run only gives it a chance to throw and abort the flight.
         TerrainGrid source = __state.Source.terrainGrid;
         LayerMapComponent? owner = LayerMapComponent.For(__state.Source);
+        // A move inside one map can put the hull down where part of it already stood. Removing the deck
+        // from every source cell afterwards would then strip the deck that was just installed on the
+        // overlapping cells, and the player is left with a floating hull frame - walls and turrets on
+        // bare open air. Cells the destination took over are therefore dropped from the cleanup list.
+        var vacated = new HashSet<IntVec3>(__state.Cells);
+        if (ReferenceEquals(__state.Source, __state.Target))
+            foreach (IntVec3 cell in __state.Cells)
+                if (transform.Invoke(null, new object[] { __state.Target, cell, __state.Adjustment, 4 - __state.RotNum })
+                    is IntVec3 moved) vacated.Remove(moved);
         // Three layers of protection, each for a different reader. SuppressedEffects() keeps vanilla's
         // terrain-change chain from running at all; Settling() keeps RimLayers' own per-cell path-cost
         // refresh out of the way too, since the map is being abandoned and Vehicle Framework's postfix
@@ -103,7 +121,7 @@ internal static class Sos2DeckMovePatch
         // loop so anything outside it behaves normally.
         using (Sos2TerrainPatches.SuppressedEffects())
         using (StructuralSupport.Settling())
-            foreach (IntVec3 cell in __state.Cells)
+            foreach (IntVec3 cell in vacated)
             {
                 if (!StructuralSupport.IsSos2DeckTerrain(source.FoundationAt(cell))) continue;
                 source.RemoveFoundation(cell, false);

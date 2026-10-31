@@ -142,6 +142,10 @@ public sealed class StructuralSupport
         bool shipSlab=buildable.defName=="RL_ShipStructuralFloor";
         bool sos2Slab=buildable.defName=="RL_Sos2Deck";
         bool slab = buildable == RimLayersDefOf.RL_StructuralFloor||shipSlab||sos2Slab;
+        // SOS2's own parts are not floors: a hull hardpoint on an upper deck hangs off the vessel
+        // exactly like SOS2 allows on the ground band, and in space there is no air to stand on.
+        // Handing the decision back to SOS2 here keeps vacuum rules inside the mod that owns them.
+        if(!slab&&Compatibility.Sos2Compatibility.AllowsHullPartInVacuum(owner,buildable,center,rotation))return true;
         bool stair = ConnectorDefs.IsUp(buildable);
         if(ConnectorDefs.IsDown(buildable))
         {

@@ -55,8 +55,22 @@ internal static class Sos2SubsystemPatches
     [HarmonyPatch]
     private static class EngineTrailDrawPatch
     {
-        private static MethodBase? TargetMethod() =>
-            AccessTools.Method(AccessTools.TypeByName("SaveOurShip2.CompEngineTrail"), "PostDraw", Type.EmptyTypes);
+        // Discovered rather than listed: SOS2 ships `CompEngineTrail`, and `CompEngineTrailEnergy` exists
+        // in its sources but is absent from the shipped assembly because no def references it. A hardcoded
+        // list silently decays the moment either side changes, so the painters are found by shape - a
+        // ThingComp named *EngineTrail* that paints in PostDraw - and every one found is scoped.
+        private static IEnumerable<MethodBase> TargetMethods()
+        {
+            Assembly? sos2 = AccessTools.TypeByName("SaveOurShip2.CompEngineTrail")?.Assembly;
+            if (sos2 == null) yield break;
+            foreach (Type type in sos2.GetTypes())
+            {
+                if (!typeof(ThingComp).IsAssignableFrom(type)) continue;
+                if (!type.Name.Contains("EngineTrail")) continue;
+                MethodInfo? draw = AccessTools.Method(type, "PostDraw", Type.EmptyTypes);
+                if (draw != null) yield return draw;
+            }
+        }
 
         private static bool Prefix(ThingComp? __instance)
         {

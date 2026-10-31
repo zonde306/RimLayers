@@ -452,6 +452,7 @@ internal static partial class V1Integration
                     if (!owner.TryDecode(cell, out LayerCell exhaustLogical) || exhaustLogical.LayerId != 1) offDeck++;
             Check("sos2-engine-exhaust-stays-on-its-own-deck", offDeck == 0,
                 $"offDeck={offDeck}, cells={area?.Count}");
+            CheckEngineTrailPaintersAreScoped();
         }
 
         // --- heat sink: never pushes into the deck below ---------------------------------------
@@ -1411,8 +1412,161 @@ internal static partial class V1Integration
                 upperThings += sos2SpaceMap.thingGrid.ThingsListAt(c).Count;
             Check("sos2-launch-upper-deck-arrives-with-its-parts", upperThings > 0,
                 $"upperThings={upperThings}, lowerThings={sos2SpaceMap.thingGrid.ThingsListAt(space.LayerRect(0).CenterCell).Count}");
+            CheckVacuumPlacement(space);
         }
         LookAtTheArrival();
+    }
+
+    /// <summary>
+    /// An SOS2 hull part on an upper band must be placeable on bare open air.
+    /// </summary>
+    /// <remarks>
+    /// A deck that has not been laid yet is <c>RL_OpenAir</c>, which has no surface, so RimLayers used
+    /// to reject every hull part on the upper band with <c>RL_NoSurface</c> - the exact report the
+    /// player sent. SOS2 itself has no such rule: in space the vacuum carries the metal and only an
+    /// affordance plus a lack of obstructions is required. The assertion asks the real validator rather
+    /// than the adapter helper, so a regression in the wiring shows up here.
+    /// </remarks>
+    private static void CheckVacuumPlacement(LayerMapComponent space)
+    {
+        Map? spaceMap = sos2SpaceMap;
+        if (spaceMap == null || spaceMap.Disposed)
+        {
+            Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", false, "no space map");
+            return;
+        }
+        ThingDef? hardpoint = DefDatabase<ThingDef>.GetNamedSilentFail("ShipHardpointSmall");
+        if (hardpoint == null)
+        {
+            Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", false, "ShipHardpointSmall missing");
+            return;
+        }
+        IntVec3 bare = IntVec3.Invalid;
+        foreach (IntVec3 c in space.LayerRect(1))
+        {
+            // Only cells that belong to the vessel qualify: the vacuum rule is about hanging a part off
+            // a hull that is already there, not about building anywhere in empty space. LayerRect starts
+            // at the band's corner, which is map edge, so the claim check is what picks a real cell.
+            if (!Sos2Compatibility.MapClaims(spaceMap, c)) continue;
+            if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_OpenAir) continue;
+            if (spaceMap.thingGrid.ThingsListAt(c).Count != 0) continue;
+            bare = c;
+            break;
+        }
+        if (!bare.IsValid)
+        {
+            // The fixture lays a deck over the whole pad, so no such cell survives. The state the rule
+            // exists for is the opposite order - a hardpoint goes down first, the plating later - so
+            // clear one cell and put it back afterwards rather than skipping the check.
+            IntVec3 candidate = IntVec3.Invalid;
+            foreach (IntVec3 c in space.LayerRect(1))
+                if (Sos2Compatibility.MapClaims(spaceMap, c) && spaceMap.terrainGrid.FoundationAt(c) != null)
+                {
+                    candidate = c;
+                    break;
+                }
+            if (candidate.IsValid)
+            {
+                TerrainDef? deck = spaceMap.terrainGrid.FoundationAt(candidate);
+                spaceMap.terrainGrid.RemoveFoundation(candidate, false);
+                spaceMap.terrainGrid.SetTerrain(candidate, RimLayersDefOf.RL_OpenAir);
+                // StructuralCells is bookkeeping the terrain grid does not touch. Without this the cell
+                // still counts as a deck for HasSurface and the "wall needs a floor" check below would
+                // pass for the wrong reason - a stale entry, not a real floor.
+                space.Structure.TerrainChanged(candidate, RimLayersDefOf.RL_OpenAir);
+                AcceptanceReport bareReport = space.Structure.Validate(hardpoint, candidate, Rot4.North);
+                Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", bareReport.Accepted,
+                    $"cell=({candidate.x},{candidate.z}), reason={bareReport.Reason}");
+                // The rule is about the vessel, not about space in general. A wall on the same cell is
+                // still legitimate - the hull below carries it - so the narrowness has to be tested
+                // where it matters: a cell outside the hull must not gain the same permission.
+                IntVec3 outside = IntVec3.Invalid;
+                foreach (IntVec3 c in space.LayerRect(1))
+                {
+                    if (Sos2Compatibility.MapClaims(spaceMap, c)) continue;
+                    if (!c.InBounds(spaceMap)) continue;
+                    if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_OpenAir) continue;
+                    if (spaceMap.thingGrid.ThingsListAt(c).Count != 0) continue;
+                    outside = c;
+                    break;
+                }
+                if (outside.IsValid)
+                {
+                    AcceptanceReport stray = space.Structure.Validate(hardpoint, outside, Rot4.North);
+                    Check("sos2-a-hull-part-still-needs-hull-underneath", !stray.Accepted,
+                        $"cell=({outside.x},{outside.z}), reason={stray.Reason}");
+                }
+                else
+                {
+                    Check("sos2-a-hull-part-still-needs-hull-underneath", false,
+                        "no unclaimed open-air cell to test the narrow rule");
+                }
+                if (deck != null) spaceMap.terrainGrid.SetFoundation(candidate, deck);
+                space.Structure.TerrainChanged(candidate, deck);
+                return;
+            }
+            Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", false, "no claimed upper cell to clear");
+            return;
+        }
+        AcceptanceReport report = space.Structure.Validate(hardpoint, bare, Rot4.North);
+        Check("sos2-a-hull-part-can-be-placed-on-bare-space-deck", report.Accepted,
+            $"cell=({bare.x},{bare.z}), reason={report.Reason}");
+        IntVec3 outsideCell = IntVec3.Invalid;
+        foreach (IntVec3 c in space.LayerRect(1))
+        {
+            if (Sos2Compatibility.MapClaims(spaceMap, c)) continue;
+            if (!c.InBounds(spaceMap)) continue;
+            if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_OpenAir) continue;
+            if (spaceMap.thingGrid.ThingsListAt(c).Count != 0) continue;
+            outsideCell = c;
+            break;
+        }
+        if (outsideCell.IsValid)
+        {
+            AcceptanceReport stray = space.Structure.Validate(hardpoint, outsideCell, Rot4.North);
+            Check("sos2-a-hull-part-still-needs-hull-underneath", !stray.Accepted,
+                $"cell=({outsideCell.x},{outsideCell.z}), reason={stray.Reason}");
+        }
+        else
+        {
+            Check("sos2-a-hull-part-still-needs-hull-underneath", false,
+                "no unclaimed open-air cell to test the narrow rule");
+        }
+    }
+
+    /// <summary>
+    /// Every SOS2 component that paints an exhaust trail outside the map mesh has to be scoped to the
+    /// floor the viewer is on, otherwise an engine below paints its flame over the deck above.
+    /// </summary>
+    /// <remarks>
+    /// Patched by type name rather than by a compile-time reference, so this asserts the patches landed
+    /// instead of trusting that the name still exists. A missing painter is reported, not skipped:
+    /// silence here is exactly what let the second painter go unnoticed.
+    /// </remarks>
+    private static void CheckEngineTrailPaintersAreScoped()
+    {
+        var found = new List<string>();
+        var unscoped = new List<string>();
+        Assembly? sos2 = AccessTools.TypeByName("SaveOurShip2.CompEngineTrail")?.Assembly;
+        if (sos2 == null)
+        {
+            Check("sos2-every-exhaust-painter-is-kept-on-its-own-deck", false, "SOS2 assembly not found");
+            return;
+        }
+        foreach (Type type in sos2.GetTypes())
+        {
+            if (!typeof(ThingComp).IsAssignableFrom(type)) continue;
+            if (!type.Name.Contains("EngineTrail")) continue;
+            MethodInfo? draw = AccessTools.Method(type, "PostDraw", Type.EmptyTypes);
+            if (draw == null) continue;
+            found.Add(type.Name);
+            Patches? info = Harmony.GetPatchInfo(draw);
+            if (info == null || !info.Prefixes.Any(p => p.owner == "rimlayers.core")) unscoped.Add(type.Name);
+        }
+        // Discovery finds the painters, so a painter that stops existing removes itself from the list
+        // instead of failing forever; the assertion fails only when one exists and is not scoped.
+        Check("sos2-every-exhaust-painter-is-kept-on-its-own-deck", found.Count > 0 && unscoped.Count == 0,
+            $"found={string.Join(",", found)}, unscoped={string.Join(",", unscoped)}");
     }
 
     // The flight is invisible in a headless run, so a picture is the only evidence that the hull
