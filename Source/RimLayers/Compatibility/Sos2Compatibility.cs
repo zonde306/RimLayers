@@ -189,6 +189,27 @@ internal static class Sos2Compatibility
         return true;
     }
 
+    /// <summary>
+    /// Same vacuity rule as <see cref="AllowsHullPartInVacuum(LayerMapComponent,BuildableDef,IntVec3,Rot4)"/>,
+    /// asked of a part that is already built.
+    /// </summary>
+    /// <remarks>
+    /// Placement lets a hull part hang on bare vacuum; power used to demand a floor anyway. That is the
+    /// same vessel judged by two different standards: <c>PowerLinks.HasSurface</c> forced
+    /// <c>TransmitsPowerNow</c> off, <c>PowerNetMaker.ContiguousPowerBuildings</c> then dropped the part
+    /// from its own net, so <c>CompPower.PowerNet</c> stayed null and the inspect string read
+    /// "not connected". A hull part that may be placed there may also carry current there.
+    /// </remarks>
+    internal static bool AllowsHullPartInVacuum(Thing thing)
+    {
+        if (!Active || shipCachePart == null || !thing.Spawned || !IsSpaceMap(thing.Map)) return false;
+        if (!thing.def.HasComp(shipCachePart)) return false;
+        if (LayerMapComponent.For(thing.Map) is not { } owner) return false;
+        foreach (IntVec3 cell in thing.OccupiedRect())
+            if (!owner.TryDecode(cell, out LayerCell logical) || logical.LayerId == 0) return false;
+        return true;
+    }
+
     /// <summary>True when the cell holds an SOS2 ship part and belongs to some SOS2 ship.</summary>
     internal static bool IsShipDeck(LayerMapComponent owner, IntVec3 cell)
     {

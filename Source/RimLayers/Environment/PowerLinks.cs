@@ -110,7 +110,12 @@ public sealed class PowerLinks
     internal static bool HasSurface(Thing thing)
     {
         var owner=LayerMapComponent.For(thing.Map);
-        return owner==null || thing.OccupiedRect().Cells.All(owner.Structure.HasSurface);
+        if(owner==null) return true;
+        // A hull part may hang on bare vacuum - placement already says so, see
+        // Sos2Compatibility.AllowsHullPartInVacuum. Power used to disagree and cut the part out of its
+        // own net, which is what "not connected to a power net" on a ship part actually was.
+        if(Compatibility.Sos2Compatibility.AllowsHullPartInVacuum(thing)) return true;
+        return thing.OccupiedRect().Cells.All(owner.Structure.HasSurface);
     }
     public static IEnumerable<IntVec3> Neighbors(Thing thing)
     {

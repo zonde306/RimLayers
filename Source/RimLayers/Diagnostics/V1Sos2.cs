@@ -1416,8 +1416,224 @@ internal static partial class V1Integration
             CheckEmptyAirStaysEmpty(space, sos2SpaceMap);
             CheckDeckAboveDoesNotBlockLiftOff(space);
             CheckLandingGhostSnapsDown(space);
+            CheckHullPartInVacuumKeepsItsNet(space, sos2SpaceMap);
+            CheckThirdDeckCarriesPower(space, sos2SpaceMap);
         }
         LookAtTheArrival();
+    }
+
+    /// <summary>
+    /// A hull part hanging on bare vacuum still reaches a power net.
+    /// </summary>
+    /// <remarks>
+    /// This is the case the player hit: SOS2 puts an interplanetary drive against the hull wall with no
+    /// deck under it, because in vacuum the hull carries the load and there is no floor to stand on.
+    /// Placement allowed it - <c>Structure/StructuralSupport.cs</c> asks
+    /// <c>Sos2Compatibility.AllowsHullPartInVacuum</c> before demanding a surface - but
+    /// <c>PowerLinks.HasSurface</c> demanded one anyway, <c>LayerPowerSurfacePatch</c> cleared
+    /// <c>TransmitsPowerNow</c>, and the part was dropped out of its own net. The inspect string then
+    /// reads "not connected to a power net" on a part that is plainly bolted to a working ship.
+    /// <para>
+    /// The part is one cell here (<c>Ship_Thruster</c>) so the assertion can speak about exactly one
+    /// column, and it is spawned on a vacuum cell with no foundation, which is the condition that used
+    /// to fail.
+    /// </para>
+    /// </remarks>
+    private static void CheckHullPartInVacuumKeepsItsNet(LayerMapComponent space, Map spaceMap)
+    {
+        const string name = "sos2-a-hull-part-in-vacuum-keeps-its-power-net";
+        ThingDef? thruster = DefDatabase<ThingDef>.GetNamedSilentFail("Ship_Thruster");
+        if (thruster == null || !Sos2Compatibility.IsSpaceMap(spaceMap))
+        {
+            Check(name, false, $"thruster={thruster?.defName}, space={Sos2Compatibility.IsSpaceMap(spaceMap)}");
+            return;
+        }
+        // A cell on an upper band with no surface and no foundation: bare vacuum, exactly where the
+        // player hung the drive. It also must not be the same cell as the one the deck above the deck
+        // test uses, so nothing is measured against terrain this test did not lay.
+        IntVec3 vacuum = IntVec3.Invalid;
+        foreach (IntVec3 c in space.LayerRect(space.Layout!.LayerCount - 1))
+        {
+            if (space.Structure.HasSurface(c)) continue;
+            if (spaceMap.terrainGrid.FoundationAt(c) != null) continue;
+            if (!space.TryDecode(c, out var at) || at.LayerId == 0) continue;
+            vacuum = c;
+            break;
+        }
+        if (!vacuum.IsValid)
+        {
+            Check(name, false, "no bare vacuum cell on an upper band");
+            return;
+        }
+        Building? part = null;
+        try
+        {
+            part = (Building)ThingMaker.MakeThing(thruster);
+            part.SetFaction(Faction.OfPlayer);
+            GenSpawn.Spawn(part, vacuum, spaceMap, Rot4.North);
+            spaceMap.powerNetManager.UpdatePowerNetsAndConnections_First();
+            bool transmits = part.TransmitsPowerNow;
+            // A ship part with no net is the failure. It has to transmit (or it is not a node at all),
+            // and the player-visible sentence must not be the refusal.
+            string inspect = part.PowerComp?.CompInspectStringExtra() ?? "<none>";
+            bool noComplaint = !inspect.Contains("PowerNotConnected") && !inspect.Contains("未接入电网");
+            bool surface = space.Structure.HasSurface(vacuum);
+            Check(name, transmits && noComplaint,
+                $"cell={vacuum}, surface={surface}, foundation={spaceMap.terrainGrid.FoundationAt(vacuum)?.defName ?? "none"}, " +
+                $"transmits={transmits}, inspect='{inspect.Replace("\n", " / ")}'");
+        }
+        finally
+        {
+            if (part is { Spawned: true }) part.Destroy(DestroyMode.Vanish);
+        }
+    }
+
+    /// <summary>
+    /// A part on the third deck ends up on a working power net, not merely on a surface the model likes.
+    /// </summary>
+    /// <remarks>
+    /// The player reported a part on the third floor saying "not connected to a power net" while the
+    /// same part on the ground floor was fine. Two different rules can produce that message and an
+    /// earlier version of this assertion only tested the first:
+    ///
+    /// 1. <c>LayerPowerSurfacePatch</c> clears <c>TransmitsPowerNow</c> on a building that is not
+    ///    entirely on a valid surface. A non-transmitting building is dropped from
+    ///    <c>PowerNetMaker.ContiguousPowerBuildings</c>' flood, so it can end up with no net at all.
+    /// 2. The part may transmit fine but never find a transmitter, because
+    ///    <c>LayerPowerConnectorQueryPatch</c> and <c>LayerPowerParentGuardPatch</c> keep native
+    ///    power connections inside one band.
+    ///
+    /// <c>Verse.CompPower.CompInspectStringExtra</c> returns <c>PowerNotConnected</c> when
+    /// <c>PowerNet == null</c>, which is exactly what the player saw, so both rules are checked here.
+    /// A wall cannot answer either question - it does not transmit - so the probe is a real powered
+    /// part instead, wired the way a player would wire it: a conduit run along the deck.
+    /// </remarks>
+    private static void CheckThirdDeckCarriesPower(LayerMapComponent space, Map spaceMap)
+    {
+        const string name = "sos2-a-third-deck-carries-power";
+        if (StructuralSupport.Sos2Deck is not { } deck || space.Layout is not { LayerCount: >= 2 } layout)
+        {
+            Check(name, false, $"deck={StructuralSupport.Sos2Deck?.defName}, layout={space.Layout}");
+            return;
+        }
+        // Grow the space map by one band and re-read the component: expansion replaces the layout.
+        int target = layout.HighestElevation + 1;
+        RimLayersMod.Settings.UpperLimit = Math.Max(RimLayersMod.Settings.UpperLimit, target);
+        RimLayersMod.Settings.GlobalLimit = Math.Max(RimLayersMod.Settings.GlobalLimit, 20);
+        try
+        {
+            LiveMapExpansion.EnsureElevation(spaceMap, target);
+        }
+        catch (Exception exception)
+        {
+            Check(name, false, "could not add a third band: " + exception.Message);
+            return;
+        }
+        var owner = LayerMapComponent.For(spaceMap);
+        if (owner?.Layout is not { } grown || grown.TryGetLayerAtElevation(2, out int third) == false)
+        {
+            Check(name, false, $"layers={owner?.Layout?.LayerCount}, no elevation 2");
+            return;
+        }
+        // Lay a contiguous deck on the third band. Scattered cells are useless here: power conduits
+        // only connect across cardinal neighbours and a generator is 2x2, so the probe needs a solid
+        // block, not the first 25 decked cells in whatever order LayerRect yields. The block is
+        // anchored on band 1 cells that are themselves decked, because the hull is translated when it
+        // launches (the engine alone moves about +21/+22) and the fixture's own coordinates no longer
+        // point at the ship.
+        //
+        // LayerRect returns STORAGE coordinates (its z already includes the band's stride). Feeding
+        // those straight back into AtElevation adds the stride twice and throws out of ToStorage, so
+        // every cell from here on is decoded to a logical LayerCell first.
+        const int block = 5;
+        var cells = new List<IntVec3>();
+        CellRect placed = default;
+        foreach (IntVec3 storage in owner.LayerRect(1))
+        {
+            if (spaceMap.terrainGrid.FoundationAt(storage) == null) continue;
+            if (!owner.TryDecode(storage, out var seed)) continue;
+            var rect = new CellRect(seed.X, seed.Z, block, block);
+            if (!rect.InBounds(spaceMap)) continue;
+            bool solid = true;
+            foreach (IntVec3 c in rect)
+            {
+                var lower = owner.ToStorage(new LayerCell(seed.LayerId, c.x, c.z));
+                if (!lower.IsValid || spaceMap.terrainGrid.FoundationAt(lower) == null) { solid = false; break; }
+            }
+            if (!solid) continue;
+            placed = rect;
+            break;
+        }
+        if (placed.IsEmpty)
+        {
+            Check(name, false, $"layers={grown.LayerCount}, no solid {block}x{block} decked block on band 1");
+            return;
+        }
+        // third is a layer index, not an elevation; they only coincide on bands 0 and 1.
+        foreach (IntVec3 c in placed) cells.Add(owner.ToStorage(new LayerCell(third, c.x, c.z)));
+        int laid = 0;
+        foreach (IntVec3 cell in cells)
+        {
+            ShipDeckTerrain.InstallDeck(owner, cell, deck);
+            if (StructuralSupport.IsSos2DeckTerrain(spaceMap.terrainGrid.FoundationAt(cell))) laid++;
+        }
+        IntVec3 probe = cells[cells.Count / 2];
+        // Power the deck the way a player does: a conduit along the laid deck plus a reactor to put
+        // energy behind it. The reactor is a CompPowerTrader with transmitsPower, so it is a node in
+        // the flood like the player's engine, and the conduit is the transmitter that has to be found.
+        var conduits = new List<Building>();
+        Building? reactor = null;
+        Building? heater = null;
+        try
+        {
+            // A conduit line straight through the block, so the generator has something to attach to
+            // that reaches the load. Laid first: the generator is a connector too and tries to find a
+            // transmitter the moment it spawns.
+            var row = placed.minX + 2;
+            for (int z = placed.minZ; z <= placed.maxZ; z++)
+            {
+                var conduit = (Building)ThingMaker.MakeThing(ThingDefOf.PowerConduit);
+                conduit.SetFaction(Faction.OfPlayer);
+                GenSpawn.Spawn(conduit, owner.ToStorage(new LayerCell(third, row, z)), spaceMap, Rot4.North);
+                conduits.Add(conduit);
+            }
+            // A generator is 2x2 and must sit fully on the deck; anchor it on the conduit row.
+            reactor = (Building)ThingMaker.MakeThing(ThingDefOf.ChemfuelPoweredGenerator);
+            reactor.SetFaction(Faction.OfPlayer);
+            GenSpawn.Spawn(reactor, owner.ToStorage(new LayerCell(third, row, placed.minZ + 1)), spaceMap, Rot4.North);
+            // The load: a single-cell consumer that reports the exact message the player saw.
+            heater = (Building)ThingMaker.MakeThing(ThingDefOf.Heater);
+            heater.SetFaction(Faction.OfPlayer);
+            GenSpawn.Spawn(heater, owner.ToStorage(new LayerCell(third, row, placed.maxZ)), spaceMap, Rot4.North);
+            // Native power nets are rebuilt on a tick boundary; a connector spawned this tick is not in
+            // PowerNetGrid yet (the same staleness Area and PathGrid have), so let one pass happen.
+            spaceMap.powerNetManager.UpdatePowerNetsAndConnections_First();
+            bool surface = owner.Structure.HasSurface(probe);
+            bool neededRoof = owner.Structure.HasRequiredRoof(probe);
+            bool lowerSurface = owner.Structure.HasSurface(owner.Adjacent(probe, -1));
+            bool conduitTransmits = conduits.Count > 0 && conduits[0].TransmitsPowerNow;
+            bool reactorTransmits = reactor.TransmitsPowerNow;
+            var heaterPower = heater.GetComp<CompPowerTrader>();
+            bool heaterConnected = heaterPower?.PowerNet != null;
+            // What the player actually sees: Verse.CompPower.CompInspectStringExtra returns
+            // PowerNotConnected when PowerNet is null. A heater consumes power and never transmits it,
+            // so TransmitsPowerNow is not the question - being on a net is.
+            string inspect = heaterPower?.CompInspectStringExtra() ?? "<no CompPowerTrader>";
+            bool noComplaint = !inspect.Contains("PowerNotConnected") && !inspect.Contains("未接入电网") &&
+                               !inspect.Contains("Not connected");
+            Check(name, surface && neededRoof && reactorTransmits && heaterConnected && noComplaint,
+                $"laid={laid}, surface={surface}, requiredRoof={neededRoof}, lowerSurface={lowerSurface}, " +
+                $"conduitTransmits={conduitTransmits}, reactorTransmits={reactorTransmits}, " +
+                $"heaterNet={(heaterConnected ? "yes" : "no")}, inspect='{inspect.Replace("\n", " / ")}', " +
+                $"foundation={spaceMap.terrainGrid.FoundationAt(probe)?.defName}, layer={third}");
+        }
+        finally
+        {
+            if (heater is { Spawned: true }) heater.Destroy(DestroyMode.Vanish);
+            if (reactor is { Spawned: true }) reactor.Destroy(DestroyMode.Vanish);
+            foreach (var conduit in conduits)
+                if (conduit is { Spawned: true }) conduit.Destroy(DestroyMode.Vanish);
+        }
     }
 
     /// <summary>
