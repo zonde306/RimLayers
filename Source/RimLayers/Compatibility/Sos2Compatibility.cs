@@ -86,6 +86,8 @@ internal static class Sos2Compatibility
         // two native support roofs.
         StructuralSupport.RegisterSupportRoof(roof => roof != null && roof.defName == "RoofShip");
         LiveMapExpansion.Committed += OnExpanded;
+        // A hull's decks are storage bands, so a map it enters must be at least as tall as the hull.
+        LiveMapExpansion.RegisterRequirement(RequiredElevation);
 
         Active = true;
         // Every patch class is applied in isolation. This runs from the Mod constructor, where a
@@ -101,6 +103,8 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2DeckRegistryPatches));
         Patch(harmony, typeof(Sos2DeckMovePatch));
         Patch(harmony, typeof(Sos2RepowerPatches));
+        Patch(harmony, typeof(Sos2MoveGhostPatches));
+        Patch(harmony, typeof(Sos2LaunchFocusPatch));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
     }
@@ -240,6 +244,32 @@ internal static class Sos2Compatibility
         comp == null || mapShipCellsGetter == null ? null : mapShipCellsGetter.Invoke(comp, null) as IDictionary;
 
     internal static bool HasShipCells(MapComponent? comp) => comp != null && ShipCellsOf(comp) is { Count: > 0 };
+
+    /// <summary>
+    /// Highest elevation this map's ships occupy, or 0 when no ship is registered on it.
+    /// </summary>
+    /// <remarks>
+    /// A hull stores one band per deck and writes its cells into <c>MapShipCells</c> and the home area
+    /// one at a time. A destination with fewer bands than the hull has decks makes the first
+    /// out-of-range cell throw inside <c>MoveShip</c>, leaving the hull half transferred - what the
+    /// player sees as a ship stuck in the air and then collapsing. Reporting the need here lets
+    /// <c>LiveMapExpansion.EnsureRequirements</c> grow the map through the normal expansion
+    /// transaction before the move starts.
+    /// </remarks>
+    internal static int RequiredElevation(Map? map)
+    {
+        LayerMapComponent? owner = LayerMapComponent.For(map);
+        if (owner?.Layout is not { } layout) return 0;
+        if (ShipCellsOf(map) is not { } cells) return 0;
+        int required = 0;
+        foreach (object? key in cells.Keys)
+        {
+            if (key is not IntVec3 cell || !owner.TryDecode(cell, out LayerCell logical)) continue;
+            int elevation = layout.ElevationOf(logical.LayerId);
+            if (elevation > required) required = elevation;
+        }
+        return required;
+    }
 
     /// <summary>The live <c>ShipsOnMap</c> dictionary, or null when SOS2 is absent.</summary>
     internal static IDictionary? ShipsOnMapOf(Map? map)

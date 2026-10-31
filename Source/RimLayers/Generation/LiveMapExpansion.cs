@@ -39,6 +39,70 @@ internal static class LiveMapExpansion
         }
     }
 
+    /// <summary>
+    /// Height requirements declared by adapters whose entities span bands they do not own.
+    /// </summary>
+    /// <remarks>
+    /// An SOS2 hull can hold more decks than the map it is about to enter: space maps are generated
+    /// from the origin map's size, so a hull that gained a deck upstairs still lands on a map with only
+    /// the bands it launched with. The hull then writes its upper cells into storage coordinates that
+    /// do not exist, and because <c>MoveShip</c> fills those per cell, the exception lands mid-move and
+    /// leaves the ship half transferred.
+    /// <para>
+    /// Adapters register a query here instead of patching the landing path themselves, so the growth
+    /// happens inside the same transaction every other expansion uses (buffer repair, region rebuild,
+    /// committed notification) rather than as an ad-hoc second resize.
+    /// </para>
+    /// </remarks>
+    private static readonly List<Func<Map,int>> requirements=new();
+
+    internal static void RegisterRequirement(Func<Map,int> requirement)
+    {
+        if(requirement==null||requirements.Contains(requirement))return;
+        requirements.Add(requirement);
+    }
+
+    /// <summary>Highest elevation any adapter still needs on this map; 0 when nothing is registered.</summary>
+    private static int RequiredElevation(Map map)
+    {
+        int required=0;
+        foreach(var requirement in requirements)
+        {
+            try {int elevation=requirement(map); if(elevation>required)required=elevation;}
+            catch(Exception exception) {Log.Error($"[RimLayers] A layer requirement query failed and was skipped.\n{exception}");}
+        }
+        return required;
+    }
+
+    /// <summary>
+    /// Grows the map until every registered requirement is satisfied. Safe to call before a
+    /// cross-map transfer: a map that is already tall enough costs one dictionary-free loop.
+    /// </summary>
+    internal static bool EnsureRequirements(Map map)
+    {
+        bool grew=false;
+        // Each pass satisfies the tallest outstanding requirement. A requirement can depend on how tall
+        // the map already is (a hull's top deck is only meaningful once a lower deck exists), so the
+        // loop repeats until nothing is left to claim; MaxElevation bounds it.
+        for(int attempt=0;attempt<=LayerLayout.MaxElevation;attempt++)
+        {
+            int elevation=RequiredElevation(map);
+            if(elevation<=0)return grew;
+            var layout=LayerMapComponent.For(map)?.Layout;
+            if(layout!=null&&layout.TryGetLayerAtElevation(elevation,out _))return grew;
+            // A quota denial is the player's configured ceiling, not a bug: report it and let the
+            // caller decide. Every other failure would be a real defect, so it propagates.
+            try {EnsureElevation(map,elevation);}
+            catch(InvalidOperationException quota)
+            {
+                Log.Warning("[RimLayers] A map could not grow tall enough for an incoming ship: "+quota.Message);
+                return grew;
+            }
+            grew=true;
+        }
+        return grew;
+    }
+
     internal static bool CanExpand(Map map)=>!map.Disposed&&!map.IsPocketMap&&map.generatorDef?.isUnderground!=true&&map.Size.y==1&&map.Size.x>0&&map.Size.z>0;
 
     // beforeCommit is an isolation-test fault/validation seam.

@@ -43,6 +43,15 @@ internal static class Sos2DeckMovePatch
     {
         __state = null;
         if (!Sos2Compatibility.Active || core?.Map == null || targetMap == null) return;
+
+        // The target must be at least as tall as the hull before anything is written into it.
+        // MapShipCells, the home area and the terrain loop all index the target with storage
+        // coordinates taken from the source, so a hull that gained a deck upstairs and then lands on a
+        // map generated with fewer bands throws on the first out-of-range cell - mid-move, with half
+        // the hull already transferred. Growing here covers launch, landing, and in-place moves alike,
+        // because every one of them goes through MoveShip.
+        Generation.LiveMapExpansion.EnsureRequirements(targetMap);
+
         Map source = core.Map;
         LayerMapComponent? owner = LayerMapComponent.For(source);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return;

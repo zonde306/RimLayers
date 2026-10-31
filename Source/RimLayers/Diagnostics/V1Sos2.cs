@@ -1433,6 +1433,60 @@ internal static partial class V1Integration
         Find.CameraDriver.SetRootPosAndSize(target.ToVector3Shifted(), 14f);
         Check("sos2-launch-arrival-shot-target", true,
             $"layer={onDeck}, pos=({target.x},{target.z}), things={sos2SpaceMap.thingGrid.ThingsListAt(target).Count}");
+        // The move ghost is laid out as pos - lowestCorner. A storage-coordinate lowest corner makes the
+        // sketch as tall as the whole map, so every cell fails InBounds and the designator paints red on
+        // every floor with no message. The repair lives in PlaceWorker_MoveShip.AllowsPlacing, which now
+        // judges only the bottom band; that is what gets asserted here.
+        object? cache = Sos2ShipCache(sos2SpaceMap);
+        if (cache != null && space.Layout is { LayerCount: > 1 } ghostLayout)
+        {
+            MethodInfo? lowest = AccessTools.Method(cache.GetType(), "LowestCorner", new[] { typeof(byte), typeof(Map) });
+            object? corner = lowest?.Invoke(cache, new object[] { (byte)0, sos2SpaceMap });
+            int cornerZ = corner is IntVec3 c ? c.z : -1;
+            // The lowest corner itself sits inside the first band - band 0 starts at storage z 0. What
+            // breaks the ghost is the SPAN: the sketch is laid out as pos - lowestCorner, so a hull whose
+            // upper deck lives at stride+122 produces rows past the first floor's height and every one of
+            // them fails InBounds. Measuring the span is what actually pins that down.
+            int maxZ = int.MinValue;
+            if (AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is System.Collections.IEnumerable cells)
+                foreach (object? item in cells)
+                    if (item is IntVec3 cell && cell.z > maxZ) maxZ = cell.z;
+            int span = maxZ == int.MinValue ? 0 : maxZ - cornerZ;
+            Check("sos2-move-ghost-sketch-is-taller-than-one-floor", span >= ghostLayout.Height,
+                $"lowestCorner.z={cornerZ}, max.z={maxZ}, span={span}, floorHeight={ghostLayout.Height}, stride={ghostLayout.Stride}, bands={ghostLayout.LayerCount}");
+            System.Type? worker = AccessTools.TypeByName("SaveOurShip2.PlaceWorker_MoveShip");
+            MethodInfo? allows = worker == null ? null : AccessTools.Method(worker, "AllowsPlacing", new[]
+            {
+                typeof(BuildableDef), typeof(IntVec3), typeof(Rot4), typeof(Map), typeof(Thing), typeof(Thing)
+            });
+            Check("sos2-move-ghost-worker-is-reachable", allows != null, $"worker={(worker != null)}, method={(allows != null)}");
+            // The real area is never borrowed any more: the ghost is judged inside the place worker. This
+            // guard means a future attempt to swap Area is caught immediately instead of after it has
+            // corrupted region registration.
+            var area = (System.Collections.IEnumerable?)AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache);
+            int upper = 0, offBand = 0;
+            if (area != null)
+                foreach (object? item in area)
+                {
+                    if (item is not IntVec3 cell) continue;
+                    if (!space.TryDecode(cell, out LayerCell decoded)) { offBand++; continue; }
+                    if (decoded.LayerId > 0) upper++;
+                }
+            Check("sos2-move-ghost-leaves-the-real-area-alone", upper > 0 && offBand == 0,
+                $"upper={upper}, undecodable={offBand}");
+        }
+
+        // A hull that gained a deck upstairs must not land on a map with fewer bands: MoveShip writes
+        // storage coordinates cell by cell, so the first out-of-range cell throws mid-move and leaves the
+        // hull half transferred. The adapter declares the need and LiveMapExpansion grows the target
+        // before the move, so assert both halves of that contract.
+        int required = Sos2Compatibility.RequiredElevation(sos2SpaceMap);
+        int have = space.Layout?.HighestElevation ?? 0;
+        Check("sos2-a-hull-declares-the-floor-it-needs", required > 0, $"required={required}, highest={have}");
+        Check("sos2-the-space-map-meets-that-floor-demand", required <= have, $"required={required}, highest={have}");
+        // And the growth really happens through the shared transaction rather than an ad-hoc resize.
+        bool grew = RimLayers.Generation.LiveMapExpansion.EnsureRequirements(sos2SpaceMap);
+        Check("sos2-a-tall-enough-map-is-not-grown-again", !grew, $"grew={grew}, highest={space.Layout?.HighestElevation}");
         // pendingScreenshot is only honoured while screenshotHold counts down; without the hold the
         // file is requested and the run ends before a frame is ever drawn.
         pendingScreenshot = Path.Combine(directory, "sos2-space-arrival.png");
