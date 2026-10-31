@@ -104,6 +104,7 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2DeckMovePatch));
         Patch(harmony, typeof(Sos2RepowerPatches));
         Patch(harmony, typeof(Sos2MoveGhostPatches));
+        Patch(harmony, typeof(Sos2SketchFloorPatch));
         Patch(harmony, typeof(Sos2LaunchFocusPatch));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");

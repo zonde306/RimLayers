@@ -1487,6 +1487,23 @@ internal static partial class V1Integration
         // And the growth really happens through the shared transaction rather than an ad-hoc resize.
         bool grew = RimLayers.Generation.LiveMapExpansion.EnsureRequirements(sos2SpaceMap);
         Check("sos2-a-tall-enough-map-is-not-grown-again", !grew, $"grew={grew}, highest={space.Layout?.HighestElevation}");
+        // The move ghost is an Install designator, so every cell outside the viewed floor reads as no cell
+        // at all (MouseCellPatch returns IntVec3.Invalid). A player who launched from upstairs and is still
+        // looking upstairs therefore gets a tool that silently accepts nothing. Opening the sketch has to
+        // drop the view to the floor the hull actually stands on.
+        if (space.Layout is { LayerCount: > 1 })
+        {
+            space.Layout!.TryGetLayerAtElevation(0, out int ground);
+            RimLayers.Presentation.LayerView.Switch(space, ground + 1);
+            Check("sos2-the-view-starts-off-the-ground-floor", space.ViewedLayer != ground,
+                $"viewed={space.ViewedLayer}, ground={ground}");
+            bool moved = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
+            Check("sos2-opening-the-move-ghost-drops-to-the-ground-floor", moved && space.ViewedLayer == ground,
+                $"moved={moved}, viewed={space.ViewedLayer}, ground={ground}");
+            bool again = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
+            Check("sos2-a-view-already-on-the-ground-floor-is-left-alone", !again,
+                $"moved={again}, viewed={space.ViewedLayer}");
+        }
         // pendingScreenshot is only honoured while screenshotHold counts down; without the hold the
         // file is requested and the run ends before a frame is ever drawn.
         pendingScreenshot = Path.Combine(directory, "sos2-space-arrival.png");
