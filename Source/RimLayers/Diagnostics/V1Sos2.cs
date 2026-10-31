@@ -158,7 +158,7 @@ internal static partial class V1Integration
             Check("sos2-def-" + defName + "-exists", false, "missing ThingDef");
             return null;
         }
-        var building = (Building)ThingMaker.MakeThing(def);
+        var building = (Building)ThingMaker.MakeThing(def, def.MadeFromStuff ? GenStuff.DefaultStuffFor(def) : null);
         building.SetFaction(Faction.OfPlayer);
         GenSpawn.Spawn(building, cell, target, rot);
         return building;
@@ -408,6 +408,13 @@ internal static partial class V1Integration
         if (sos2Phase == 9)
         {
             Sos2StairStep();
+            sos2Phase = 11;
+            ticks = 0;
+            return;
+        }
+        if (sos2Phase == 11)
+        {
+            Sos2RealShipStep();
             sos2Phase = 10;
             ticks = 0;
             return;
@@ -841,6 +848,178 @@ internal static partial class V1Integration
     /// </summary>
     private static readonly CellRect sos2StairSite = new(76, 76, 8, 8);
     private static IntVec3 sos2StairCell = IntVec3.Invalid;
+
+    private static int realShipIndex = -1;
+
+    /// <summary>
+    /// A real player hull, replayed from <c>Tests/Fixtures/realship.json</c>. Every fixture above is a
+    /// pad a few cells wide, built from the parts that phase happened to need; none has an upper deck
+    /// that is a solid hull with a hollow deck between, and none carries the riser and conduit counts
+    /// that decide whether the layers share a net. This replays 890 parts across three decks of one
+    /// hull extracted from a save, so later phases can ask their questions of a ship the game produced.
+    /// </summary>
+    /// <remarks>
+    /// Parts whose ThingDef is missing are counted and skipped instead of failing: the fixture came out
+    /// of a heavily modded save, and a hull that is 95% intact still answers what these phases ask. What
+    /// is asserted is that the decks, the risers and the caches came through - not that every
+    /// third-party def still exists on this machine.
+    /// </remarks>
+    private static void Sos2RealShipStep()
+    {
+        var component = LayerMapComponent.For(map);
+        if (component?.Layout == null)
+        {
+            Check("sos2-realship-has-layers", false, "no LayerMapComponent");
+            return;
+        }
+        string fixture = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(typeof(V1Integration).Assembly.Location)!,
+            "..", "Tests", "Fixtures", "realship.json");
+        if (!System.IO.File.Exists(fixture))
+        {
+            Check("sos2-realship-fixture-exists", false, fixture);
+            return;
+        }
+        JsonDocument document;
+        try
+        {
+            document = JsonDocument.Parse(System.IO.File.ReadAllText(fixture));
+        }
+        catch (Exception exception)
+        {
+            Check("sos2-realship-fixture-parses", false, exception.Message);
+            return;
+        }
+        using var _ = document;
+        JsonElement root = document.RootElement;
+        int width = root.GetProperty("w").GetInt32();
+        int length = root.GetProperty("h").GetInt32();
+        JsonElement parts = root.GetProperty("parts");
+        int needed = 0;
+        foreach (JsonElement part in parts.EnumerateArray())
+            needed = Math.Max(needed, part.GetProperty("b").GetInt32() + 1);
+        // Far corner of the map, away from every pad an earlier phase built, so this hull cannot be
+        // mistaken for one of them by any lookup that goes through the ship's cells.
+        int originX = component.Layout.Width - width - 12;
+        int originZ = component.Layout.Height - length - 12;
+        Check("sos2-realship-three-decks-on-the-map", component.Layout.LayerCount >= needed,
+            $"layers={component.Layout.LayerCount}, needed={needed}, at=({originX},{originZ}) {width}x{length}");
+        if (component.Layout.LayerCount < needed) return;
+
+        foreach (JsonElement part in parts.EnumerateArray())
+        {
+            int layer = part.GetProperty("b").GetInt32();
+            IntVec3 cell = component.AtElevation(layer, originX + part.GetProperty("x").GetInt32(),
+                originZ + part.GetProperty("z").GetInt32());
+            foreach (Thing t in cell.GetThingList(map).ToList())
+                if (t is not Pawn)
+                {
+                    if (t.def.destroyable) t.Destroy(DestroyMode.Vanish);
+                    else t.DeSpawn();
+                }
+        }
+
+        int spawned = 0, missing = 0;
+        var missingDefs = new HashSet<string>();
+        var perLayer = new int[needed];
+        Building? realBridge = null;
+        foreach (JsonElement part in parts.EnumerateArray())
+        {
+            string? defName = part.GetProperty("d").GetString();
+            if (defName == null) continue;
+            ThingDef? def = DefDatabase<ThingDef>.GetNamedSilentFail(defName);
+            if (def == null)
+            {
+                missing++;
+                missingDefs.Add(defName);
+                continue;
+            }
+            // The save also holds pawns, plants and animals that happened to stand on the hull. They
+            // are not ship parts and this step is not about them, so only a missing def is reported.
+            if (def.thingClass == null || !typeof(Building).IsAssignableFrom(def.thingClass)) continue;
+            int layer = part.GetProperty("b").GetInt32();
+            IntVec3 cell = component.AtElevation(layer, originX + part.GetProperty("x").GetInt32(),
+                originZ + part.GetProperty("z").GetInt32());
+            string? rotRaw = part.GetProperty("r").GetString();
+            Rot4 rot = rotRaw != null && int.TryParse(rotRaw, out int raw) ? new Rot4(raw) : Rot4.North;
+            Building? building = SpawnSos2On(map, defName, cell, rot);
+            if (building == null)
+            {
+                missing++;
+                missingDefs.Add(defName);
+                continue;
+            }
+            spawned++;
+            perLayer[layer]++;
+            if (defName is "ShipPilotSeatMini" or "ShipBridge" or "ShipBridgeSmall") realBridge ??= building;
+        }
+        Check("sos2-realship-parts-spawn", spawned > 700,
+            $"spawned={spawned}, missing={missing}, missingDefs={string.Join(",", missingDefs.Take(6))}");
+        Check("sos2-realship-every-deck-is-populated", perLayer.All(n => n > 50),
+            string.Join(",", perLayer.Select((n, i) => $"L{i}={n}")));
+        Check("sos2-realship-has-a-bridge", realBridge != null, $"hull spawned={spawned}");
+        if (realBridge == null) return;
+
+        RecacheSos2();
+        int index = Sos2Compatibility.ShipIndexAt(map, realBridge.Position);
+        object? cache = index >= 0 ? Sos2ShipCache(map, index) : null;
+        Check("sos2-realship-becomes-one-ship", cache != null,
+            $"index={index}, bridge={realBridge.Position}, ships={Sos2ShipCount()}");
+        if (cache == null) return;
+        realShipIndex = index;
+
+        // The deck counts are the point: a hull whose upper decks never joined the cache answers every
+        // later question about a single-layer ship and still looks fine.
+        System.Collections.IDictionary? cells = Sos2Compatibility.ShipCellsOf(sos2ShipComp);
+        var decks = new SortedSet<int>();
+        int mine = 0;
+        if (cells != null)
+            foreach (IntVec3 key in cells.Keys)
+            {
+                if (Sos2Compatibility.ShipIndexAt(map, key) != index) continue;
+                mine++;
+                if (component.TryDecode(key, out LayerCell logical)) decks.Add(logical.LayerId);
+            }
+        Check("sos2-realship-keeps-all-three-decks", decks.Count >= needed,
+            $"decks={string.Join(",", decks)}, cells={mine}, tracked={cells?.Count}");
+        Check("sos2-realship-caches-its-engines", CacheCount(cache, "Engines") > 0,
+            $"engines={CacheCount(cache, "Engines")}, index={index}");
+        // Heat sinks are not a cache list; SOS2 keeps them as CompShipHeat on the parts themselves, so
+        // they are counted the way a player would see them: buildings carrying a comp with a capacity.
+        // RimLayers does not reference the SOS2 assembly at compile time, so this goes through a
+        // reflection lookup like every other SOS2 type in this file.
+        int heatSinks = 0;
+        float heatStorage = 0f;
+        Type? heatType = AccessTools.TypeByName("SaveOurShip2.CompShipHeat");
+        if (heatType != null)
+            foreach (Thing thing in map.listerThings.AllThings)
+            {
+                if (thing is not Building building || Sos2Compatibility.ShipIndexAt(map, building.Position) != index) continue;
+                ThingComp? heat = building.AllComps.FirstOrDefault(c => heatType.IsInstanceOfType(c));
+                object? props = heat?.props;
+                if (props == null) continue;
+                // heatCapacity is a float; casting it to int silently yielded 0 and made this check
+                // report "no sinks" on a hull that has six of them.
+                float capacity = AccessTools.Field(props.GetType(), "heatCapacity")?.GetValue(props) switch
+                {
+                    float f => f,
+                    int i => i,
+                    _ => 0f
+                };
+                if (capacity <= 0f) continue;
+                heatSinks++;
+                heatStorage += capacity;
+            }
+        Check("sos2-realship-caches-its-heat-sinks", heatSinks >= 3, $"sinks={heatSinks}, storage={heatStorage}");        int risers = 0;
+        foreach (Thing thing in map.listerThings.AllThings)
+            if (thing.def.defName is "RL_PowerRiser" or "RL_HeatRiser")
+                foreach (IntVec3 cell in thing.OccupiedRect())
+                    if (Sos2Compatibility.ShipIndexAt(map, cell) == index)
+                    {
+                        risers++;
+                        break;
+                    }
+        Check("sos2-realship-carries-its-risers", risers >= 6, $"risers={risers}, index={index}");
+    }
 
     private static void Sos2StairStep()
     {

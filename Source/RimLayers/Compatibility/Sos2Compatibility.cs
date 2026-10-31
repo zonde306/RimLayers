@@ -74,6 +74,8 @@ internal static class Sos2Compatibility
         // need the concrete type the adapter deliberately has no reference to) - invoke it instead.
         mapShipCellsGetter = AccessTools.PropertyGetter(shipMapComp, "MapShipCells");
         shipMapGrid = AccessTools.Field(shipMapComp, "grid");
+        // Set for the whole of MoveShip and every cache rebuild; nothing on the map has a room then.
+        MoveShipFlagGet = AccessTools.Field(shipInterior, "MoveShipFlag");
         heatGridDirty = AccessTools.Field(shipMapComp, "heatGridDirty");
         breathableZoneDirty = AccessTools.Field(shipMapComp, "breathableZoneDirty");
 
@@ -105,6 +107,7 @@ internal static class Sos2Compatibility
         Patch(harmony, typeof(Sos2RepowerPatches));
         Patch(harmony, typeof(Sos2MoveGhostPatches));
         Patch(harmony, typeof(Sos2SketchFloorPatch));
+        Patch(harmony, typeof(Sos2ShipCommandTracePatch));
         Patch(harmony, typeof(Sos2LaunchFocusPatch));
         Patch(harmony, typeof(Sos2TerrainPatches));
         Log.Message("[RimLayers] Save Our Ship 2 adapter installed (multi-deck hulls, banded geometry, heat nets across decks).");
@@ -312,6 +315,34 @@ internal static class Sos2Compatibility
 
     internal static MapComponent? ShipCompOf(Map? map) =>
         shipMapComp == null || map == null ? null : map.GetComponent(shipMapComp);
+
+    /// <summary>
+    /// True while SOS2 is rebuilding a map's ship cache, moving a hull between maps or rewriting cells
+    /// in bulk. Room data is stale or absent for the whole window.
+    /// </summary>
+    /// <remarks>
+    /// <c>MoveShip</c> runs with <c>MoveShipFlag</c> set and re-spawns every hull part, which makes
+    /// <c>CompShipCachePart.PostSpawnSetup</c> return before registering the cell - the same gap that
+    /// leaves <c>MapShipCells</c> short of <c>SpaceShipCache.Area</c>. It also flips
+    /// <c>RegionAndRoomUpdater.Disabled</c> while it rewrites terrain, so any room query during the move
+    /// warns from <c>Room.GetRoom</c> and returns null. Anything that touches rooms - the layered heat
+    /// exchange in particular - must sit out the whole window instead of logging once per column.
+    /// </remarks>
+    internal static bool MapTransactionRunning { get; private set; }
+
+    /// <summary>Raised while a SOS2 map transaction owns the map; call once per frame from a patch.</summary>
+    internal static bool RefreshMapTransaction(Map? map)
+    {
+        if (!Active || map == null)
+        {
+            MapTransactionRunning = false;
+            return false;
+        }
+        MapTransactionRunning = MoveShipFlagGet?.GetValue(null) is true || map.regionAndRoomUpdater is { Enabled: false };
+        return MapTransactionRunning;
+    }
+
+    private static FieldInfo? MoveShipFlagGet;
 
     /// <summary>The live <c>MapShipCells</c> dictionary, or null when SOS2 is absent.</summary>
     internal static IDictionary? ShipCellsOf(Map? map) => ShipCellsOf(ShipCompOf(map));

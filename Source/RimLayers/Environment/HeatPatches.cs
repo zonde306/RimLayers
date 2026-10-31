@@ -86,6 +86,11 @@ internal static class VerticalHeatTickPatch
     static void Postfix(Map ___map)
     {
         var owner=LayerMapComponent.For(___map);
-        if(owner!=null && (Find.TickManager.TicksGame%120==7 || DebugSettings.fastEcology)) owner.Heat.Exchange();
+        if(owner==null) return;
+        // MoveShip and cache rebuilds rewrite terrain and ship cells with RegionAndRoomUpdater disabled,
+        // so every room here would be null and every column would warn. Sit out those frames instead
+        // of flooding the log with thousands of lines in the middle of a landing.
+        if(Compatibility.Sos2Compatibility.RefreshMapTransaction(___map)) return;
+        if(Find.TickManager.TicksGame%120==7 || DebugSettings.fastEcology) owner.Heat.Exchange();
     }
 }

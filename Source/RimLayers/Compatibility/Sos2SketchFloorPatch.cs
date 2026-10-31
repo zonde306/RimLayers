@@ -198,6 +198,65 @@ internal static class Sos2SketchFloorPatch
 }
 
 /// <summary>
+/// Traces the three ship-command buttons so a dead one can be placed in the chain from the log
+/// alone. <c>CreateShipSketchIfFuelPct</c> is the gate every bridge button goes through; when the
+/// rotate and flip buttons leave no line here, the click never reached SOS2 and no higher-level
+/// guess about ghost arithmetic can be the cause.
+/// </summary>
+[HarmonyPatch]
+internal static class Sos2ShipCommandTracePatch
+{
+    private static MethodBase? TargetMethod()
+    {
+        System.Type? cache = AccessTools.TypeByName("SaveOurShip2.SpaceShipCache");
+        MethodInfo? original = cache == null
+            ? null
+            : AccessTools.Method(cache, "CreateShipSketchIfFuelPct",
+                new[] { typeof(float), typeof(Map), typeof(byte), typeof(bool) });
+        return original == null ? null : new HarmonyMethod(original).method;
+    }
+
+    private static void Prefix(byte rot, Map map, object __instance)
+    {
+        if (!Sos2Compatibility.Active) return;
+        // Report each gate's own answer instead of guessing which one refused. The three values are
+        // exactly what the method tests, and the fuel margin shows how far off a rebuild is.
+        object cache = __instance;
+        if (cache == null) return;
+        bool bridge = Call<bool>(__instance, "HasMannedBridge");
+        bool rcs = Call<bool>(__instance, "HasRCS", 0f);
+        float fuel = Call<float>(__instance, "FuelNeeded", false);
+        float mass = Property<float>(__instance, "MassActual");
+        Log.Message($"[RimLayers] SOS2 bridge command rot={rot} map={map} bands=" +
+                    (LayerMapComponent.For(map)?.Layout?.LayerCount ?? 1) +
+                    $" bridge={bridge} rcs={rcs} fuel={fuel} mass={mass}");
+    }
+
+    private static T Call<T>(object target, string name, params object[] args)
+    {
+        try
+        {
+            System.Type? type = target.GetType();
+            System.Type[] types = new System.Type[args.Length];
+            for (int i = 0; i < args.Length; i++) types[i] = args[i].GetType();
+            MethodInfo? method = AccessTools.Method(type, name, types);
+            return method == null ? default! : (T)method.Invoke(target, args)!;
+        }
+        catch (System.Exception) { return default!; }
+    }
+
+    private static T Property<T>(object target, string name)
+    {
+        try
+        {
+            PropertyInfo? property = AccessTools.Property(target.GetType(), name);
+            return property == null ? default! : (T)property.GetValue(target)!;
+        }
+        catch (System.Exception) { return default!; }
+    }
+}
+
+/// <summary>
 /// Replaces <c>SpaceShipCache.LowestCorner</c> for the one rotation whose reference corner is
 /// expressed in storage z.
 /// </summary>
