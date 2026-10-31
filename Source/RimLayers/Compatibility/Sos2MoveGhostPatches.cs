@@ -48,9 +48,12 @@ internal static class Sos2MoveGhostPatches
     /// Translates the ghost into one band before the native check runs, and puts the real geometry
     /// back afterwards. <c>originMap</c> is left alone: it is read by the move itself.
     /// </summary>
-    private static bool Prefix(Thing? thing, Map map, ref AcceptanceReport __result)
+    private static bool Prefix(BuildableDef def, IntVec3 loc, Map map, Thing? thing, ref AcceptanceReport __result)
     {
-        if (!Sos2Compatibility.Active || thing is not MinifiedThing mover) return true;
+        if (!Sos2Compatibility.Active) return true;
+        // AllowsPlacing is handed the blueprint, not the minified ship inside it. SOS2 reads
+        // shipSketch/extenderSketch/canBlastLand off ShipMoveBlueprint and so must this.
+        if (thing == null || thing.GetType().Name != "ShipMoveBlueprint") return true;
         LayerMapComponent? owner = LayerMapComponent.For(map);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return true;
 
@@ -71,7 +74,9 @@ internal static class Sos2MoveGhostPatches
             // the map does not even have yet is also fine: the target is grown to the hull's height
             // before the move (see LiveMapExpansion.EnsureRequirements).
             if (entity.pos.z > floor || entity.pos.z >= layout.Height) continue;
-            var cell = new IntVec3(entity.pos.x, 0, entity.pos.z);
+            // The sketch is drawn relative to the ghost's cursor cell. Without loc the whole test is
+            // run against the map origin, which is what made the preview red almost everywhere.
+            var cell = loc + new IntVec3(entity.pos.x, 0, entity.pos.z);
             if (!cell.InBounds(map))
             {
                 accept = false;
