@@ -64,7 +64,7 @@ public sealed class UndergroundService
     private static HashSet<TerrainDef>? stoneFloors;
     private static bool StoneFloor(TerrainDef terrain)=>(stoneFloors??=DefDatabase<ThingDef>.AllDefsListForReading.Where(d=>d.building?.isNaturalRock==true).SelectMany(d=>new TerrainDef?[]{d.building.naturalTerrain,d.building.leaveTerrain,d.building.naturalTerrain?.smoothedTerrain,d.building.leaveTerrain?.smoothedTerrain}).OfType<TerrainDef>().ToHashSet()).Contains(terrain);
     internal static bool DryLand(TerrainDef terrain)=>!terrain.IsWater&&!terrain.IsRiver&&
-        terrain!=TerrainDefOf.Ice&&terrain!=RimLayersDefOf.RL_OpenAir&&terrain!=RimLayersDefOf.RL_Isolation&&
+        terrain!=TerrainDefOf.Ice&&!Structure.StructuralSupport.IsOpenAir(terrain)&&terrain!=RimLayersDefOf.RL_Isolation&&
         terrain.defName is not ("LavaDeep" or "LavaShallow" or "RL_LavaDeep" or "RL_LavaShallow" or "Space" or "AncientMegastructure")&&
         !terrain.defName.StartsWith("Bridge",StringComparison.Ordinal)&&
         (terrain.natural||StoneFloor(terrain)||terrain.affordances.Contains(DefDatabase<TerrainAffordanceDef>.GetNamed("Diggable")));

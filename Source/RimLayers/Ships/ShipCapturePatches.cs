@@ -54,7 +54,7 @@ internal static class LayerShipCapture
             if(!capture.Owner.TryDecode(c,out var logical))continue;
             map.roofGrid.SetRoof(c,null);
             map.terrainGrid.RemoveGravshipTerrainUnsafe(c,map.cellIndices.CellToIndex(c));
-            if(logical.LayerId>0)map.terrainGrid.SetTerrain(c,RimLayersDefOf.RL_OpenAir);
+            if(logical.LayerId>0)map.terrainGrid.SetTerrain(c,Structure.StructuralSupport.OpenAirFor(map));
             map.gasGrid.ClearCellUnsafe(c);
 
             map.snowGrid.SetDepth(c,0f);

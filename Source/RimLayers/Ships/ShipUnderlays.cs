@@ -47,7 +47,7 @@ public sealed class ShipUnderlays
         foreach(var area in saved.areas)area[c]=false;
         foreach(var designation in saved.designations)map.designationManager.RemoveDesignation(designation);
         if(g.FoundationAt(c)!=null)g.RemoveFoundation(c,false);
-        g.SetTerrain(c,RimLayersDefOf.RL_OpenAir);
+        g.SetTerrain(c,Structure.StructuralSupport.OpenAirFor(owner.map));
     }
     internal bool Release(IntVec3 c)
     {
@@ -56,7 +56,7 @@ public sealed class ShipUnderlays
         try
         {
             if(g.FoundationAt(c)!=null)g.RemoveFoundation(c,false);
-            g.SetTerrain(c,RimLayersDefOf.RL_OpenAir);
+            g.SetTerrain(c,Structure.StructuralSupport.OpenAirFor(owner.map));
             if(saved.foundation!=null)g.SetFoundation(c,saved.foundation);
             g.SetTerrain(c,saved.top);
             if(saved.under!=null)g.SetUnderTerrain(c,saved.under);

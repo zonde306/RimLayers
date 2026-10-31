@@ -320,7 +320,7 @@ internal static class DubsMinimapPlaceholderTerrainPatch
 
     private static bool Prefix(TerrainDef def, ref Color __result)
     {
-        if (def == RimLayersDefOf.RL_OpenAir) { __result = OpenAir; return false; }
+        if (Structure.StructuralSupport.IsOpenAir(def)) { __result = OpenAir; return false; }
         if (def == RimLayersDefOf.RL_Isolation) { __result = Isolation; return false; }
         return true;
     }

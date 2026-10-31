@@ -248,9 +248,9 @@ internal static class ShipDeckTerrain
     {
         if(Def is not {} deck)return;
         var grid=owner.map.terrainGrid;var top=grid.TopTerrainAt(cell);var under=grid.UnderTerrainAt(cell);var temp=grid.TempTerrainAt(cell);var color=grid.ColorAt(cell);
-        grid.SetTerrain(cell,RimLayersDefOf.RL_OpenAir);grid.SetFoundation(cell,deck);
+        grid.SetTerrain(cell,StructuralSupport.OpenAirFor(owner.map));grid.SetFoundation(cell,deck);
         if(preserve&&under!=null&&!StructuralSupport.IsDeckTerrain(top))
-        {grid.SetTerrain(cell,top);grid.SetUnderTerrain(cell,StructuralSupport.IsDeckTerrain(under)?RimLayersDefOf.RL_OpenAir:under);}
+        {grid.SetTerrain(cell,top);grid.SetUnderTerrain(cell,StructuralSupport.IsDeckTerrain(under)?StructuralSupport.OpenAirFor(owner.map):under);}
         if(preserve&&temp!=null)grid.SetTempTerrain(cell,temp);
         if(preserve&&color!=null)grid.SetTerrainColor(cell,color);
         owner.StructuralCells.Add(cell);owner.Structure.RoofChanged(cell);

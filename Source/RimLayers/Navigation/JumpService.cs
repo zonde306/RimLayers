@@ -28,7 +28,7 @@ internal static class JumpService
         {
             if(!owner.TryDecode(c,out var part)||part.LayerId!=at.LayerId||!owner.Structure.HasSurface(c))return false;
             var terrain=owner.map.terrainGrid.TerrainAt(c);
-            if(terrain==RimLayersDefOf.RL_OpenAir||terrain==RimLayersDefOf.RL_Isolation||terrain.defName=="Space")return false;
+            if(Structure.StructuralSupport.IsOpenAir(terrain)||terrain==RimLayersDefOf.RL_Isolation||terrain.defName=="Space")return false;
             foreach(var other in c.GetThingList(owner.map))
                 if(other!=flying&&(other is Pawn||GenSpawn.SpawningWipes(flying.def,other.def)))return false;
         }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
   <TerrainDef Name="RL_EmptyBase" Abstract="True">
-    <dontRender>true</dontRender>
     <passability>Impassable</passability>
     <pathCost>300</pathCost>
     <fertility>0</fertility>
@@ -22,6 +21,7 @@
   </TerrainDef>
   <TerrainDef ParentName="RL_EmptyBase">
     <defName>RL_OpenAir</defName>
+    <dontRender>true</dontRender>
     <changeable>true</changeable>
     <!--
       Open air has to answer the same terrain questions the vacuum does. Every SOS2 hull part is a
@@ -38,8 +38,32 @@
     <label>open air</label>
     <description>Empty space on an upper layer. It is not a walkable floor.</description>
   </TerrainDef>
+  <!--
+    The same role as RL_OpenAir, but drawn like SOS2's own vacuum so a space map keeps its look: a
+    ship that fills three bands must not turn the two empty ones into untextured holes. This is the
+    terrain a band gets only when the map it belongs to is a space map; ground, underground and
+    Odyssey gravship maps keep RL_OpenAir and never see this def.
+
+    Rendering it matters for a second reason. RL_OpenAir is dontRender, so the first band that gets
+    painted is the one that shows through; SOS2's vacuum renderPrecedence is 20, which is low enough
+    that deck floors and hull tiles still draw over it exactly as they do on the native map.
+  -->
+  <TerrainDef ParentName="RL_EmptyBase">
+    <defName>RL_SpaceAir</defName>
+    <dontRender>false</dontRender>
+    <texturePath>Terrain/Surfaces/Vacuum</texturePath>
+    <renderPrecedence>20</renderPrecedence>
+    <pathCost>50</pathCost>
+    <changeable>true</changeable>
+    <tags><li>Space</li></tags>
+    <extinguishesFire>true</extinguishesFire>
+    <affordances><li>Light</li><li>Medium</li><li>Heavy</li><li>RL_FloorSupport</li></affordances>
+    <label>space</label>
+    <description>Empty space on an upper layer of a ship in orbit. It is not a walkable floor.</description>
+  </TerrainDef>
   <TerrainDef ParentName="RL_EmptyBase">
     <defName>RL_Isolation</defName>
+    <dontRender>true</dontRender>
     <label>layer isolation</label>
     <description>Reserved storage space between logical layers. It has no physical location.</description>
   </TerrainDef>

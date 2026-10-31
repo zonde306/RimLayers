@@ -53,7 +53,7 @@ public sealed class MountainService
     public IReadOnlyDictionary<IntVec3,ThingDef> Columns=>state.Columns;
     public MountainService(LayerMapComponent owner)=>this.owner=owner;
     public bool IsNaturalFloor(IntVec3 cell)=>(state.Floors.Contains(cell)||owner.Underground.IsNaturalFloor(cell))&&
-        owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir&&owner.map.terrainGrid.TerrainAt(cell).defName!="RL_VehicleDeck";
+        !Structure.StructuralSupport.IsOpenAir(owner.map.terrainGrid.TerrainAt(cell))&&owner.map.terrainGrid.TerrainAt(cell).defName!="RL_VehicleDeck";
     public bool TryGetRock(IntVec3 cell,out ThingDef rock)
     {
         rock=null!;
@@ -141,7 +141,7 @@ public sealed class MountainService
     private bool Unused(IntVec3 c)
     {
         var map=owner.map;
-        return !state.Floors.Contains(c)&&map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_OpenAir&&
+        return !state.Floors.Contains(c)&&Structure.StructuralSupport.IsOpenAir(map.terrainGrid.TerrainAt(c))&&
             map.terrainGrid.FoundationAt(c)==null&&map.terrainGrid.UnderTerrainAt(c)==null&&map.terrainGrid.TempTerrainAt(c)==null&&
             map.roofGrid.RoofAt(c)==null&&c.GetThingList(map).Count==0&&map.zoneManager.ZoneAt(c)==null&&
             !map.areaManager.AllAreas.Any(a=>a[c])&&!map.planManager.AllPlans.Any(p=>p.ContainsCell(c))&&
@@ -177,7 +177,7 @@ public sealed class MountainService
         catch
         {
             RemoveSpawned(spawned);state=old;
-            foreach(var c in touched){owner.map.roofGrid.SetRoof(c,null);owner.map.terrainGrid.SetTerrain(c,RimLayersDefOf.RL_OpenAir);if(previousFog.Contains(c))owner.map.fogGrid.Refog(CellRect.SingleCell(c));else owner.map.fogGrid.Unfog(c);}
+            foreach(var c in touched){owner.map.roofGrid.SetRoof(c,null);owner.map.terrainGrid.SetTerrain(c,Structure.StructuralSupport.OpenAirFor(owner.map));if(previousFog.Contains(c))owner.map.fogGrid.Refog(CellRect.SingleCell(c));else owner.map.fogGrid.Unfog(c);}
             for(int i=0;i<fog.Length;i++)if(map.fogGrid.IsFogged(i)!=fog[i])
             {var c=map.cellIndices.IndexToCell(i);if(fog[i])map.fogGrid.Refog(CellRect.SingleCell(c));else map.fogGrid.Unfog(c);}
             map.roofCollapseBuffer.CellsMarkedToCollapse.Clear();map.roofCollapseBuffer.CellsMarkedToCollapse.AddRange(collapseQueue);

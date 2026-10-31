@@ -1400,7 +1400,7 @@ internal static partial class V1Integration
             foreach (IntVec3 c in space.LayerRect(1))
             {
                 if (sos2SpaceMap.terrainGrid.FoundationAt(c) == null) continue;
-                if (sos2SpaceMap.terrainGrid.TerrainAt(c) == RimLayersDefOf.RL_OpenAir) bare++;
+                if (StructuralSupport.IsOpenAir(sos2SpaceMap.terrainGrid.TerrainAt(c))) bare++;
                 else surfaced++;
             }
             Check("sos2-launch-upper-deck-arrives-with-a-surface", surfaced > 0 && bare == 0,
@@ -1413,8 +1413,75 @@ internal static partial class V1Integration
             Check("sos2-launch-upper-deck-arrives-with-its-parts", upperThings > 0,
                 $"upperThings={upperThings}, lowerThings={sos2SpaceMap.thingGrid.ThingsListAt(space.LayerRect(0).CenterCell).Count}");
             CheckVacuumPlacement(space);
+            CheckEmptyAirStaysEmpty(space, sos2SpaceMap);
         }
         LookAtTheArrival();
+    }
+
+    /// <summary>
+    /// The bands above a hull fill with space, and building on them must not leave sand behind.
+    /// </summary>
+    /// <remarks>
+    /// Native <c>TerrainGrid.SetTerrain</c> hands a layerable terrain an under terrain and falls back to
+    /// <c>map.generatorDef.defaultUnderGridTerrain ?? TerrainDefOf.Sand</c> when the old top layer cannot
+    /// be reused. The empty-air def is Impassable, so it never qualified, and an SOS2 space map declares
+    /// no default, so the layers above a hull turned to sand the moment anyone built there. Removing the
+    /// last floor then promoted that sand to the top layer, which is the patch of ground the player found
+    /// under their cursor. Both halves are asserted here: the band is filled with the space def, and a
+    /// floor laid on it and taken away again leaves space rather than sand.
+    /// </remarks>
+    private static void CheckEmptyAirStaysEmpty(LayerMapComponent space, Map spaceMap)
+    {
+        int spaceCells = 0, sand = 0;
+        foreach (IntVec3 c in space.LayerRect(1))
+            if (spaceMap.terrainGrid.TerrainAt(c) == RimLayersDefOf.RL_SpaceAir) spaceCells++;
+        Check("sos2-the-band-above-a-hull-is-filled-with-space", spaceCells > 0, $"spaceCells={spaceCells}");
+        foreach (IntVec3 c in space.LayerRect(1))
+            if (spaceMap.terrainGrid.UnderTerrainAt(c) == TerrainDefOf.Sand) sand++;
+        Check("sos2-no-cell-above-a-hull-keeps-sand-underneath", sand == 0, $"sand={sand}");
+
+        // Lay a floor on empty air and take it away again. This is the exact pair of native calls a
+        // player makes when they build something on an upper deck and then deconstruct it.
+        IntVec3 bare = IntVec3.Invalid;
+        foreach (IntVec3 c in space.LayerRect(1))
+        {
+            if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_SpaceAir) continue;
+            if (spaceMap.terrainGrid.FoundationAt(c) != null) continue;
+            if (c.GetThingList(spaceMap).Count != 0) continue;
+            bare = c;
+            break;
+        }
+        if (!bare.IsValid)
+        {
+            // The fixture decks the whole pad, so make one cell of bare space by hand.
+            foreach (IntVec3 c in space.LayerRect(1))
+            {
+                if (spaceMap.terrainGrid.TerrainAt(c) != RimLayersDefOf.RL_SpaceAir) continue;
+                if (c.GetThingList(spaceMap).Count != 0) continue;
+                bare = c;
+                break;
+            }
+        }
+        if (!bare.IsValid)
+        {
+            Check("sos2-a-floor-laid-on-space-leaves-space-behind", false, "no empty cell above the hull");
+            return;
+        }
+        var terrain = spaceMap.terrainGrid;
+        TerrainDef? restored = terrain.FoundationAt(bare);
+        TerrainDef before = terrain.TerrainAt(bare);
+        terrain.SetTerrain(bare, TerrainDefOf.Concrete);
+        TerrainDef? underFloor = terrain.UnderTerrainAt(bare);
+        Check("sos2-a-floor-laid-on-space-does-not-create-sand",
+            underFloor != TerrainDefOf.Sand, $"under={underFloor?.defName ?? "null"}");
+        terrain.RemoveTopLayer(bare, false);
+        TerrainDef after = terrain.TerrainAt(bare);
+        Check("sos2-a-floor-laid-on-space-leaves-space-behind",
+            StructuralSupport.IsOpenAir(after), $"before={before.defName}, after={after.defName}");
+        // Put the cell back the way the other assertions expect to find it.
+        if (terrain.UnderTerrainAt(bare) != null) terrain.RemoveTopLayer(bare, false);
+        terrain.SetTerrain(bare, before);
+        if (restored != null) terrain.SetFoundation(bare, restored);
     }
 
     /// <summary>
@@ -1507,7 +1574,7 @@ internal static partial class V1Integration
         IntVec3 outsideCell = IntVec3.Invalid;
         foreach (IntVec3 c in space.LayerRect(1))
             if (!Sos2Compatibility.MapClaims(spaceMap, c) && c.InBounds(spaceMap) &&
-                spaceMap.terrainGrid.TerrainAt(c) == RimLayersDefOf.RL_OpenAir &&
+                StructuralSupport.IsOpenAir(spaceMap.terrainGrid.TerrainAt(c)) &&
                 spaceMap.thingGrid.ThingsListAt(c).Count == 0)
             {
                 outsideCell = c;

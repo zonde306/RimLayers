@@ -97,10 +97,10 @@ public sealed class CollapseProcessor
         TerrainDef top = map.terrainGrid.TerrainAt(cell);
         TerrainDef slab=owner.Structure.SlabAt(cell);
         if(map.terrainGrid.FoundationAt(cell)!=null)map.terrainGrid.RemoveFoundation(cell,false);
-        map.terrainGrid.SetTerrain(cell, RimLayersDefOf.RL_OpenAir);
+        map.terrainGrid.SetTerrain(cell, StructuralSupport.OpenAirFor(map));
         // Accident salvage is a quarter of the structural/decorative material cost, once.
         LeaveSalvage(slab, landing);
-        if (top != slab && top!=RimLayersDefOf.RL_OpenAir) LeaveSalvage(top, landing);
+        if (top != slab && !StructuralSupport.IsOpenAir(top)) LeaveSalvage(top, landing);
         owner.Underlays.Release(cell);owner.Ships.Forget(cell);
         owner.Structure.RoofChanged(cell);
         owner.Invalidate(cell, LayerChangeKind.Structure | LayerChangeKind.Movement |

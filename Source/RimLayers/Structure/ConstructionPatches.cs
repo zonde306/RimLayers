@@ -118,6 +118,40 @@ internal static class SupportPathGridPatch
     }
 }
 
+/// <summary>
+/// Native <c>TerrainGrid.SetTerrain</c> gives a layerable terrain an under terrain, and when the old
+/// top layer cannot be the under layer it falls back to <c>map.generatorDef.defaultUnderGridTerrain</c>
+/// and then to <see cref="TerrainDefOf.Sand"/>.
+/// </summary>
+/// <remarks>
+/// That fallback is written for a ground map, where "under this floor" means the soil the floor was
+/// laid on. In an empty band it is nonsense twice over: the old top layer is the empty-air def, which
+/// is Impassable, so it is never reused, and SOS2's <c>EmptySpaceMap</c> declares no
+/// defaultUnderGridTerrain, so the answer is Sand. The layers above a hull then turn to sand as soon
+/// as anybody builds there, and removing the last floor promotes that sand to the top layer and leaves
+/// it behind for good.
+///
+/// In an empty band the honest under terrain is the empty-air def itself: there was no ground under
+/// the new floor, and once the floor goes away the cell is empty air again rather than a sandpit.
+/// </remarks>
+[HarmonyPatch(typeof(TerrainGrid), nameof(TerrainGrid.SetTerrain), typeof(IntVec3), typeof(TerrainDef))]
+internal static class OpenAirUnderTerrainPatch
+{
+    static void Prefix(IntVec3 c, TerrainDef newTerr, Map ___map)
+    {
+        if (!newTerr.layerable || ___map == null) return;
+        var owner = LayerMapComponent.For(___map);
+        if (owner == null || !owner.TryDecode(c, out var logical) || logical.LayerId == 0) return;
+        var grid = ___map.terrainGrid;
+        // Only a cell that is actually empty right now. A band that already holds a real floor keeps
+        // whatever under terrain it has, and the deck paths below set their own.
+        if (!StructuralSupport.IsOpenAir(grid.TopTerrainAt(c)) || grid.UnderTerrainAt(c) != null) return;
+        int num = ___map.cellIndices.CellToIndex(c);
+        grid.topGrid[num] = null;
+        grid.SetUnderTerrain(c, StructuralSupport.OpenAirFor(___map));
+    }
+}
+
 [HarmonyPatch(typeof(TerrainGrid), nameof(TerrainGrid.RemoveTopLayer))]
 internal static class StructuralFloorRemovalPatch
 {
@@ -141,7 +175,7 @@ internal static class StructuralFloorRemovalPatch
         // Refund the material of the deck that is actually here. A bare SOS2 deck costs steel and
         // plasteel, and refunding the plain floor's cost would hand out the wrong materials.
         TerrainDef removed=owner.Structure.SlabAt(c);
-        __instance.SetTerrain(c, RimLayersDefOf.RL_OpenAir);
+        __instance.SetTerrain(c, StructuralSupport.OpenAirFor(owner.map));
         if (doLeavings)
             foreach (var cost in removed.CostListAdjusted(null))
             {
@@ -167,7 +201,7 @@ internal static class ShipDeckFinish
         owner.map.terrainGrid.UnderTerrainAt(c)==null &&
         owner.map.terrainGrid.TempTerrainAt(c)==null &&
         owner.map.terrainGrid.TopTerrainAt(c)!=ShipDeckTerrain.Def &&
-        owner.map.terrainGrid.TerrainAt(c)!=RimLayersDefOf.RL_OpenAir;
+        !StructuralSupport.IsOpenAir(owner.map.terrainGrid.TerrainAt(c));
 
     internal static bool CanRemoveFinish(LayerMapComponent owner, IntVec3 c) =>
         IsFinishOverDeck(owner,c) && owner.map.terrainGrid.TerrainAt(c).Removable &&
@@ -178,7 +212,7 @@ internal static class ShipDeckFinish
         var grid=owner.map.terrainGrid;
         var finish=grid.TerrainAt(c);
         if (doLeavings) GenLeaving.DoLeavingsFor(finish, c, owner.map);
-        grid.SetTerrain(c, RimLayersDefOf.RL_OpenAir);
+        grid.SetTerrain(c, StructuralSupport.OpenAirFor(owner.map));
         grid.SetTerrainColor(c, null);
         owner.map.pathing.RecalculatePerceivedPathCostAt(c);
         owner.Invalidate(c,LayerChangeKind.Structure|LayerChangeKind.Movement|LayerChangeKind.Air|LayerChangeKind.Heat|LayerChangeKind.Light);

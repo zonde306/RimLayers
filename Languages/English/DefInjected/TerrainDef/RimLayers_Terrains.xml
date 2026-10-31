@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <RL_StructuralFloor.label>structural floor</RL_StructuralFloor.label>
+  <RL_StructuralFloor.description>A load-bearing floor laid on the finished roof of the layer below. That roof has to stay intact.</RL_StructuralFloor.description>
+  <RL_OpenAir.label>open air</RL_OpenAir.label>
+  <RL_OpenAir.description>Space on an upper layer that no floor has been laid on yet. Nothing can stand or walk here.</RL_OpenAir.description>
+  <RL_SpaceAir.label>space</RL_SpaceAir.label>
+  <RL_SpaceAir.description>Space on an upper layer of an orbiting ship that no floor has been laid on yet. It looks like the vacuum outside the hull. Nothing can stand or walk here.</RL_SpaceAir.description>
+  <RL_Isolation.label>floor isolation</RL_Isolation.label>
+  <RL_Isolation.description>Storage coordinates reserved between logical layers. They are not real space.</RL_Isolation.description>
+</LanguageData>

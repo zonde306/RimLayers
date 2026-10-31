@@ -15,7 +15,7 @@ internal static class RecoveryLanding
         if(!owner.TryDecode(at,out var center))return false;
         foreach(var c in GenAdj.OccupiedRect(at,thing.Rotation,thing.def.Size))
             if(!owner.TryDecode(c,out var local)||local.LayerId!=center.LayerId||!owner.Structure.HasSurface(c)||
-                (owner.map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_OpenAir||owner.map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_Isolation||owner.map.terrainGrid.TerrainAt(c).defName=="Space"))return false;
+                (Structure.StructuralSupport.IsOpenAir(owner.map.terrainGrid.TerrainAt(c))||owner.map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_Isolation||owner.map.terrainGrid.TerrainAt(c).defName=="Space"))return false;
         return true;
     }
     internal static bool Legal(LayerMapComponent owner,Thing thing,IntVec3 at)=>Legal(owner.map,thing,at);
@@ -29,7 +29,7 @@ internal static class RecoveryLanding
             // Explicit manual recovery may target an ordinary native base map. No layer allocation.
             var footprint=GenAdj.OccupiedRect(at,thing.Rotation,thing.def.Size);
             if(!footprint.InBounds(map)||footprint.Any(c=>map.terrainGrid.TerrainAt(c) is {} t&&
-                (t==RimLayersDefOf.RL_OpenAir||t==RimLayersDefOf.RL_Isolation||t.defName=="Space")))return false;
+                (Structure.StructuralSupport.IsOpenAir(t)||t==RimLayersDefOf.RL_Isolation||t.defName=="Space")))return false;
         }
         foreach(var c in GenAdj.OccupiedRect(at,thing.Rotation,thing.def.Size))
         {

@@ -38,6 +38,31 @@ public sealed class StructuralSupport
         return false;
     }
 
+    /// <summary>
+    /// True for either empty-air def: <c>RL_OpenAir</c> everywhere RimLayers normally runs, and
+    /// <c>RL_SpaceAir</c> in the bands of a space map, where it is drawn like SOS2's vacuum.
+    /// </summary>
+    /// <remarks>
+    /// One predicate rather than <c>terrain == RL_OpenAir</c> at each site, because "is this cell empty
+    /// air?" is asked in a dozen places (surface tests, collapse, recovery, jump validation, the minimap
+    /// and every vehicle deck check) and a second def that any of them missed would read as a real
+    /// floor. Resolved through <see cref="RimLayersDefOf.RL_SpaceAir"/>: the def ships unconditionally,
+    /// so <c>DefOf</c> is the right home for it, unlike the SOS2-only defs.
+    /// </remarks>
+    internal static bool IsOpenAir(TerrainDef? terrain) =>
+        terrain != null && (terrain == RimLayersDefOf.RL_OpenAir || terrain == RimLayersDefOf.RL_SpaceAir);
+
+    /// <summary>
+    /// The empty-air def a new band on this map should be filled with.
+    /// </summary>
+    /// <remarks>
+    /// Space maps get their own def so the bands above a ship look like the vacuum around it instead of
+    /// being untextured. Everything else, Odyssey gravship maps included, keeps <c>RL_OpenAir</c>, which
+    /// is already what the vacuum layers on a ground map are expected to look like.
+    /// </remarks>
+    internal static TerrainDef OpenAirFor(Map? map) =>
+        RimLayers.Compatibility.Sos2Compatibility.IsSpaceMap(map) ? RimLayersDefOf.RL_SpaceAir : RimLayersDefOf.RL_OpenAir;
+
     internal static bool IsSupportRoof(RoofDef? roof)
     {
         if (SupportedRoof(roof)) return true;
@@ -62,7 +87,7 @@ public sealed class StructuralSupport
         return IsSupportRoof(owner.map.roofGrid.RoofAt(owner.Adjacent(upper,-1)));
     }
     public bool HasSurface(IntVec3 cell) =>
-        owner.TryDecode(cell, out var logical) && owner.map.terrainGrid.TerrainAt(cell)!=RimLayersDefOf.RL_OpenAir &&
+        owner.TryDecode(cell, out var logical) && !IsOpenAir(owner.map.terrainGrid.TerrainAt(cell)) &&
         (logical.LayerId == 0 || owner.Mountains.IsNaturalFloor(cell) || owner.StructuralCells.Contains(cell) && HasRequiredRoof(cell) ||
          RimLayers.Vehicles.VehicleFacilitySpace.HasDeck(owner,cell) || HasDeckSource(cell));
 
@@ -270,7 +295,7 @@ public sealed class StructuralSupport
         // rebuilt later. Callers that suppress the chain rely on this to keep the screen honest.
         owner.map.mapDrawer?.MapMeshDirty(cell, MapMeshFlagDefOf.Terrain | MapMeshFlagDefOf.Things, true, true);
         bool changed = IsDeckTerrain(terrain) || owner.map.terrainGrid.FoundationAt(cell)?.IsSubstructure==true ? owner.StructuralCells.Add(cell) :
-            (terrain == RimLayersDefOf.RL_OpenAir || terrain == RimLayersDefOf.RL_Isolation) && owner.StructuralCells.Remove(cell);
+            (IsOpenAir(terrain) || terrain == RimLayersDefOf.RL_Isolation) && owner.StructuralCells.Remove(cell);
         if (changed)
         {
             Recost(cell);

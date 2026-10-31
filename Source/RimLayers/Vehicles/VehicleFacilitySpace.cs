@@ -77,7 +77,7 @@ internal static class VehicleFacilitySpace
             {
                 var terrain=owner.map.terrainGrid.TerrainAt(c);
                 // The existing station / completed frame may be revalidated. Never remove player-built slabs.
-                if(terrain!=RimLayersDefOf.RL_OpenAir&&terrain.defName!="RL_VehicleDeck")return "RL_VehicleShaftClear".Translate();
+                if(!Structure.StructuralSupport.IsOpenAir(terrain)&&terrain.defName!="RL_VehicleDeck")return "RL_VehicleShaftClear".Translate();
                 var lower=owner.Adjacent(c,-1);
                 if(lower.IsValid&&owner.map.roofGrid.RoofAt(lower)!=null)return "RL_VehicleShaftClear".Translate();
             }
@@ -91,7 +91,7 @@ internal static class VehicleFacilitySpace
                 var lower=owner.Adjacent(c,-1);
                 var terrain=owner.map.terrainGrid.TerrainAt(c);
                 if(!lower.IsValid||owner.map.roofGrid.RoofAt(lower)!=null||
-                    terrain!=RimLayersDefOf.RL_OpenAir&&terrain.defName!="RL_VehicleDeck")return "RL_VehicleNoSurface".Translate();
+                    !Structure.StructuralSupport.IsOpenAir(terrain)&&terrain.defName!="RL_VehicleDeck")return "RL_VehicleNoSurface".Translate();
             }
         }
         return true;
@@ -102,12 +102,12 @@ internal static class VehicleFacilitySpace
             !owner.TryDecode(station.Position,out _))return;
         var deck=DefDatabase<TerrainDef>.GetNamed("RL_VehicleDeck");
         foreach(var c in station.OccupiedRect())
-            if(station.Map.terrainGrid.TerrainAt(c)==RimLayersDefOf.RL_OpenAir)station.Map.terrainGrid.SetTerrain(c,deck);
+            if(station.Map.terrainGrid.TerrainAt(c) is {} air&&Structure.StructuralSupport.IsOpenAir(air))station.Map.terrainGrid.SetTerrain(c,deck);
     }
     internal static void RemoveDeck(Map map,IEnumerable<IntVec3> cells)
     {
         foreach(var c in cells)
-            if(map.terrainGrid.TerrainAt(c).defName=="RL_VehicleDeck")map.terrainGrid.SetTerrain(c,RimLayersDefOf.RL_OpenAir);
+            if(map.terrainGrid.TerrainAt(c).defName=="RL_VehicleDeck")map.terrainGrid.SetTerrain(c,Structure.StructuralSupport.OpenAirFor(map));
     }
     internal static bool ShaftClear(LayerMapComponent owner,Building_VehicleConnector station,bool ceiling)
     {

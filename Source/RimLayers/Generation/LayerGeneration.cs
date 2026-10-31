@@ -133,7 +133,7 @@ internal static class EmptySpace
                 int index = map.cellIndices.CellToIndex(cell);
                 // Initial generation fills all new bands; runtime callers pass the old storage end.
                 map.terrainGrid.topGrid[index] = component.TryDecode(cell, out _) ?
-                    RimLayersDefOf.RL_OpenAir : RimLayersDefOf.RL_Isolation;
+                    Structure.StructuralSupport.OpenAirFor(map) : RimLayersDefOf.RL_Isolation;
                 if (map.fogGrid.IsFogged(index)) map.fogGrid.Unfog(cell);
             }
     }

@@ -84,6 +84,7 @@ public static class RimLayersDefOf
     public static KeyBindingDef RL_LayerUp = null!;
     public static KeyBindingDef RL_LayerDown = null!;
     public static TerrainDef RL_OpenAir = null!;
+    public static TerrainDef RL_SpaceAir = null!;
     public static TerrainDef RL_Isolation = null!;
     public static TerrainDef RL_StructuralFloor = null!;
     public static ThingDef RL_Stairs = null!;
