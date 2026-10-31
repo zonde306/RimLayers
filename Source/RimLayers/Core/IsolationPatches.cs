@@ -12,6 +12,14 @@ internal static class PlacementBoundaryPatch
     {
         var component = LayerMapComponent.For(map);
         if (component == null) return true;
+        // Behind a UI panel, or over a floor the player is not looking at, UI.MouseCell() answers
+        // IntVec3.Invalid. That is "no cell", not "a cell with nothing under it": validating it would
+        // report RL_NoSurface for a click that never aimed at the map at all.
+        if (!center.IsValid) return true;
+        // SOS2's ship-move ghost designates empty space on purpose: the thing it places is a sketch of
+        // where the hull will arrive, and its own PlaceWorker_MoveShip decides what is legal there.
+        // Requiring a floor under it rejects every cell of a destination that is by definition empty.
+        if (entDef.defName == "ShipMoveBlueprint") return true;
         var report = component.Structure.Validate(entDef, center, rot, planning: true);
         if (report.Accepted) return true;
         // The placement ghost revalidates every frame; only a real click is worth a window.

@@ -125,7 +125,7 @@ public static class RejectionReporter
     public static void Submit(RejectionReport report, bool dialog)
     {
         if(report==null)return;
-        Log.Warning("[RimLayers] Rejected "+report.ActionLabel+" ("+report.Action+"): "+report.Reason
+        Log.Warning("[RimLayers] Rejected "+report.ActionLabel+" ("+report.Action+"): "+report.Reason+Where(report)
             +(report.CulpritName.NullOrEmpty()?"":" ["+(report.CulpritMod.NullOrEmpty()?"unattributed type: ":"involved mod: ")+report.CulpritName+"]"));
         if(!dialog||!DialogsAllowed)return;
         // A window for this refusal is already on screen: never stack a second copy on top of it.
@@ -136,6 +136,24 @@ public static class RejectionReporter
         lastDialogTick[report.Key]=now;
         if(lastDialogTick.Count>64)PruneCooldowns(now);
         Find.WindowStack.Add(new Dialog_Rejection(report));
+    }
+
+    /// <summary>
+    /// Which def, which cell and which floor were refused.
+    /// </summary>
+    /// <remarks>
+    /// The dialog carried these but the log line did not, so a player report of "it says there is no
+    /// valid floor" left nothing to act on: the reason alone cannot tell an upper deck from a cell the
+    /// pointer never actually landed on.
+    /// </remarks>
+    private static string Where(RejectionReport report)
+    {
+        var text=new System.Text.StringBuilder();
+        if(!report.DefName.NullOrEmpty())text.Append(" def=").Append(report.DefName);
+        if(report.CellX.HasValue&&report.CellZ.HasValue)
+            text.Append(" at=(").Append(report.CellX.Value).Append(',').Append(report.CellZ.Value).Append(')');
+        if(report.LayerElevation.HasValue)text.Append(" floor=").Append(report.LayerElevation.Value);
+        return text.ToString();
     }
 
     private static void PruneCooldowns(int now)

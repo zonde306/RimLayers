@@ -60,6 +60,8 @@ internal static partial class V1Integration
     private static IntVec3[] sos2LaunchCells = System.Array.Empty<IntVec3>();
     /// <summary>The launch fixture's engine, kept so the flight window can be inspected later.</summary>
     private static Building? sos2LaunchEngine;
+    /// <summary>The launch fixture's bridge, which is the ship's core and its camera target.</summary>
+    private static Building? sos2LaunchBridge;
     private static int sos2LaunchTicks;
 
     private static void BeginSos2()
@@ -1090,6 +1092,7 @@ internal static partial class V1Integration
             return;
         }
         RecacheSos2();
+        sos2LaunchBridge = bridge;
         object? cache = Sos2ShipCache();
         int shipIndex = Sos2Compatibility.ShipIndexAt(map, component.AtElevation(0, 104, 104));
         // Everything this fixture owns, so later checks can ask about this hull rather than about the
@@ -1174,6 +1177,21 @@ internal static partial class V1Integration
         {
             SpawnSos2On(map, "ShipHullTile", component.AtElevation(0, c.x, c.z), Rot4.North);
             SpawnSos2On(map, "ShipHullTile", component.AtElevation(1, c.x, c.z), Rot4.North);
+        }
+        // The player's upper floor is RL_Sos2Deck, not a bare hull tile. Leaving the fixture on plain
+        // hull tiles made every deck assertion below ask about a layout the game never produces: the
+        // foundation count was 2 (the parts), so a wrong deck-move patch still passed.
+        if (StructuralSupport.Sos2Deck is { } deckTerrain)
+        {
+            for (int x = rect.minX; x <= rect.maxX; x++)
+                for (int z = rect.minZ; z <= rect.maxZ; z++)
+                    ShipDeckTerrain.InstallDeck(component, component.AtElevation(1, x, z), deckTerrain);
+            map.regionAndRoomUpdater.RebuildAllRegionsAndRooms();
+            int laid = 0;
+            foreach (IntVec3 c in component.LayerRect(1))
+                if (StructuralSupport.IsSos2DeckTerrain(map.terrainGrid.FoundationAt(c))) laid++;
+            Check("sos2-launch-fixture-lays-a-real-deck-upstairs", laid >= rect.Area,
+                $"laid={laid}, expected={rect.Area}");
         }
         // Layout is constrained on both axes: the pad is x100..108 / z100..106, and RimLayers refuses to
         // transmit from a building that does not stand entirely on a deck. A 5x5 reactor centred on z=101
@@ -1352,7 +1370,7 @@ internal static partial class V1Integration
             int decked = 0;
             foreach (IntVec3 c in space.LayerRect(1))
                 if (sos2SpaceMap.terrainGrid.FoundationAt(c) != null) decked++;
-            Check("sos2-launch-upper-deck-arrives-with-a-floor", decked > 0, $"decked={decked}");
+            Check("sos2-launch-upper-deck-arrives-with-a-floor", decked >= 60, $"decked={decked}");
         }
         else
         {
@@ -1366,6 +1384,59 @@ internal static partial class V1Integration
         Check("sos2-launch-repower-patch-runs-on-a-multi-deck-hull",
             RimLayers.Compatibility.Sos2RepowerPatches.Passes > 0,
             $"passes={RimLayers.Compatibility.Sos2RepowerPatches.Passes}, restored={RimLayers.Compatibility.Sos2RepowerPatches.Restored}");
+        // A deck whose foundation exists but whose surface is open air looks like empty sky to the
+        // player. MoveShip's terrain copy only accepts layerable defs, and a deck is a foundation, so
+        // the surface has to be asserted separately instead of trusting the foundation alone.
+        if (space?.Layout is { LayerCount: >= 2 })
+        {
+            int surfaced = 0, bare = 0;
+            foreach (IntVec3 c in space.LayerRect(1))
+            {
+                if (sos2SpaceMap.terrainGrid.FoundationAt(c) == null) continue;
+                if (sos2SpaceMap.terrainGrid.TerrainAt(c) == RimLayersDefOf.RL_OpenAir) bare++;
+                else surfaced++;
+            }
+            Check("sos2-launch-upper-deck-arrives-with-a-surface", surfaced > 0 && bare == 0,
+                $"surfaced={surfaced}, bare={bare}");
+            // Terrain alone does not put anything on screen: the parts themselves have to arrive on the
+            // upper band, otherwise the player looks at a lit empty deck.
+            int upperThings = 0;
+            foreach (IntVec3 c in space.LayerRect(1))
+                upperThings += sos2SpaceMap.thingGrid.ThingsListAt(c).Count;
+            Check("sos2-launch-upper-deck-arrives-with-its-parts", upperThings > 0,
+                $"upperThings={upperThings}, lowerThings={sos2SpaceMap.thingGrid.ThingsListAt(space.LayerRect(0).CenterCell).Count}");
+        }
+        LookAtTheArrival();
+    }
+
+    // The flight is invisible in a headless run, so a picture is the only evidence that the hull
+    // renders at all. Jump to the ship's own core and look at the deck band it landed on.
+    private static void LookAtTheArrival()
+    {
+        if (sos2SpaceMap == null || sos2SpaceMap.Disposed) return;
+        Building? core = sos2LaunchBridge;
+        var space = LayerMapComponent.For(sos2SpaceMap);
+        if (core == null || space == null) return;
+        IntVec3 target = space.TryDecode(core.Position, out LayerCell logical)
+            ? space.ToStorage(logical)
+            : core.Position;
+        CameraJumper.TryJump(target, sos2SpaceMap, CameraJumper.MovementMode.Cut);
+        // The bridge's own band, not the highest one: a fixture that expanded the source map leaves
+        // empty bands above the decks, and looking at one of those shows nothing but sky.
+        var onDeck = space.TryDecode(core.Position, out LayerCell where) ? where.LayerId : 0;
+        RimLayers.Presentation.LayerView.Switch(space, onDeck);
+        // The debug window sits in the middle of the screen and covers exactly what this shot exists to
+        // show. Verse re-opens it whenever its static flag is set, so the flag has to go too.
+        AccessTools.Field(AccessTools.TypeByName("Verse.EditWindow_Log"), "wantsToOpen")?.SetValue(null, false);
+        foreach (Window window in Find.WindowStack.Windows.ToList())
+            if (window.GetType().Name.Contains("Debug") || window.GetType().Name.Contains("Log")) window.Close();
+        Find.CameraDriver.SetRootPosAndSize(target.ToVector3Shifted(), 14f);
+        Check("sos2-launch-arrival-shot-target", true,
+            $"layer={onDeck}, pos=({target.x},{target.z}), things={sos2SpaceMap.thingGrid.ThingsListAt(target).Count}");
+        // pendingScreenshot is only honoured while screenshotHold counts down; without the hold the
+        // file is requested and the run ends before a frame is ever drawn.
+        pendingScreenshot = Path.Combine(directory, "sos2-space-arrival.png");
+        screenshotHold = 3;
     }
 
     private static string LiveEngineReport()
