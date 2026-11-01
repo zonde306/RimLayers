@@ -4,7 +4,7 @@
     [string]$GameRoot = 'G:/SteamLibrary/steamapps/common/RimWorld',
     [int]$TimeoutSeconds = 240,
     [ValidateSet("English", "ChineseSimplified")][string]$Language = "English",
-    [ValidateSet("aerocraft","sos2","collapse-perf","deep-resources","environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "areas", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed", "minimap","dubs","vefpipes","rejection-dialog","blocked-stair","pairing","smartcombat","panel-drag")][string]$Scenario = "navigation",
+    [ValidateSet("aerocraft","sos2","sos2-space","collapse-perf","deep-resources","environment","environment-geology","environment-perf","ship-landing-items", "temperature", "cargo", "reinstall", "jump", "transition", "ship-vge", "shaft-extension", "settings-behavior", "settings-perf", "settings-quota", "settings-ui", "settings-recovery", "underground", "combat-raid-audit", "combat-raid-guns", "combat-upper", "combat-grenade", "combat-raid-melee", "combat-raid", "combat-raid-isolated", "combat-manned", "combat-3d", "ship-coexistence", "mountains", "ship-structure", "elevators", "stairs-bootstrap", "expansion", "gravship", "corpse-refresh", "command-input", "reachability", "presentation", "usability", "migration", "world-exit", "home", "areas", "navigation-door", "scale", "lord", "roping", "mechanitor", "navigation", "navigation-maze", "navigation-rules", "work", "work-save", "work-container", "work-haul", "work-hunger", "structure", "skyfall", "skyfall-shuttle", "combat-geometry", "combat-shot", "combat-ai", "combat-turret", "combat-policy", "combat-shields", "combat-shield-save", "combat-shield-pass", "combat-explosion", "combat-delay", "combat-grenade-flee", "combat-roof", "combat-ballistics", "combat-blast-effects", "utilities", "air", "heat", "sky", "hazards", "hazards-timed", "minimap","dubs","vefpipes","rejection-dialog","blocked-stair","pairing","smartcombat","panel-drag")][string]$Scenario = "navigation",
     [switch]$CheckPure,
     [switch]$TemperatureCore,
     [ValidateSet("travel","handling","queue")][string]$CargoCheckpoint="travel",
@@ -61,7 +61,7 @@ if($Scenario -eq 'presentation' -and -not $PSBoundParameters.ContainsKey('MapSiz
 # derives that map's layer bands from that same size. On a 120 map the hull sits inside one band with a
 # 136 stride; the real ship is a 250 map (stride 255), and the launch bug only reproduced there because
 # a two-deck hull's storage z crossed the band boundary. Run the sos2 fixture at the real size.
-if($Scenario -eq 'sos2' -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
+if(($Scenario -eq 'sos2') -and -not $PSBoundParameters.ContainsKey('MapSize')){$MapSize = 250}
 $modRoot = Split-Path -Parent $PSScriptRoot
 $runRoot = Join-Path $PSScriptRoot (('Artifacts/v1-' + $Scenario + '-') + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null
@@ -77,7 +77,7 @@ elseif ($Scenario -in @('ship-landing-items','ship-coexistence','gravship','ship
 # SOS2 itself runs fine without Odyssey, but RimLayers' deck model is Odyssey-based: ShipStructureService
 # bails on !ModsConfig.OdysseyActive, TerrainDef.IsSubstructure is hard-false, and TerrainDefOf.Substructure
 # is therefore null. The sos2 fixture builds native substructure decks, so the expansion must be present.
-elseif ($Scenario -eq 'sos2' -or $Sos2) { $active += 'ludeon.rimworld.odyssey' }
+elseif ($Scenario -in @('sos2','sos2-space') -or $Sos2) { $active += 'ludeon.rimworld.odyssey' }
 $active += 'brrainz.harmony'
 if($Vehicles){
     # Steel Horizon's global VehicleDef patches require concrete vehicle content.
@@ -95,7 +95,7 @@ if($Aerocraft){$active+='MYDE.AerocraftFramework'}
 # <incompatibleWith>SmashPhil.VehicleFramework</incompatibleWith>, so loading both is a configuration no
 # player can actually run - testing that pair proves nothing about the load order people play with.
 # The player's own verified ModsConfig enables smashphil.vehicleframework and not the fork.
-if($Sos2 -or $Scenario -eq 'sos2'){$active+=@('smashphil.vehicleframework','kentington.saveourship2')}
+if($Sos2 -or $Scenario -eq 'sos2' -or $Scenario -eq 'sos2-space'){$active+=@('smashphil.vehicleframework','kentington.saveourship2')}
 # The Dubwise family is a per-scenario dependency set; the dubs scenario needs all five at once.
 if($Dubs){$active+=@('dubwise.dubsskylights','dubwise.dubscentralheating','dubwise.dubsbadhygiene','dubwise.rimefeller','dubwise.rimatomics')}
 if($VePipes -or $Scenario -eq 'vefpipes'){
@@ -155,7 +155,7 @@ if($CollapseReplaySave){
     $saves=Join-Path $runRoot 'Saves';New-Item -ItemType Directory -Path $saves | Out-Null
     Copy-Item -LiteralPath $CollapseReplaySave -Destination (Join-Path $saves 'RimLayers_CollapsePerf.rws')
 }
-$modes = if($CollapseReplaySave){@('load')} elseif($Scenario -in @('minimap','dubs','vefpipes')){@('generate')} elseif($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -eq 'aerocraft') { @('generate','load') } elseif ($Scenario -eq 'sos2') { @('generate','load') } elseif ($Scenario -eq 'smartcombat') { @('generate') } elseif ($Scenario -in @('environment','deep-resources','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','panel-drag','migration','world-exit','home','areas','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
+$modes = if($CollapseReplaySave){@('load')} elseif($Scenario -in @('minimap','dubs','vefpipes')){@('generate')} elseif($Scenario -eq 'environment'){@('generate','load','legacy-load')} elseif($Scenario -eq 'shaft-extension'){@('generate','load','completed-load')} elseif($Scenario -eq 'combat-raid-audit'){@('load')} elseif($Scenario -eq "combat-manned"){@("generate","load","flight-load")} elseif($Scenario -eq "gravship"){@("generate","load","landed-load")} elseif($Scenario -eq "migration"){@("generate","load","converted-load")} elseif ($Scenario -eq 'aerocraft') { @('generate','load') } elseif ($Scenario -eq 'sos2') { @('generate','load') } elseif ($Scenario -eq 'sos2-space') { @('generate') } elseif ($Scenario -eq 'smartcombat') { @('generate') } elseif ($Scenario -in @('environment','deep-resources','temperature','cargo','jump','transition','ship-vge','shaft-extension','settings-behavior','settings-recovery','combat-grenade','combat-manned','ship-coexistence','underground','mountains','elevators','stairs-bootstrap','expansion','reachability','presentation','usability','panel-drag','migration','world-exit','home','areas','scale','lord','roping','mechanitor','navigation','navigation-maze','work-save','work-container','structure','skyfall','combat-shot','combat-shield-save','combat-shield-pass','combat-explosion','combat-delay','combat-grenade-flee','utilities','air','heat','sky','hazards','hazards-timed')) { @('generate', 'load') } else { @('generate') }
 foreach ($mode in $modes) {
     if($mode -eq 'legacy-load'){
         # Mutate only this run's own checkpoint, never a player save.

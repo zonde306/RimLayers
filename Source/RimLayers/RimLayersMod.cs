@@ -44,6 +44,7 @@ public sealed class RimLayersMod : Mod
         Compatibility.DubsCompatibility.Install(harmony);
         Compatibility.VEPipeSystemCompatibility.Install(harmony);
         Compatibility.Sos2Compatibility.Install(harmony);
+        Compatibility.Sos2ShieldTrace.Install(harmony);
         int patchClasses=0;
         var failed=failedPatches;
         failed.Clear();
