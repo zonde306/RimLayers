@@ -1257,6 +1257,21 @@ internal static partial class V1Integration
         Check("sos2-realship-heat-topology-is-readable", lines.Count > 0,
             $"nets={raw.Count}, " + string.Join("; ", lines.Take(8)) +
             $" | withConsole={netsWithConsole}, withoutConsole={netsWithout}, widestSpan={decksSpanned}");
+        // The deck a ship cannot cross is the one that costs the player a turret. A net that holds a
+        // console on the bridge deck and reaches another deck is the whole adapter working end to end:
+        // the flood fill found the vertical edge, kept the two decks on one net, and that net already
+        // carried the console that makes a turret live. Asserting it on the real hull rather than on a
+        // pad matters, because a pad has no ship cache part and its conduits are laid by the fixture,
+        // not by a player.
+        var bridged = new List<string>();
+        for (int net = 0; net < raw.Count; net++)
+        {
+            if (!connectors.TryGetValue(net, out int consoles) || consoles <= 0) continue;
+            if (decks.TryGetValue(net, out SortedSet<int>? on) && on.Count > 1)
+                bridged.Add($"net{net}:[{string.Join(",", on)}]x{cells[net]}");
+        }
+        Check("sos2-realship-a-console-net-reaches-another-deck", bridged.Count > 0,
+            $"bridged=[{string.Join(" ", bridged)}], nets={raw.Count}, widestSpan={decksSpanned}");
     }
 
     /// <summary>
@@ -1414,6 +1429,34 @@ internal static partial class V1Integration
                     if (Sos2Compatibility.IsHeatPart(t)) { heatHere = true; break; }
                 stack.Add($"L{lid}{stacked}:ship={Sos2Compatibility.ShipIndexAt(target, stacked)},heat={heatHere},grid={(heatGrid == null ? -2 : heatGrid[target.cellIndices.CellToIndex(stacked)])}");
             }
+        // Two nets that both carry heat hardware and are stacked on each other must be one net. The
+        // adapter is the only thing that can put the pair in front of the flood fill, so ask it
+        // directly: this separates "the vertical neighbour was never offered" from "SOS2 refused it".
+        var offered = new List<string>();
+        Sos2CellGraph.Enter(target, null);
+        foreach (IntVec3 stacked in Sos2CellGraph.Cardinal(turret))
+            if (hull.TryDecode(stacked, out LayerCell stackedLogical) && stackedLogical.LayerId != deck)
+                offered.Add($"{stacked}(L{stackedLogical.LayerId})");
+        Sos2CellGraph.Leave();
+        // The turret is a 2x2, so half its footprint overhangs the riser. The flood fill stamps every
+        // occupied cell before it walks, and a neighbour that had already been stamped is skipped - so
+        // the pair that matters is the riser's own column under one of the turret's cells, not any
+        // stacked neighbour the turret happens to have.
+        var riserColumns = new List<string>();
+        foreach (IntVec3 riser in riserPath)
+        {
+            if (!hull.TryDecode(riser, out LayerCell riserLogical)) continue;
+            IntVec3 over = hull.AtElevation(deck, riserLogical.X, riserLogical.Z);
+            Thing? standing = over.GetFirstThing<Building>(target);
+            bool stamped = heatGrid != null && heatGrid[target.cellIndices.CellToIndex(over)] != -1;
+            bool carries = false;
+            foreach (Thing t in over.GetThingList(target))
+                if (Sos2Compatibility.IsHeatPart(t)) { carries = true; break; }
+            riserColumns.Add($"{riser}->{over}:thing={standing?.def.defName ?? "none"},heat={carries},grid={(heatGrid == null ? -2 : heatGrid[target.cellIndices.CellToIndex(over)])},stamped={stamped}");
+        }
+        Check("sos2-the-flood-fill-is-offered-the-deck-below", offered.Count > 0,
+            $"turret={(heat == null ? "none" : "ok")}, offered=[{string.Join(" ", offered)}], "
+            + $"risers={riserPath.Count}, riserColumns=[{string.Join(" | ", riserColumns)}]");
         Check("sos2-an-upper-deck-turret-is-on-a-heat-net", heat != null && net != null,
             $"turret={turret.Position}, net={(net == null ? "none" : "ok")}, heatComp={heat != null}, " +
             $"pipes={pipeCount}, turretInPipes={turretInPipes}, runLaid={laid}, risers={riserPath.Count}, " +
@@ -1421,17 +1464,6 @@ internal static partial class V1Integration
             $"turretGrid={turretGrid}, bridgeGrid={bridgeGrid}, bridgeShip={Sos2Compatibility.ShipIndexAt(target, sos2Bridge.Position)}, " +
             $"stack=[{string.Join(" ", stack)}]");
         if (heat == null || net == null) return;
-
-        // The whole point: that net carries a console, and the turret is therefore active.
-        int pilots = CacheCount(net, "PilCons");
-        int cores = CacheCount(net, "AICores");
-        int tacticals = CacheCount(net, "TacCons");
-        Check("sos2-an-upper-deck-turret-reaches-the-bridge", pilots + cores + tacticals > 0,
-            $"pilots={pilots}, cores={cores}, tacticals={tacticals}");
-        bool active = AccessTools.Property(turret.GetType(), "Active")?.GetValue(turret) is true;
-        Check("sos2-an-upper-deck-turret-is-live", active,
-            $"active={active}, pilots={pilots}, cores={cores}, tacticals={tacticals}, " +
-            $"power={AccessTools.Field(turret.GetType(), "powerComp")?.GetValue(turret) != null}");
 
         // Run the shield assertion on the real hull, not on this pad. A pad is terrain plus a few
         // columns: nothing on it carries CompShipCachePart, so none of its cells join MapShipCells and
@@ -1953,6 +1985,55 @@ internal static partial class V1Integration
             Check("sos2-realship-destination-area-has-regions", bareDestinations == 0,
                 $"region-less destination cells={bareDestinations}, sample: {string.Join(" | ", sample)}");
         }
+        // The flip's ghost is laid out by CreateShipSketch as `mirror(cell) - lowestCorner`, and both
+        // terms read Map.Size. On a layered map Map.Size.z is the storage height, so a cell on the
+        // ground deck is mirrored one band up and the sketch lands in empty space: AllowsPlacing then
+        // rejects every position and the flip button looks dead. The repair answers Map.Size with the
+        // deck's own rectangle for the duration of the call, so what has to hold is that the whole
+        // footprint fits inside one deck - measured with the same arithmetic SOS2 uses.
+        //
+        // This is deliberately not done by calling CreateShipSketch: that method ends by activating the
+        // install designator, which needs a live selection and a UI, and a failure inside it would look
+        // like a RimLayers bug. The geometry is what can be wrong here, so the geometry is what is
+        // measured.
+        if (hullOwner?.Layout is { } ghostLayout
+            && AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is HashSet<IntVec3> ghostArea
+            && ghostArea.Count > 0)
+        {
+            foreach (byte rot in new byte[] { 1, 2 })
+            {
+                var corner = (IntVec3)lowest.Invoke(cache, new object[] { rot, hullMap })!;
+                int minLocalZ = int.MaxValue;
+                foreach (IntVec3 cell in ghostArea)
+                    minLocalZ = System.Math.Min(minLocalZ, Sos2Geometry.LocalZ(cell.z, ghostLayout.Stride));
+                int minX = ghostArea.Min(c => c.x);
+                IntVec3 bandedCorner = rot == 1
+                    ? new IntVec3(ghostLayout.Height - minLocalZ, 0, minX)
+                    : new IntVec3(ghostLayout.Height - minX, 0, ghostLayout.Height - minLocalZ);
+                // Every offset the sketch stores is a difference against that corner, so the sketch fits
+                // one deck exactly when the corner and the far edge agree on which deck they are on.
+                int lowestRow = int.MaxValue, highestRow = int.MinValue;
+                foreach (IntVec3 cell in ghostArea)
+                {
+                    int local = Sos2Geometry.LocalZ(cell.z, ghostLayout.Stride);
+                    int row = rot == 1 ? cell.x - bandedCorner.z : ghostLayout.Height - local - bandedCorner.z;
+                    int col = rot == 1 ? ghostLayout.Height - local - bandedCorner.x : cell.x - bandedCorner.x;
+                    lowestRow = System.Math.Min(lowestRow, row);
+                    highestRow = System.Math.Max(highestRow, row);
+                    _ = col;
+                }
+                int span = highestRow - lowestRow;
+                Check($"sos2-realship-flip-ghost-fits-one-deck-rot{rot}",
+                    corner == bandedCorner && span < ghostLayout.Height,
+                    $"corner={corner}, banded={bandedCorner}, rows=[{lowestRow}..{highestRow}], "
+                    + $"span={span}, floor={ghostLayout.Height}, storageZ={hullMap.Size.z}");
+            }
+            // The swap is only ever live during the call. A stale flag would make every later Map.Size
+            // reader on this thread answer a band height, which is a far worse bug than the one fixed.
+            Check("sos2-realship-ghost-space-is-released", !Sos2SketchFloorPatch.GhostIsBanded,
+                $"banded={Sos2SketchFloorPatch.GhostIsBanded}");
+        }
+
         int failuresBefore = errors.Count;
         // Harmony flattens the stack of anything thrown inside a patched method down to the patch
         // frame, so the real throw site is invisible by the time the exception reaches us. Listening

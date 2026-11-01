@@ -1,6 +1,9 @@
+using System.Collections;
 using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using RimLayers.Core;
+using RimLayers.Layout;
 using Verse;
 
 namespace RimLayers.Compatibility;
@@ -20,6 +23,55 @@ namespace RimLayers.Compatibility;
 /// </remarks>
 internal static class Sos2HeatPatches
 {
+    /// <summary>
+    /// Walks the pipe list bottom-up so a vertical edge is always found from below.
+    /// </summary>
+    /// <remarks>
+    /// <c>AccumulateToNetNew</c> is one-directional: it stamps every occupied cell of a part, then
+    /// visits neighbours whose cell is still <c>-1</c>. A stacked pair is therefore claimed by
+    /// whichever part the outer loop reaches first, and the other side is skipped as "already owned"
+    /// - the two never merge. The vertical neighbour alone cannot fix that, because the part that
+    /// gets skipped never runs its own neighbour walk.
+    /// <para>
+    /// Net identity only depends on the order <c>cachedPipes</c> is walked in, and nothing else in
+    /// SOS2 reads that list positionally, so sorting it by deck is enough. Bottom-up is the
+    /// direction that works: every conduit the player ran "up to the deck above" is reached from the
+    /// deck it starts on, which is the shape a player builds.
+    /// </para>
+    /// </remarks>
+    [HarmonyPatch]
+    private static class BuildNetsBottomUpPatch
+    {
+        private static MethodBase? TargetMethod() =>
+            Sos2Compatibility.ShipMapCompType == null ? null : AccessTools.Method(Sos2Compatibility.ShipMapCompType, "MapComponentUpdate");
+
+        // Typed as the non-generic list on purpose: CompShipHeat is SOS2's own type and this assembly
+        // has no compile-time reference to it. Harmony binds by name and List<CompShipHeat> is an
+        // IList, so the parameter arrives holding the very list the loop is about to walk.
+        private static void Prefix(System.Collections.IList ___cachedPipes, bool ___heatGridDirty)
+        {
+            // The method returns before it touches the grid unless this flag is set, so sorting on the
+            // other ticks would be pure per-tick cost for no effect.
+            if (!___heatGridDirty || ___cachedPipes == null || ___cachedPipes.Count < 2) return;
+            Map? map = (___cachedPipes[0] as ThingComp)?.parent?.Map ?? Sos2CellGraph.Current;
+            if (!Sos2CellGraph.BandOf(map, out LayerMapComponent owner, out _, out _, out _)) return;
+            // A stable sort on deck only: within a deck the original order is kept, so a ship that was
+            // already correct on one deck keeps exactly the nets it had.
+            var keyed = new List<(int Deck, int Order, object Pipe)>(___cachedPipes.Count);
+            for (int i = 0; i < ___cachedPipes.Count; i++)
+            {
+                object? pipe = ___cachedPipes[i];
+                Thing? parent = (pipe as ThingComp)?.parent;
+                int deck = parent != null && owner.TryDecode(parent.Position, out LayerCell logical)
+                    ? logical.LayerId
+                    : int.MaxValue;
+                keyed.Add((deck, i, pipe!));
+            }
+            keyed.Sort((a, b) => a.Deck != b.Deck ? a.Deck.CompareTo(b.Deck) : a.Order.CompareTo(b.Order));
+            for (int i = 0; i < keyed.Count; i++) ___cachedPipes[i] = keyed[i].Pipe;
+        }
+    }
+
     [HarmonyPatch]
     private static class AccumulateToNetNewPatch
     {

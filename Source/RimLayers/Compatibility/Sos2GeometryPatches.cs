@@ -166,22 +166,50 @@ internal static class Sos2ReSpawnRotatePatch
             && !TryLocal(targetMap, spawnThing.Position, stride, layers, out local)) return true;
 
         // SOS2's arithmetic is right on a one-deck map, where every position it reads is band-local.
-        // Rotating the band-local cell and putting the band back is that same computation with the
-        // storage offset removed, so a part on deck 3 is not mirrored against deck 0's coordinates.
-        //
-        // Mirror takes a STORAGE z and derives the band itself. Passing the decoded local z here made
-        // LayerOf() read a band-0 coordinate for every part: the whole hull collapsed onto the ground
-        // deck on a flip, which is what a player sees as "all the decks are gone". TransformForShipMove
-        // above passes the storage z for exactly this reason, and this call has to agree with it.
-        (int x, int y, int z) = Sos2Geometry.Mirror(local.X, spawnThing.Position.y, spawnThing.Position.z,
-            layout.Width, height, stride, layers, (byte)rotb);
-        IntVec3 mirrored = new IntVec3(x, y, z) + adjustment;
+        // The same formulas evaluated on decoded coordinates, with the deck's own width/height in place
+        // of Map.Size, are therefore the identical computation with the storage offset removed. That is
+        // what keeps a part on deck 3 from being mirrored against deck 0's coordinates, and what makes
+        // the two-step flip land where the original intends.
+        int rotation = spawnThing.Rotation.AsByte;
+        if (spawnThing.def.rotatable) rotation = (rotation + rotb) & 3;
+        var rotated = new Rot4(rotation);
+        // The nudge the original derives from the def, not from the map. It appears twice in a flip.
+        int nudgeX = !spawnThing.def.rotatable && spawnThing.def.size.x % 2 == 0 ? -1 : 0;
+        int nudgeZ2 = 0;
+        if (rotb == 2 && !spawnThing.def.rotatable && spawnThing.def.size.x != spawnThing.def.size.z)
+            nudgeZ2 = spawnThing.def.size.z % 2 != 0 ? 1 : -1;
+
+        int w = layout.Width, h = height;
+        int lx, lz;
+        if (rotb == 3)
+        {
+            // case 3: (W - z, x) with one nudge. Only buildings take this branch.
+            IntVec3 orig = new IntVec3(nudgeX, 0, 0).RotatedBy(rotated);
+            lx = w - local.Z + orig.x;
+            lz = local.X + orig.z;
+        }
+        else
+        {
+            // case 2: the same mirror twice, the second one compensating an odd footprint.
+            IntVec3 orig = new IntVec3(nudgeX, 0, 0).RotatedBy(rotated);
+            int tx = w - local.Z + orig.x;
+            int tz = local.X + orig.z;
+            IntVec3 orig2 = new IntVec3(nudgeX, 0, nudgeZ2).RotatedBy(rotated);
+            lx = w - tz + orig2.x;
+            lz = tx + orig2.z;
+        }
+        // Back into the part's own deck. The local halves are clamped to the deck, which only matters
+        // for a hull sitting exactly on an edge where the nudge pushed it one cell out.
+        lx = lx < 0 ? 0 : lx >= w ? w - 1 : lx;
+        lz = lz < 0 ? 0 : lz >= h ? h - 1 : lz;
+        IntVec3 mirrored = new IntVec3(lx, 0, local.LayerId * stride + lz);
+        IntVec3 landed = mirrored + adjustment;
 
         // Rotating the thing itself happens before any coordinate work in the original and does not
         // depend on the map, so it is kept exactly as it was.
         if (spawnThing.def.rotatable)
             spawnThing.Rotation = new Rot4(spawnThing.Rotation.AsByte + rotb);
-        spawnThing.Position = mirrored;
+        spawnThing.Position = landed;
         if (fac != null && spawnThing is not Pawn && spawnThing.def.CanHaveFaction)
             spawnThing.SetFaction(fac);
         // The original skips respawn post-processing for defs carrying SOS2's override extension; the

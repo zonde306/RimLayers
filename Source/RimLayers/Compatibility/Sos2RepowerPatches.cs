@@ -65,9 +65,15 @@ internal static class Sos2RepowerPatches
         Passes++;
 
         int restored = 0;
+        // Snapshot first, write afterwards. Switching a trader on runs the power-net update, which can
+        // despawn and respawn buildings on the same cell - the thing list this walk is reading. A live
+        // `foreach` over it threw "Collection was modified" the first time a player flipped a ship, and
+        // because the exception escapes a postfix it lands in MapComponentTick and repeats every tick.
+        var candidates = new List<CompPowerTrader>();
         foreach (IntVec3 cell in area)
         {
-            foreach (Thing thing in cell.GetThingList(map))
+            Thing[] things = cell.GetThingList(map).ToArray();
+            foreach (Thing thing in things)
             {
                 if (thing is not Building building || building.Destroyed || !building.Spawned) continue;
                 CompPowerTrader? power = building.TryGetComp<CompPowerTrader>();
@@ -75,9 +81,15 @@ internal static class Sos2RepowerPatches
                 // switched it off on purpose, and switching it back on here would override that.
                 if (power == null || power.PowerOn || power.PowerNet == null) continue;
                 if (!FlickUtility.WantsToBeOn(building) || building.IsBrokenDown()) continue;
-                power.PowerOn = true;
-                if (power.PowerOn) restored++;
+                candidates.Add(power);
             }
+        }
+        foreach (CompPowerTrader power in candidates)
+        {
+            // The building may have been torn down by an earlier write in this same pass.
+            if (power.parent == null || power.parent.Destroyed || !power.parent.Spawned) continue;
+            power.PowerOn = true;
+            if (power.PowerOn) restored++;
         }
 
         if (restored > 0)
