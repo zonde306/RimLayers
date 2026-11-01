@@ -1050,16 +1050,61 @@ internal static partial class V1Integration
                 heatSinks++;
                 heatStorage += capacity;
             }
-        Check("sos2-realship-caches-its-heat-sinks", heatSinks >= 3, $"sinks={heatSinks}, storage={heatStorage}");        int risers = 0;
+        Check("sos2-realship-caches-its-heat-sinks", heatSinks >= 3, $"sinks={heatSinks}, storage={heatStorage}");
+
+        // A deck with nothing but hull above and below it - the hollow middle band of this hull, which
+        // carries 0 hull tiles of its own - has no surface for a building to stand on, so every part
+        // there used to be cut out of the power graph. The visible symptom was a rung of three risers
+        // A deck with nothing but hull above and below it - the hollow middle band of this hull, which
+        // carries 0 hull tiles of its own - has no surface for a building to stand on, so parts there
+        // used to be cut out of the power graph. This counts how many risers actually stand on such a
+        // deck, so a later check can tell whether that theory even applies here: on the saved hull every
+        // riser turned out to stand on a floor (onBareDeck=0), which retired the theory rather than
+        // confirming it. Kept as a reading, not as a claim.
+        var riserLayers = new SortedSet<int>();
+        int risersOnBareDeck = 0;
+        int risers = 0;
         foreach (Thing thing in map.listerThings.AllThings)
-            if (thing.def.defName is "RL_PowerRiser" or "RL_HeatRiser")
+            if (thing.def.defName == "RL_PowerRiser")
                 foreach (IntVec3 cell in thing.OccupiedRect())
                     if (Sos2Compatibility.ShipIndexAt(map, cell) == index)
                     {
                         risers++;
+                        if (!component.TryDecode(cell, out LayerCell here)) break;
+                        riserLayers.Add(here.LayerId);
+                        if (!component.Structure.HasSurface(cell)) risersOnBareDeck++;
                         break;
                     }
-        Check("sos2-realship-carries-its-risers", risers >= 6, $"risers={risers}, index={index}");
+        int heatRisers = 0;
+        foreach (Thing thing in map.listerThings.AllThings)
+            if (thing.def.defName == "RL_HeatRiser")
+                foreach (IntVec3 cell in thing.OccupiedRect())
+                    if (Sos2Compatibility.ShipIndexAt(map, cell) == index)
+                    {
+                        heatRisers++;
+                        break;
+                    }
+        Check("sos2-realship-carries-its-risers", risers + heatRisers >= 6,
+            $"power={risers}, heat={heatRisers}, index={index}, onBareDeck={risersOnBareDeck}");
+        Check("sos2-realship-risers-span-every-deck", riserLayers.Count >= needed,
+            $"decks={string.Join(",", riserLayers)}, need={needed}, powerRisers={risers}");
+        // The decks are joined by vertical power edges, and VerticalNeighbors only yields a peer when
+        // both risers sit on the same column, one deck apart, and both transmit. Counting the peers per
+        // riser says which of those three is false instead of guessing at the rule - the earlier
+        // version of this step asserted a theory about bare decks and every riser turned out to stand
+        // on a floor, so the branch under test was never entered.
+        int verticalEdges = 0;
+        var riserReport = new List<string>();
+        foreach (Thing thing in map.listerThings.AllThings)
+        {
+            if (thing.def.defName != "RL_PowerRiser" || thing is not Building riser) continue;
+            if (Sos2Compatibility.ShipIndexAt(map, riser.Position) != index) continue;
+            int peers = component.Power.VerticalNeighbors(riser).Count();
+            verticalEdges += peers;
+            string layerName = component.TryDecode(riser.Position, out LayerCell at) ? at.LayerId.ToString() : "?";
+            riserReport.Add($"L{layerName}@({at.X},{at.Z}) transmits={riser.TransmitsPowerNow} peers={peers}");
+        }
+        Check("sos2-realship-risers-join-the-decks", verticalEdges > 0, string.Join(" | ", riserReport));
 
         // Rotating or flipping a hull is a sketch of the whole ship, so the corner SOS2 measures it
         // from has to be inside the map. On a layered map SOS2 divides by Map.Size.z - the storage

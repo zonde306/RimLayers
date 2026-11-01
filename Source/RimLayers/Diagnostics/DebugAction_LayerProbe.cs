@@ -64,6 +64,19 @@ internal static class DebugAction_LayerProbe
                     + " riser=" + (building.TryGetComp<RimLayers.Environment.CompPowerRiser>() != null));
                 string inspect = power?.CompInspectStringExtra() ?? "<none>";
                 Log.Message("      inspect: " + inspect.Replace("\n", " | "));
+                // A riser only joins the decks above and below when all of them sit on the SAME column.
+                // The check is silent when they do not: the pipe still shows a green grid, the decks
+                // simply never merge, and the only symptom is a whole deck with no power. Print the
+                // column this riser would have to share, so a misplaced one is visible in one click.
+                if (building.TryGetComp<RimLayers.Environment.CompPowerRiser>() is { } riserComp)
+                {
+                    List<string> peers = owner.Power.VerticalNeighbors(building)
+                        .Select(c => owner.TryDecode(c, out var peer) ? owner.LevelName(peer.LayerId) : "?")
+                        .ToList();
+                    Log.Message("      riser column: (" + cell.x + "," + cell.z + ") peers="
+                        + (peers.Count == 0 ? "none" : string.Join(",", peers))
+                        + " switch=" + (building.TryGetComp<CompFlickable>()?.SwitchIsOn.ToString() ?? "-"));
+                }
                 if (net != null)
                     Log.Message("      net has: powerComps=" + net.powerComps.Count
                         + " batteryComps=" + net.batteryComps.Count
