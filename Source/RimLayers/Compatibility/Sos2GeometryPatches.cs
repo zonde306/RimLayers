@@ -168,7 +168,12 @@ internal static class Sos2ReSpawnRotatePatch
         // SOS2's arithmetic is right on a one-deck map, where every position it reads is band-local.
         // Rotating the band-local cell and putting the band back is that same computation with the
         // storage offset removed, so a part on deck 3 is not mirrored against deck 0's coordinates.
-        (int x, int y, int z) = Sos2Geometry.Mirror(local.X, spawnThing.Position.y, local.Z,
+        //
+        // Mirror takes a STORAGE z and derives the band itself. Passing the decoded local z here made
+        // LayerOf() read a band-0 coordinate for every part: the whole hull collapsed onto the ground
+        // deck on a flip, which is what a player sees as "all the decks are gone". TransformForShipMove
+        // above passes the storage z for exactly this reason, and this call has to agree with it.
+        (int x, int y, int z) = Sos2Geometry.Mirror(local.X, spawnThing.Position.y, spawnThing.Position.z,
             layout.Width, height, stride, layers, (byte)rotb);
         IntVec3 mirrored = new IntVec3(x, y, z) + adjustment;
 

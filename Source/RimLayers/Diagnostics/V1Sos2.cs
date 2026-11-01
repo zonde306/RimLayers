@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.Json;
@@ -1877,6 +1877,7 @@ internal static partial class V1Integration
             return;
         }
         int decksBefore = CountDecks(hullMap, hullIndex);
+        var partsBefore = CountPartsPerDeck(hullMap, hullIndex);
 
         // MoveShip walks rooms, regions, zones and map sections. None of that exists while the region
         // and room updater is disabled, which is exactly the state a freshly generated map is in. A
@@ -1983,6 +1984,35 @@ internal static partial class V1Integration
         int decksAfter = CountDecks(hullMap, movedIndex < 0 ? hullIndex : movedIndex);
         Check("sos2-realship-flip-keeps-the-hull-together", movedIndex >= 0 && decksAfter >= decksBefore,
             $"index={hullIndex}->{movedIndex}, decks={decksBefore}->{decksAfter}");
+
+        // Counting TRACKED CELLS is not enough. Ship cells are moved by TransformForShipMove and the
+        // buildings standing on them by ReSpawnThingOnMap: two separate rotation implementations, and
+        // only the second one collapsed a real hull onto the ground deck. A flip that leaves every cell
+        // in its band but every part on deck 0 still reads as "all my decks are gone" to a player, so
+        // count where the parts themselves ended up.
+        var partsAfter = CountPartsPerDeck(hullMap, hullIndex);
+        Check("sos2-realship-flip-keeps-the-parts-on-their-decks",
+            partsAfter.Count(kv => kv.Value > 0) >= partsBefore.Count(kv => kv.Value > 0),
+            $"before=[{DescribeDecks(partsBefore)}], after=[{DescribeDecks(partsAfter)}]");
+    }
+
+    private static string DescribeDecks(Dictionary<int, int> perDeck) =>
+        string.Join(" ", perDeck.OrderBy(kv => kv.Key).Select(kv => $"L{kv.Key}={kv.Value}"));
+
+    /// <summary>Buildings of one ship counted per deck, read from where they actually stand.</summary>
+    private static Dictionary<int, int> CountPartsPerDeck(Map target, int index)
+    {
+        var perDeck = new Dictionary<int, int>();
+        LayerMapComponent? owner = LayerMapComponent.For(target);
+        if (owner == null || index < 0) return perDeck;
+        foreach (Thing thing in target.listerThings.AllThings)
+        {
+            if (thing is not Building) continue;
+            if (Sos2Compatibility.ShipIndexAt(target, thing.Position) != index) continue;
+            if (!owner.TryDecode(thing.Position, out LayerCell logical)) continue;
+            perDeck[logical.LayerId] = perDeck.GetValueOrDefault(logical.LayerId) + 1;
+        }
+        return perDeck;
     }
 
     private static int CountDecks(Map target, int index)
