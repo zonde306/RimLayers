@@ -165,6 +165,12 @@ internal static partial class V1Integration
         var building = (Building)ThingMaker.MakeThing(def, def.MadeFromStuff ? GenStuff.DefaultStuffFor(def) : null);
         building.SetFaction(Faction.OfPlayer);
         GenSpawn.Spawn(building, cell, target, rot);
+        // CompShipHeat.PostSpawnSetup is supposed to add itself to cachedPipes, but a fixture spawns
+        // parts without going through the ship-cache rooting that normally rebuilds that list, and a
+        // part missing from it is invisible to the heat flood fill (its cell keeps grid = -1 and it
+        // joins no net). Register every heat part here so the fixture cannot silently measure a
+        // broken chain instead of the deck edge it is asking about.
+        EnsureOnHeatPipeList(building);
         return building;
     }
 
@@ -1328,15 +1334,19 @@ internal static partial class V1Integration
         // x/z have to come back out of TryDecode before AtElevation is asked for the deck below:
         // LayerMapComponent.LayerRect z is storage, and LayerLayout.ToStorage adds stride again. That
         // double offset threw ArgumentOutOfRangeException out of AtElevation the first time.
+        // Conduit goes UNDER the turret only. Both are buildings, and a building cannot share a cell with
+        // another building: GenSpawn wipes whatever stands there, so a conduit placed at the turret's own
+        // cells is destroyed the moment the turret lands on it. That leaves the riser with a single end
+        // and the deck above on a net of its own - which is precisely the failure being tested. The
+        // turret is itself a heat part, so turret (deck 1) over conduit (deck 0) is the stacked pair the
+        // vertical rule wants.
         var riserPath = new List<IntVec3>();
         foreach (IntVec3 c in GenAdj.OccupiedRect(turretCell, Rot4.North, new IntVec2(2, 2)))
         {
             if (!hull.TryDecode(c, out LayerCell logical)) continue;
             IntVec3 below = hull.AtElevation(0, logical.X, logical.Z);
-            foreach (IntVec3 stacked in new[] { c, below })
-                foreach (Thing t in stacked.GetThingList(target).ToList())
-                    if (t is not Pawn && t.def.defName == "ShipHeatConduit") t.Destroy(DestroyMode.Vanish);
-            SpawnSos2On(target, "ShipHeatConduit", c, Rot4.North);
+            foreach (Thing t in below.GetThingList(target).ToList())
+                if (t is not Pawn && t.def.defName == "ShipHeatConduit") t.Destroy(DestroyMode.Vanish);
             SpawnSos2On(target, "ShipHeatConduit", below, Rot4.North);
             riserPath.Add(below);
         }
@@ -1365,17 +1375,7 @@ internal static partial class V1Integration
         // path does not hit this because SOS2 recaches from roots when the ship is loaded or a part is
         // placed through the build system; a fixture that calls GenSpawn directly has to do it here.
         // Without this the turret reads "no net" for a reason that has nothing to do with decks.
-        if (heat != null && Sos2Compatibility.ShipMapCompType != null)
-        {
-            object? pipesBefore = AccessTools.Field(Sos2Compatibility.ShipMapCompType, "cachedPipes")
-                ?.GetValue(sos2ShipComp);
-            bool listed = false;
-            if (pipesBefore is System.Collections.IEnumerable known)
-                foreach (object? p in known)
-                    if (ReferenceEquals(p, heat)) { listed = true; break; }
-            if (!listed)
-                AccessTools.Method(pipesBefore?.GetType(), "Add")?.Invoke(pipesBefore, new[] { (object)heat });
-        }
+        EnsureOnHeatPipeList(turret);
 
         // Rebuilding the heat grid is what assigns nets, so do it after the turret exists.
         AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "heatGridDirty")?.SetValue(sos2ShipComp, true);
@@ -1401,11 +1401,25 @@ internal static partial class V1Integration
             ? -2
             : heatGrid[target.cellIndices.CellToIndex(sos2Bridge.Position)];
         object? net = heat == null ? null : AccessTools.Field(heatType, "myNet")?.GetValue(heat);
+        // A vertical neighbour is only accepted when both stacked cells carry heat hardware AND they
+        // belong to the same ship. Naming which half failed is the difference between "the fixture never
+        // put conduit under the turret" and "the adapter cannot cross this deck".
+        var stack = new List<string>();
+        if (hull.TryDecode(turret.Position, out LayerCell turretLogical))
+            foreach (int lid in new[] { turretLogical.LayerId, 0 })
+            {
+                IntVec3 stacked = hull.AtElevation(lid, turretLogical.X, turretLogical.Z);
+                bool heatHere = false;
+                foreach (Thing t in stacked.GetThingList(target))
+                    if (Sos2Compatibility.IsHeatPart(t)) { heatHere = true; break; }
+                stack.Add($"L{lid}{stacked}:ship={Sos2Compatibility.ShipIndexAt(target, stacked)},heat={heatHere},grid={(heatGrid == null ? -2 : heatGrid[target.cellIndices.CellToIndex(stacked)])}");
+            }
         Check("sos2-an-upper-deck-turret-is-on-a-heat-net", heat != null && net != null,
             $"turret={turret.Position}, net={(net == null ? "none" : "ok")}, heatComp={heat != null}, " +
             $"pipes={pipeCount}, turretInPipes={turretInPipes}, runLaid={laid}, risers={riserPath.Count}, " +
             $"bridge={(sos2Bridge == null ? "none" : sos2Bridge.Position.ToString())}, map={target}, " +
-            $"turretGrid={turretGrid}, bridgeGrid={bridgeGrid}");
+            $"turretGrid={turretGrid}, bridgeGrid={bridgeGrid}, bridgeShip={Sos2Compatibility.ShipIndexAt(target, sos2Bridge.Position)}, " +
+            $"stack=[{string.Join(" ", stack)}]");
         if (heat == null || net == null) return;
 
         // The whole point: that net carries a console, and the turret is therefore active.
@@ -1749,6 +1763,30 @@ internal static partial class V1Integration
     /// own net. That reads as "the adapter cannot carry heat between decks" when it is really "the
     /// fixture never connected the two ends".
     /// </remarks>
+    /// <summary>
+    /// Puts a spawned part's heat comp on <c>cachedPipes</c>, which is the list the flood fill walks.
+    /// </summary>
+    /// <remarks>
+    /// <c>CompShipHeat.PostSpawnSetup</c> normally does this, and it does run here - but SOS2 also
+    /// rebuilds the list from the ship's cache roots, and a pad fixture has no cache part to root that
+    /// rebuild in. A part that is missing from the list is invisible to <c>MapComponentUpdate</c>, so its
+    /// cell keeps <c>grid = -1</c> and it silently joins no net at all. Doing it explicitly keeps the
+    /// fixture measuring the deck edge instead of the fixture's own bookkeeping.
+    /// </remarks>
+    private static void EnsureOnHeatPipeList(Building? building)
+    {
+        if (building is not ThingWithComps comps || Sos2Compatibility.ShipMapCompType == null) return;
+        Type? heatType = Sos2Compatibility.ShipHeatType;
+        if (heatType == null) return;
+        ThingComp? heat = comps.AllComps.FirstOrDefault(c => heatType.IsInstanceOfType(c));
+        if (heat == null) return;
+        object? pipes = AccessTools.Field(Sos2Compatibility.ShipMapCompType, "cachedPipes")?.GetValue(sos2ShipComp);
+        if (pipes is System.Collections.IEnumerable known)
+            foreach (object? p in known)
+                if (ReferenceEquals(p, heat)) return;
+        AccessTools.Method(pipes?.GetType(), "Add")?.Invoke(pipes, new[] { (object)heat });
+    }
+
     private static int LayHeatRun(Map target, LayerMapComponent hull, List<IntVec3> from, IntVec3 to)
     {
         if (from.Count == 0) return -1;
@@ -1844,9 +1882,16 @@ internal static partial class V1Integration
         // and room updater is disabled, which is exactly the state a freshly generated map is in. A
         // move attempted then fails with a bare NRE deep inside the method, which reads like a RimLayers
         // bug but is really "not now". Say so instead of reporting a mystery.
+        // Enabled only says the updater is willing to run, not that it has. A hull the fixture spawned has
+        // no regions yet, so MoveShip's room loop calls GetRoom on cells that were never registered and
+        // dereferences the null it gets back. Rebuilding first is the state a player's map is always in.
         bool regionsReady = hullMap.regionAndRoomUpdater is { Enabled: true };
-        Check("sos2-realship-map-is-ready-for-a-move", regionsReady,
-            $"regionAndRoomUpdater enabled={regionsReady}");
+        if (regionsReady) hullMap.regionAndRoomUpdater.RebuildAllRegionsAndRooms();
+        int roomsOnDeck0 = 0;
+        if (hullOwner != null)
+            foreach (IntVec3 cell in hullOwner.LayerRect(0)) if (cell.GetRoom(hullMap) != null) roomsOnDeck0++;
+        Check("sos2-realship-map-is-ready-for-a-move", regionsReady && roomsOnDeck0 > 0,
+            $"regionAndRoomUpdater enabled={regionsReady}, rooms on deck 0={roomsOnDeck0}");
         if (!regionsReady)
         {
             Check("sos2-realship-flip-move-does-not-throw", false, "skipped: map regions are not live yet");
@@ -1861,6 +1906,52 @@ internal static partial class V1Integration
         Check("sos2-realship-area-and-ship-cells-agree", unclaimed == 0,
             $"cells-in-area-without-a-map-ship-entry={unclaimed}");
 
+        // MoveShip fills posTemp with the *destination* cell of every sealed source room and then, near
+        // the end, does `room = t.Item1.GetRoom(targetMap); room.Temperature = ...` with no null check.
+        // A flip puts the hull on the far side of the same map, so those destination cells are new. If
+        // GetRoom returns null for any of them the whole move dies there - after most of the hull has
+        // already been transferred. Count them up front so the failure names its cause instead of
+        // surfacing as a bare NRE.
+        int deadDestinations = 0;
+        int sealedRooms = 0;
+        var seenRooms = new HashSet<Room>();
+        MethodInfo? transformFlip = AccessTools.Method(Sos2Compatibility.ShipInteriorType, "TransformForShipMove",
+            new[] { typeof(Map), typeof(IntVec3), typeof(IntVec3), typeof(int) });
+        if (transformFlip != null
+            && cache != null && AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is HashSet<IntVec3> flipArea)
+            foreach (IntVec3 cell in flipArea)
+            {
+                Room? from = cell.GetRoom(hullMap);
+                if (from == null || !seenRooms.Add(from)) continue;
+                sealedRooms++;
+                IntVec3 destination = (IntVec3)transformFlip.Invoke(null, new object[] { hullMap, cell, flipAdjustment, 2 })!;
+                if (!destination.InBounds(hullMap) || destination.GetRoom(hullMap) == null) deadDestinations++;
+            }
+        Check("sos2-realship-flip-destinations-have-rooms", deadDestinations == 0,
+            $"sealed source rooms={sealedRooms}, destinations without a room={deadDestinations}");
+
+        // A destination cell only answers "no room" when the region grid has nothing there at all, which
+        // happens when the flipped hull would land on cells the map never registered. That is a different
+        // fault from "registered, but full of hull", and the two are fixed differently, so keep them apart.
+        if (transformFlip != null && cache != null
+            && AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is HashSet<IntVec3> probeArea)
+        {
+            int bareDestinations = 0;
+            var sample = new HashSet<string>();
+            foreach (IntVec3 cell in probeArea)
+            {
+                IntVec3 destination = (IntVec3)transformFlip.Invoke(null, new object[] { hullMap, cell, flipAdjustment, 2 })!;
+                if (!destination.InBounds(hullMap)) continue;
+                if (RegionAndRoomQuery.RegionAt(destination, hullMap, RegionType.Set_All) != null) continue;
+                bareDestinations++;
+                if (sample.Count < 6)
+                    sample.Add($"{destination} terrain={hullMap.terrainGrid.TerrainAt(destination)?.defName ?? "null"}"
+                        + $"/under={hullMap.terrainGrid.UnderTerrainAt(destination)?.defName ?? "null"}"
+                        + $"/found={hullMap.terrainGrid.FoundationAt(destination)?.defName ?? "null"}");
+            }
+            Check("sos2-realship-destination-area-has-regions", bareDestinations == 0,
+                $"region-less destination cells={bareDestinations}, sample: {string.Join(" | ", sample)}");
+        }
         int failuresBefore = errors.Count;
         // Harmony flattens the stack of anything thrown inside a patched method down to the patch
         // frame, so the real throw site is invisible by the time the exception reaches us. Listening

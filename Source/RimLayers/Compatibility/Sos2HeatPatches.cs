@@ -60,7 +60,12 @@ internal static class Sos2HeatPatches
             Map? map = Sos2CellGraph.Current;
             if (map == null) return true;
             if (!CarriesHeat(map, from) || !CarriesHeat(map, to)) return false;
-            return Sos2Compatibility.ShipIndexAt(map, from) == Sos2Compatibility.ShipIndexAt(map, to);
+            int a = Sos2Compatibility.ShipIndexAt(map, from), b = Sos2Compatibility.ShipIndexAt(map, to);
+            // -1 means "no ship claims this cell". A pad fixture, and any cell built before the ship
+            // cache caught up, reads as -1 on both sides; refusing that pair because -1 != 0 would drop
+            // every vertical edge on the deck a player is actually standing on. Only two DIFFERENT
+            // claimed hulls are a real cross-ship join.
+            return a < 0 || b < 0 || a == b;
         }
 
         /// <summary>True when the cell holds a building with SOS2's heat comp.</summary>
