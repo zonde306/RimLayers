@@ -264,25 +264,40 @@ internal static class Sos2SubsystemPatches
             var list = instructions.ToList();
             MethodInfo toShifted = AccessTools.Method(typeof(IntVec3), nameof(IntVec3.ToVector3Shifted));
             MethodInfo helper = AccessTools.Method(typeof(ShieldSeesEveryDeckPatch), nameof(Flatten));
-            int hits = 0;
+            MethodInfo distance = AccessTools.Method(typeof(Vector3), nameof(Vector3.Distance));
+            MethodInfo shieldDistance = AccessTools.Method(typeof(ShieldSeesEveryDeckPatch), nameof(Measured));
+            int shifted = 0, measured = 0;
             for (int i = 0; i < list.Count; i++)
             {
-                if (list[i].opcode != OpCodes.Call || list[i].operand is not MethodInfo called || called != toShifted) continue;
-                hits++;
-                // The native call left the shield's corner on the stack with y carrying the band.
-                // Hand it the projectile's own altitude and it becomes the same measurement a flat
-                // map makes. Nothing else on the stack needs the original value: SOS2 stores the
-                // result into a local at IL_0073 and overwrites its y on the very next line.
-                list.InsertRange(i + 1, new[]
+                if (list[i].opcode != OpCodes.Call || list[i].operand is not MethodInfo called) continue;
+                if (called == toShifted)
                 {
-                    new CodeInstruction(OpCodes.Ldarg_1),
-                    new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Vector3), nameof(Vector3.y))),
-                    new CodeInstruction(OpCodes.Call, helper),
-                });
-                i += 3;
+                    shifted++;
+                    // The native call left the shield's corner on the stack carrying the storage z. It
+                    // is flattened to the projectile's altitude so the band in y stops counting, which
+                    // is what the native code does anyway one line later.
+                    list.InsertRange(i + 1, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Vector3), nameof(Vector3.y))),
+                        new CodeInstruction(OpCodes.Call, helper),
+                    });
+                    i += 3;
+                }
+                else if (called == distance)
+                {
+                    measured++;
+                    // Every distance SOS2 measures here is between a projectile and a shield. On a
+                    // layered map both z values carry their band, so comparing them across decks adds
+                    // a whole stride - a shield could never reach a shell fired from another floor.
+                    // Measuring in band-local z is the same number a flat map would produce.
+                    list[i] = new CodeInstruction(OpCodes.Call, shieldDistance);
+                }
             }
-            if (hits != 1)
-                throw new InvalidOperationException($"RimLayers SOS2 shield anchor changed: expected 1 call to ToVector3Shifted, found {hits}.");
+            if (shifted != 1)
+                throw new InvalidOperationException($"RimLayers SOS2 shield anchor changed: expected 1 call to ToVector3Shifted, found {shifted}.");
+            if (measured == 0)
+                throw new InvalidOperationException("RimLayers SOS2 shield anchor changed: no Vector3.Distance call to retarget.");
             return list;
         }
 
@@ -295,6 +310,40 @@ internal static class Sos2SubsystemPatches
         {
             corner.y = altitude;
             return corner;
+        }
+
+        /// <summary>
+        /// <see cref="Vector3.Distance"/> with both z values folded into their own band.
+        /// </summary>
+        /// <remarks>
+        /// A layered map stores a band as <c>z = layer * stride + localZ</c>, so a shell fired on the
+        /// third deck and a shield standing on the first differ by two strides in z even when they are
+        /// in the same column. The native test is a plain 3D distance, so that difference can never fall
+        /// inside the shield's radius and an upper-deck shield stops nothing. Folding each z back to its
+        /// band makes the number identical to what a flat map would measure, which is the measurement
+        /// SOS2 was written against. x is untouched: bands only shift z.
+        /// </remarks>
+        private static float Measured(Vector3 first, Vector3 second)
+        {
+            int stride = StrideOf(first.z) ?? StrideOf(second.z) ?? 0;
+            if (stride <= 0) return Vector3.Distance(first, second);
+            return (float)System.Math.Sqrt(
+                (first.x - second.x) * (first.x - second.x) +
+                (first.y - second.y) * (first.y - second.y) +
+                (Sos2Geometry.LocalZ((int)first.z, stride) - Sos2Geometry.LocalZ((int)second.z, stride)) *
+                (Sos2Geometry.LocalZ((int)first.z, stride) - Sos2Geometry.LocalZ((int)second.z, stride)));
+        }
+
+        /// <summary>The stride of whichever managed map has a layout that explains this z.</summary>
+        private static int? StrideOf(float z)
+        {
+            foreach (Map map in Find.Maps)
+            {
+                if (LayerMapComponent.For(map)?.Layout is not { LayerCount: > 1 } layout) continue;
+                if (z < 0 || z >= layout.LayerCount * layout.Stride) continue;
+                return layout.Stride;
+            }
+            return null;
         }
     }
 }

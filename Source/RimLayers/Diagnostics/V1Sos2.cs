@@ -1619,6 +1619,35 @@ internal static partial class V1Integration
                     inList = $"{candidate.GetType().Name}@{owner?.Position.ToString() ?? "?"} on {owner?.Map}";
                     break;
                 }
+        // The complaint was never about a shot on the shield's own deck. It was that a shell fired
+        // from another floor flies straight through, because the native test is a plain 3D distance
+        // and on a layered map both z values carry their band. Ask the same question with the segment
+        // pushed into the next band: same column, same x, only the z moves one stride.
+        bool crossDeck = false;
+        string crossDetail = "no second band";
+        if (hull.TryDecode(sos2Shield.Position, out LayerCell deckCell) &&
+            hull.Layout is { LayerCount: > 1 } shieldLayout && deckCell.LayerId + 1 < shieldLayout.LayerCount)
+        {
+            int stride = shieldLayout.Stride;
+            var second = ThingMaker.MakeThing(ThingDef.Named("Proj_ShipTurretLaser")) as Projectile;
+            if (second != null)
+            {
+                Vector3 above = new(centre.x + radius + 1f, 0f, centre.z + stride);
+                Vector3 aboveEnd = new(centre.x + radius - 1f, 0f, centre.z + stride);
+                IntVec3 crossFrom = above.ToIntVec3();
+                if (!crossFrom.InBounds(target)) crossFrom = sos2Shield.Position;
+                GenSpawn.Spawn(second, crossFrom, target);
+                target.powerNetManager.UpdatePowerNetsAndConnections_First();
+                crossDeck = intercept?.Invoke(second, new object[] { above, aboveEnd }) is true;
+                bool crossDestroyed = second.Destroyed;
+                if (!second.Destroyed) second.Destroy(DestroyMode.Vanish);
+                crossDetail = $"shieldDeck={deckCell.LayerId}, start={above}, end={aboveEnd}, " +
+                              $"stride={stride}, blocked={crossDeck}, destroyed={crossDestroyed}, " +
+                              $"inBounds={crossFrom.InBounds(target)}";
+            }
+        }
+        Check("sos2-a-shield-stops-a-shot-from-another-deck", crossDeck, crossDetail);
+
         Check("sos2-a-shield-stops-an-incoming-torpedo", blocked,
             $"deck={deck}, from={from}, to={sos2Shield.Position}, blocked={blocked}, " +
             $"destroyed={destroyed}, start={start}, end={end}, {state}, " +
