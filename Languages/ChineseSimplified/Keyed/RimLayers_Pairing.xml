@@ -7,6 +7,7 @@
   <RL_PairLayerMissing>{0}还不存在。请先建造通往该层的楼梯或竖井。</RL_PairLayerMissing>
   <RL_PairBottomLayer>最深层之下没有楼层。</RL_PairBottomLayer>
   <RL_PairNeedsFloor>{0} 这里是空旷空气，没有可以建造的楼面。</RL_PairNeedsFloor>
+  <RL_PairNeedsHeatFloor>{0} 这里没有可以站住这根竖管的楼面。导热竖管必须逐层对上，这一层也得先铺出甲板再放一根。</RL_PairNeedsHeatFloor>
   <RL_PairBlueprintExists>对应端在此处已经有蓝图了。</RL_PairBlueprintExists>
   <RL_PairBuilt>对应端在此处已经建好了。</RL_PairBuilt>
   <RL_PairBlocked>该位置放不下对应端：{0}</RL_PairBlocked>

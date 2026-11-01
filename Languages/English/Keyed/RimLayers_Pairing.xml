@@ -7,6 +7,7 @@
   <RL_PairLayerMissing>{0} does not exist yet. Build the stairs or shaft that reach it first.</RL_PairLayerMissing>
   <RL_PairBottomLayer>There is no layer below the deepest one.</RL_PairBottomLayer>
   <RL_PairNeedsFloor>{0} has open air here, with no floor to build on.</RL_PairNeedsFloor>
+  <RL_PairNeedsHeatFloor>{0} has no floor to stand this riser on. Heat risers have to line up deck by deck, so this deck needs its own plating and its own riser.</RL_PairNeedsHeatFloor>
   <RL_PairBlueprintExists>The matching end already has a blueprint here.</RL_PairBlueprintExists>
   <RL_PairBuilt>The matching end is already built here.</RL_PairBuilt>
   <RL_PairBlocked>That spot cannot take the matching end: {0}</RL_PairBlocked>

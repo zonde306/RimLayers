@@ -641,6 +641,16 @@ internal static partial class V1Integration
             riser != null && riser.designationCategory?.defName == "Ship", $"def={riser?.defName}, category={riser?.designationCategory?.defName}");
         if (riser != null && lowerRiser != null && upperRiser != null)
         {
+            // The pairing buttons come from a LayerPairProperties extension. LayerPairingBootstrap
+            // derives it for power risers, pipe risers and resource risers; a heat riser carries SOS2's
+            // CompShipHeat instead, so it has to declare it in XML. Assert the declaration actually
+            // survived def loading - a typo in the Class attribute silently yields null, and the only
+            // symptom would be a missing button nobody can see in a log.
+            var paired = riser.GetModExtension<LayerPairProperties>();
+            var offered = LayerPairing.Directions(riser).ToList();
+            Check("sos2-thermal-riser-offers-pairing-buttons",
+                paired != null && offered.Contains(1) && offered.Contains(-1),
+                $"extension={paired != null}, directions={string.Join(",", offered)}");
             AccessTools.Field(Sos2Compatibility.ShipMapCompType, "heatGridDirty")?.SetValue(sos2ShipComp, true);
             AccessTools.Field(Sos2Compatibility.ShipMapCompType, "loaded")?.SetValue(sos2ShipComp, false);
             AccessTools.Method(Sos2Compatibility.ShipMapCompType, "MapComponentUpdate", Type.EmptyTypes)

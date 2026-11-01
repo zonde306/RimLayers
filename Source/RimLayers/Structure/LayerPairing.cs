@@ -146,10 +146,15 @@ internal static class LayerPairing
         var shifted = Shift(owner, footprint, direction);
         if (shifted == null) return "RL_PairLayerMissing".Translate(LevelName(target));
         var area = shifted.Value;
+        // A heat riser's partner is invisible to Structure.HasSurface on a hull that has no deck there,
+        // and the generic message sends the player looking for a floor problem when the real answer is
+        // "this deck needs the matching end too". Say so only for the riser that needs it.
+        bool heatRiser = Props(def)?.kind == LayerPairKind.Riser && Compatibility.Sos2Compatibility.IsHeatPart(source);
         foreach (var cell in area)
         {
             if (!cell.InBounds(map)) return "RL_NoSurface".Translate();
-            if (!owner.Structure.HasSurface(cell)) return "RL_PairNeedsFloor".Translate(LevelName(target));
+            if (!owner.Structure.HasSurface(cell))
+                return (heatRiser ? "RL_PairNeedsHeatFloor" : "RL_PairNeedsFloor").Translate(LevelName(target));
             foreach (var thing in cell.GetThingList(map))
                 if (thing.def == partner || thing.def.entityDefToBuild == partner)
                     return thing.def == partner ? "RL_PairBuilt".Translate() : "RL_PairBlueprintExists".Translate();

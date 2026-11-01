@@ -21,6 +21,21 @@
           <defName>RL_HeatRiser</defName>
           <uiIconScale>0.6</uiIconScale>
           <uiOrder>2010</uiOrder>
+          <!--
+            Declares the pairing RL_PowerRiser gets derived for it, so heat risers get the same two
+            buttons that queue the matching end above and below. LayerPairingBootstrap only recognises
+            defs carrying CompPowerRiser/CompLayerPort/CompResourcePort; a heat riser carries
+            CompShipHeat instead, because SOS2 owns that net, so it has to say this itself. No partner:
+            the matching end is the same def.
+          -->
+          <modExtensions>
+            <li Class="RimLayers.Structure.LayerPairProperties">
+              <directions>
+                <li>1</li>
+                <li>-1</li>
+              </directions>
+            </li>
+          </modExtensions>
         </ThingDef>
       </value>
     </match>
