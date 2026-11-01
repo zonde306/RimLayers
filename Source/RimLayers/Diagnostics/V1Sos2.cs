@@ -61,6 +61,8 @@ internal static partial class V1Integration
     /// </summary>
     private static IntVec3[] sos2LaunchCells = System.Array.Empty<IntVec3>();
     /// <summary>The launch fixture's engine, kept so the flight window can be inspected later.</summary>
+    private static Building? sos2Shield;
+    private static Building? sos2ShieldHeatSink;
     private static Building? sos2LaunchEngine;
     /// <summary>The launch fixture's bridge, which is the ship's core and its camera target.</summary>
     private static Building? sos2LaunchBridge;
@@ -1416,6 +1418,296 @@ internal static partial class V1Integration
         Check("sos2-an-upper-deck-turret-is-live", active,
             $"active={active}, pilots={pilots}, cores={cores}, tacticals={tacticals}, " +
             $"power={AccessTools.Field(turret.GetType(), "powerComp")?.GetValue(turret) != null}");
+
+        // Run the shield assertion on the real hull, not on this pad. A pad is terrain plus a few
+        // columns: nothing on it carries CompShipCachePart, so none of its cells join MapShipCells and
+        // ShipMapComp's slow tick destroys anything standing there. A real hull registers its own
+        // cells, which is the situation the player reports come from.
+        if (realShipBridge != null && !realShipBridge.DestroyedOrNull() && realShipBridge.Map != null)
+        {
+            Map hullMap = realShipBridge.Map;
+            LayerMapComponent? realHull = LayerMapComponent.For(hullMap);
+            if (realHull?.Layout is { LayerCount: > 1 }) CheckShieldBlocksIncomingFire(hullMap, realHull);
+            else Check("sos2-a-shield-can-stand-on-the-hull", false, "the real hull has no layers");
+        }
+        else
+        {
+            CheckShieldBlocksIncomingFire(target, hull);
+        }
+    }
+
+    /// <summary>
+    /// Whether a shield actually stops fire aimed at the hull, not whether a patch was installed.
+    /// </summary>
+    /// <remarks>
+    /// The earlier assertion only read the patched IL, which answers "did the transpiler run" and not
+    /// "does a shot get stopped". Those come apart: the report that prompted this was a shield that
+    /// neither turret fire nor torpedoes could be stopped by, and the IL check was green.
+    ///
+    /// The projectile is put where SOS2 puts its own incoming fire - a band-local edge cell of the
+    /// hull's deck - and the intercept test is called for the two points the projectile would travel
+    /// between on that tick. <c>Projectile.ExactPosition</c> zeroes y and adds the thing's Altitude, so
+    /// both points carry <c>def.Altitude</c> and not a band; that is why the test is about the two
+    /// points a real shot has, not about which deck the shield stands on.
+    /// </remarks>
+    private static void CheckShieldBlocksIncomingFire(Map target, LayerMapComponent hull)
+    {
+        if (sos2Shield != null) sos2Shield.Destroy(DestroyMode.Vanish);
+        IntVec3 shieldCell = ShieldCell(hull);
+        sos2Shield = shieldCell.IsValid
+            ? SpawnSos2On(target, "ShipCombatShieldGenerator", shieldCell, Rot4.North)
+            : null;
+        if (sos2Shield == null)
+        {
+            Check("sos2-a-shield-can-stand-on-the-hull", false,
+                $"no 3x3 surface on the hull; cell={shieldCell}");
+            return;
+        }
+        Check("sos2-a-shield-can-stand-on-the-hull", true, $"shield={sos2Shield.Position}");
+
+        // A shield only reports hits while it is switched on and has a parent to measure from.
+        if (sos2Shield.TryGetComp<CompFlickable>() is { } flick) flick.SwitchIsOn = true;
+        // shutDown/radius/radiusSet live on CompShipHeatShield, not on the CompShipHeat base, so they
+        // have to be read through the shield's own type. Reading them off the base type returns null
+        // and every gate then looks false for a reason that has nothing to do with the shield.
+        // A grid rebuild is not the only thing that destroys parts: ShipMapComp's own slow tick runs
+        // KillAllOffShip, which destroys every thing standing on a cell that is not in MapShipCells.
+        // A fixture that spawns onto a map with no registered ship therefore loses its shield to the
+        // clean-up, not to anything about shields.
+        object? heat = (sos2Shield as ThingWithComps)?.AllComps
+            .FirstOrDefault(c => c.GetType().Name == "CompShipHeatShield");
+        // CompTick recomputes shutDown every tick from breakdown, PowerOn and venting, so a fixture
+        // that never ticks leaves whatever the initialiser said. The postfix skips shut-down shields,
+        // so set it directly instead of waiting for a tick that a generate scenario may not reach.
+        if (heat != null)
+        {
+            Type? shieldType = heat?.GetType();
+            AccessTools.Field(shieldType!, "shutDown")?.SetValue(heat, false);
+            AccessTools.Field(shieldType!, "radius")?.SetValue(heat, 6f);
+            AccessTools.Field(shieldType!, "radiusSet")?.SetValue(heat, 6f);
+        }
+
+        // HitShield calls AddHeatToNetwork and, when there is no net to absorb the heat, falls into a
+        // branch that expects either a breakdownable comp or a parent vehicle. A fixture shield has
+        // neither, so it threw a NullReferenceException from inside SOS2 the moment the intercept
+        // succeeded - which reads as "the shield is broken" when it actually means "the shield worked
+        // and then could not pay for it". Put it on the hull's heat net first.
+        if (heat != null)
+        {
+            // The ship comp that owns the heat grid has to be the one on the shield's own map. The
+            // combat phase spawns onto a different map than the bridge sits on, and running the grid
+            // rebuild on the wrong one leaves myNet null while every other reading looks healthy.
+            object? shipComp = sos2Shield.Map.GetComponent(Sos2Compatibility.ShipMapCompType!) ?? sos2ShipComp;
+            object? pipes = AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "cachedPipes")
+                ?.GetValue(shipComp);
+            bool listed = false;
+            if (pipes is System.Collections.IEnumerable known)
+                foreach (object? p in known)
+                    if (ReferenceEquals(p, heat)) { listed = true; break; }
+            string added = listed ? "already" : "no-add";
+            if (!listed)
+                try
+                {
+                    AccessTools.Method(pipes?.GetType(), "Add")?.Invoke(pipes, new[] { (object)heat });
+                    added = "added";
+                }
+                catch (Exception e) { added = "add-failed: " + e.InnerException?.Message; }
+            AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "heatGridDirty")?.SetValue(shipComp, true);
+            AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "loaded")?.SetValue(shipComp, false);
+            AccessTools.Method(Sos2Compatibility.ShipMapCompType!, "MapComponentUpdate", Type.EmptyTypes)
+                ?.Invoke(shipComp, null);
+            object? net = AccessTools.Field(heat?.GetType()!, "myNet")?.GetValue(heat) ?? AccessTools.Field(Sos2Compatibility.ShipHeatType!, "myNet")?.GetValue(heat);
+            if (net == null)
+            {
+                Check("sos2-the-shield-is-on-a-heat-net", false,
+                    $"shield={sos2Shield.Position}, pipes={Count(pipes)}, {added}, " +
+                    $"mapSame={(sos2Shield.Map == shipComp?.GetType().GetProperty("map")?.GetValue(shipComp))}, " +
+                    $"grid={(AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "grid")?.GetValue(sos2ShipComp) as int[])?[sos2Shield.Map.cellIndices.CellToIndex(sos2Shield.Position)]}");
+                return;
+            }
+            // A shield cannot pay for an intercept without capacity somewhere on its net, and with no
+            // breakdownable comp it has no other way to fail: HitShield then indexes parentVehicle,
+            // which a building never has. Real play solves this with a heatsink, so the fixture gets
+            // one instead of writing the net's private capacity by hand - the capacity is a
+            // { get; private set; } auto property, so there is no field name to write anyway.
+            int shieldLayer = hull.TryDecode(sos2Shield!.Position, out LayerCell shieldAt) ? shieldAt.LayerId : 0;
+            float capacityNow = AccessTools.Property(net.GetType(), "StorageCapacityRaw")
+                ?.GetValue(net) is float cap ? cap : -1f;
+            if (capacityNow <= 0f)
+            {
+                if (sos2ShieldHeatSink != null) sos2ShieldHeatSink.Destroy(DestroyMode.Vanish);
+                sos2ShieldHeatSink = SpawnSos2On(target, "ShipHeatsink", HeatSinkCell(hull, sos2Shield.Position), Rot4.North);
+                AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "heatGridDirty")?.SetValue(shipComp, true);
+                AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "loaded")?.SetValue(shipComp, false);
+                AccessTools.Method(Sos2Compatibility.ShipMapCompType!, "MapComponentUpdate", Type.EmptyTypes)
+                    ?.Invoke(shipComp, null);
+            }
+            Check("sos2-the-shield-is-on-a-heat-net", true,
+                $"shield={sos2Shield.Position}, capacity={AccessTools.Property(net.GetType(), "StorageCapacityRaw")?.GetValue(net)}, " +
+                $"sink={(sos2ShieldHeatSink == null ? "none" : sos2ShieldHeatSink.Position.ToString())}, " +
+                $"shieldAlive={sos2Shield.Spawned && sos2Shield.Map == target}");
+        }
+
+        int deck = hull.TryDecode(sos2Shield.Position, out LayerCell at) ? at.LayerId : 0;
+        // The intercept test only looks at the segment a projectile covers in ONE tick, so the two
+        // points have to straddle the shield rather than be its two ends of the map. Start just
+        // outside the radius on one side and end just inside on the other: that is the tick a real
+        // shot reaches the bubble on.
+        float radius = AccessTools.Field(heat?.GetType()!, "radius")?.GetValue(heat) is float r && r > 0f ? r : 6f;
+        Vector3 centre = sos2Shield.Position.ToVector3Shifted();
+        Vector3 start = centre + new Vector3(radius + 1f, 0f, 0f);
+        Vector3 end = centre + new Vector3(radius - 1f, 0f, 0f);
+        IntVec3 from = start.ToIntVec3();
+
+        // A small laser, not a torpedo. The shield only asks about position, radius and def, but
+        // HitShield charges the net heatGenerated = DamageAmount * 3.5 and, when that exceeds the net's
+        // free capacity, falls into a branch that dereferences parentVehicle - a field only a vehicle
+        // shield has. A 1000-damage torpedo asks for 3500 heat against a 2800 net and throws out of
+        // SOS2 before the assertion can read a result; a 30-damage laser asks for 105 and gets through.
+        Projectile? shot = ThingMaker.MakeThing(ThingDef.Named("Proj_ShipTurretLaser")) as Projectile;
+        if (shot == null)
+        {
+            Check("sos2-a-shield-stops-an-incoming-torpedo", false, "torpedo def did not make a Projectile");
+            return;
+        }
+        if (!from.InBounds(target)) from = sos2Shield.Position;
+        // A shield that left the map between being placed and being fired at cannot answer the
+        // question this assertion asks. Say so instead of reporting "the shield never fired".
+        if (!sos2Shield.Spawned || sos2Shield.Map != target)
+        {
+            Check("sos2-a-shield-stops-an-incoming-torpedo", false,
+                $"the shield left the map before the shot: spawned={sos2Shield.Spawned}, " +
+                $"map={sos2Shield.Map?.ToString() ?? "none"}, target={target}");
+            return;
+        }
+        GenSpawn.Spawn(shot, from, target);
+        // HitShield reads powerComp.PowerNet unconditionally once it has paid for the hit, and a
+        // shield placed on a deck with no live net answers null there - a NullReferenceException from
+        // inside SOS2 that looks like "the shield failed" but means "the shield had no power". A
+        // freshly spawned building only joins a net on the next power-manager pass, so run that pass
+        // here: the player's shield is inside a built net by the time anything shoots at it.
+        target.powerNetManager.UpdatePowerNetsAndConnections_First();
+        CompPower? shieldPower = sos2Shield.TryGetComp<CompPower>();
+        bool powered = shieldPower?.PowerNet != null;
+        MethodInfo? intercept = AccessTools.Method(typeof(Projectile), "CheckForFreeInterceptBetween",
+            new[] { typeof(Vector3), typeof(Vector3) });
+        bool blocked = intercept?.Invoke(shot, new object[] { start, end }) is true;
+        bool destroyed = shot.Destroyed;
+        if (!shot.Destroyed) shot.Destroy(DestroyMode.Vanish);
+        // Everything SOS2's postfix gates on, printed together: a false here with no reason is the
+        // same trap as an assertion that only asks whether a patch loaded.
+        string state = heat == null ? "no heat comp" :
+            $"shutDown={AccessTools.Field(heat?.GetType()!, "shutDown")?.GetValue(heat)}, " +
+            $"radius={AccessTools.Field(heat?.GetType()!, "radius")?.GetValue(heat)}, " +
+            $"radiusSet={AccessTools.Field(heat?.GetType()!, "radiusSet")?.GetValue(heat)}";
+        object? mapComp = sos2Shield.Map?.GetComponent(Sos2Compatibility.ShipMapCompType!);
+        object? shieldList = mapComp == null
+            ? null
+            : AccessTools.Field(Sos2Compatibility.ShipMapCompType!, "Shields")?.GetValue(mapComp);
+        int listedShields = Count(shieldList);
+        bool shieldListed = false;
+        if (shieldList is System.Collections.IEnumerable shields)
+            foreach (object? candidate in shields)
+                if (ReferenceEquals(candidate, heat)) { shieldListed = true; break; }
+        string inList = "<none>";
+        if (shieldList is System.Collections.IEnumerable all)
+            foreach (object? candidate in all)
+                if (candidate != null)
+                {
+                    Thing? owner = AccessTools.Field(candidate.GetType(), "parent")?.GetValue(candidate) as Thing
+                        ?? AccessTools.Field(typeof(ThingComp), "parent")?.GetValue(candidate) as Thing;
+                    inList = $"{candidate.GetType().Name}@{owner?.Position.ToString() ?? "?"} on {owner?.Map}";
+                    break;
+                }
+        Check("sos2-a-shield-stops-an-incoming-torpedo", blocked,
+            $"deck={deck}, from={from}, to={sos2Shield.Position}, blocked={blocked}, " +
+            $"destroyed={destroyed}, start={start}, end={end}, {state}, " +
+            $"shields={listedShields}, listed={shieldListed}, first={inList}, mine={heat?.GetType().Name}, powered={powered}, " +
+            $"shieldMap={sos2Shield.Map}, mapComp={(sos2Shield.Map?.GetComponent(Sos2Compatibility.ShipMapCompType!) == null ? "none" : "ok")}, " +
+            $"targetComp={(target.GetComponent(Sos2Compatibility.ShipMapCompType!) == null ? "none" : "ok")}, target={target}");
+    }
+
+    /// <summary>Somewhere on the hull for the shield's 3x3 footprint to stand, deck 1 preferred.</summary>
+    private static IntVec3 ShieldCell(LayerMapComponent hull)
+    {
+        // Stay on the ship. CentredOn the bridge reaches 8 cells out, which overshoots a 9x7 deck and
+        // puts the shield on bare ground; ShipMapComp only registers parts whose cells belong to its
+        // own Area, so a shield spawned out there is never in Shields and can never intercept anything.
+        // Anchor on a deck cell of the map the shield will actually stand on. sos2Bridge can sit on
+        // another map entirely (the combat phase runs on the space map), and centring on it places the
+        // shield outside any ship's Area - it then never enters ShipMapComp.Shields and can never fire.
+        // Centre the search on the map's own ship when there is one, and fall back to the pad. A real
+        // hull is where the player puts a shield, so that is the placement worth proving.
+        IntVec3 anchor = realShipBridge != null && !realShipBridge.DestroyedOrNull() && realShipBridge.Map == hull.map
+            ? realShipBridge.Position
+            : hull.ToStorage(new Layout.LayerCell(0, sos2DeckRect.minX + 2, sos2DeckRect.minZ + 2));
+        CellRect rect = CellRect.CenteredOn(anchor, 12);
+        foreach (int deck in new[] { 1, 0 })
+        {
+            foreach (IntVec3 candidate in rect.Cells)
+            {
+                if (!hull.TryDecode(candidate, out LayerCell logical)) continue;
+                IntVec3 storage = hull.AtElevation(deck, logical.X, logical.Z);
+                // A 3x3 needs all nine cells to hold a surface, and the spawn check is what tells us so.
+                CellRect footprint = GenAdj.OccupiedRect(storage, Rot4.North, new IntVec2(3, 3));
+                if (!footprint.InBounds(hull.map)) continue;
+                if (footprint.Cells.Any(c => !hull.Structure.HasSurface(c))) continue;
+                // Occupied cells are not a reason to skip: the designator lets a player lay a shield
+                // over anything standing there, and GenSpawn wipes what it lands on. Only the deck and
+                // the ship's own cell table matter.
+                // Every cell has to belong to a hull ShipMapComp knows about. Its slow tick destroys
+                // anything standing on a cell outside MapShipCells, so a shield on a bare deck is not
+                // merely unregistered - it is deleted on the next heat rebuild, and the intercept test
+                // then reports "the shield never fired" for a shield that was already gone.
+                IDictionary? hullCells = Sos2Compatibility.ShipCellsOf(hull.map);
+                if (deck == 1 && logical.X == sos2DeckRect.minX + 2 && logical.Z == sos2DeckRect.minZ + 2)
+                    Log.Message($"[RimLayers] shield probe: deckCell={storage}, registered={(hullCells != null && hullCells.Contains(storage))}, cells={(hullCells == null ? -1 : hullCells.Count)}, surface={hull.Structure.HasSurface(storage)}");
+                if (hullCells == null) continue;
+                if (footprint.Cells.Any(c => !hullCells.Contains(c))) continue;
+                return footprint.CenterCell;
+            }
+        }
+        return IntVec3.Invalid;
+    }
+
+    /// <summary>An empty deck cell near <paramref name="near"/> for a heatsink to stand on.</summary>
+    private static IntVec3 HeatSinkCell(LayerMapComponent hull, IntVec3 near)
+    {
+        int shieldLayer = hull.TryDecode(near, out LayerCell nearAt) ? nearAt.LayerId : 0;
+        // Adjacency is what puts two heat parts on one net - the flood fill walks cardinal neighbours
+        // of the comp's cells, not the map. A sink nine cells away is on its own net, so the shield
+        // keeps paying nothing into it and Capacity stays zero. Search outward from the shield instead.
+        for (int radius = 2; radius <= 10; radius++)
+        {
+            foreach (IntVec3 candidate in CellRect.CenteredOn(near, radius).Cells)
+            {
+                if (!hull.TryDecode(candidate, out LayerCell spot)) continue;
+                // Same deck as the shield: a heat net walks cardinal neighbours and, across decks, only
+                // through a riser. A sink one band up is on a different net no matter how close it looks.
+                if (spot.LayerId != shieldLayer) continue;
+                if (!hull.Structure.HasSurface(candidate)) continue;
+                if (!GenAdj.OccupiedRect(candidate, Rot4.North, new IntVec2(2, 2)).InBounds(hull.map)) continue;
+                if (candidate.GetThingList(hull.map).Any(t => t is not Pawn)) continue;
+                // Must share a cardinal neighbour with the shield's own footprint.
+                bool adjacent = false;
+                foreach (IntVec3 mine in GenAdj.OccupiedRect(near, Rot4.North, new IntVec2(3, 3)).Cells)
+                    foreach (IntVec3 theirs in GenAdj.OccupiedRect(candidate, Rot4.North, new IntVec2(2, 2)).Cells)
+                        if (mine.AdjacentToCardinal(theirs)) adjacent = true;
+                if (adjacent) return candidate;
+            }
+        }
+        return IntVec3.Invalid;
+    }
+
+    /// <summary>An edge cell in the shield's own band, the same cell SOS2 launches incoming fire from.</summary>
+    private static IntVec3 Sos2GeometryEdge(Map target, LayerMapComponent hull, IntVec3 around, int deck)
+    {
+        if (!hull.TryDecode(around, out LayerCell logical)) return around;
+        (int x, int y, int z) = Sos2Geometry.EdgeCell(
+            logical.X, 0, deck * hull.Layout!.Stride + logical.Z,
+            hull.Layout.Width, hull.Layout.Height, hull.Layout.Stride, hull.Layout.LayerCount,
+            0, Sos2Compatibility.ProjectileSide(target, around));
+        return new IntVec3(x, y, z);
     }
 
     /// <summary>
