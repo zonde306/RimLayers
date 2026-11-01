@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 using RimLayers.Core;
 using RimLayers.Layout;
+using UnityEngine;
 using Verse;
 
 namespace RimLayers.Compatibility;
@@ -221,6 +223,78 @@ internal static class Sos2SubsystemPatches
                 width, height, stride, layers, 0, side);
             __result = new IntVec3(x, y, z);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// A shield has to see incoming fire on every deck, not only the one it stands on.
+    /// </summary>
+    /// <remarks>
+    /// SOS2 catches unmodified projectiles in <c>HarmonyPatches.ShieldsWithoutDLC</c>, a postfix on
+    /// <c>Projectile.CheckForFreeInterceptBetween</c>. It measures the distance from the projectile to
+    /// <c>shield.parent.Position.ToVector3Shifted()</c>, which is <c>new Vector3(x + 0.5f, y, z + 0.5f)</c>
+    /// - so the y of that vector is the cell's y. On a flat map y is always 0 and the measurement is
+    /// horizontal, which is what the code was written for. On a layered map y carries the band, so a
+    /// shield on deck 2 measures 375 units above a projectile flying at y = 0: the distance can never be
+    /// inside the radius and the shield silently stops protecting anything. The very next line of that
+    /// postfix sets <c>pos.y = lastExactPos.y</c>, which is the author meeting the same problem and
+    /// patching the view instead of the measure.
+    ///
+    /// The transpiler replaces the vector the postfix builds with the shield's cell centre at the
+    /// projectile's own altitude, and leaves everything else native: the <c>Projectile_ShipFake</c>
+    /// early-out, the radius test, and the call to <c>HitShield</c> that draws the impact cone, plays
+    /// the sound, heats the shield's net and explodes it when it gives.
+    /// </remarks>
+    [HarmonyPatch]
+    private static class ShieldSeesEveryDeckPatch
+    {
+        private static MethodBase? TargetMethod()
+        {
+            Type? postfixType = AccessTools.TypeByName("SaveOurShip2.ShieldsWithoutDLC");
+            MethodInfo? postfix = postfixType == null
+                ? null
+                : AccessTools.Method(postfixType, "Postfix",
+                    new[] { typeof(Projectile), typeof(Vector3), typeof(Vector3), typeof(bool).MakeByRefType() });
+            return postfix == null ? null : new HarmonyMethod(postfix).method;
+        }
+
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> FlatTheVector(IEnumerable<CodeInstruction> instructions)
+        {
+            var list = instructions.ToList();
+            MethodInfo toShifted = AccessTools.Method(typeof(IntVec3), nameof(IntVec3.ToVector3Shifted));
+            MethodInfo helper = AccessTools.Method(typeof(ShieldSeesEveryDeckPatch), nameof(Flatten));
+            int hits = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].opcode != OpCodes.Call || list[i].operand is not MethodInfo called || called != toShifted) continue;
+                hits++;
+                // The native call left the shield's corner on the stack with y carrying the band.
+                // Hand it the projectile's own altitude and it becomes the same measurement a flat
+                // map makes. Nothing else on the stack needs the original value: SOS2 stores the
+                // result into a local at IL_0073 and overwrites its y on the very next line.
+                list.InsertRange(i + 1, new[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_1),
+                    new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Vector3), nameof(Vector3.y))),
+                    new CodeInstruction(OpCodes.Call, helper),
+                });
+                i += 3;
+            }
+            if (hits != 1)
+                throw new InvalidOperationException($"RimLayers SOS2 shield anchor changed: expected 1 call to ToVector3Shifted, found {hits}.");
+            return list;
+        }
+
+        /// <summary>
+        /// The corner of the shield's cell at the projectile's own altitude. y is what carries the band
+        /// on a layered map, and SOS2 only overwrites it on the next line, so flattening it here is the
+        /// whole fix: the horizontal distance then matches what a flat map would have measured.
+        /// </summary>
+        private static Vector3 Flatten(Vector3 corner, float altitude)
+        {
+            corner.y = altitude;
+            return corner;
         }
     }
 }

@@ -620,7 +620,36 @@ if (proj.range >= OriginMapComp.Range)
 - `mapComp.ShipCombatTargetMap` 是另一张图（`Scribe_References.Look<Map>(ref ShipCombatTargetMap, "ShipCombatTargetMap")`），
   跨图逻辑与层无关，不需要改。
 - 护盾/拦截：`CompProjectileInterceptor` 在 `Projectile.CheckForFreeInterceptBetween` 里枚举 `Map` 内所有 interceptor
-  （见 `Docs/COMBAT-3D.md` 的已知限制），SOS2 的 `CompShipHeatShield` 不走这条路，所以不受影响。
+  （见 `Docs/COMBAT-3D.md` 的已知限制），SOS2 的 `CompShipHeatShield` 不走这条路。
+
+### 护盾：唯一真的不跨层的战斗子系统
+
+`SaveOurShip2.ShieldsWithoutDLC`（`1.7/HarmonyPatches.cs:4909`，**顶层类**，不是 `HarmonyPatches` 的嵌套类）
+对 `Projectile.CheckForFreeInterceptBetween` 做 Postfix，按 IL 看是：
+
+```
+IL_006e  call  Verse.IntVec3::ToVector3Shifted()     ← shield.parent.Position 转成 Vector3
+IL_0073  stloc.s 4                                   ← pos
+IL_0077  ldarg.1 / ldfld Vector3::y
+IL_007d  stfld Vector3::y                            ← pos.y = lastExactPos.y（只为了显示）
+IL_0098  call  Vector3::Distance(lastExactPos, pos)  ← 真正的判据，用的是改之前的 pos
+```
+
+`IntVec3.ToVector3Shifted()` = `new Vector3(x + 0.5f, y, z + 0.5f)`，**这个 y 是存储 y**。平图上它恒为 0，
+量出来是水平距离；分层图上它带着层带号——二层护盾 y≈375，弹丸 y=0——`Distance` 恒大于 `radius`，
+护盾于是静默地什么都不拦。作者下一行把 `pos.y` 改回弹丸高度，说明他撞见过同一个量纲问题，但只修了画面。
+
+修法（`Compatibility/Sos2SubsystemPatches.cs` 的 `ShieldSeesEveryDeckPatch`）：Transpiler 在
+`call ToVector3Shifted` 之后插入 `ldarg.1 / ldfld Vector3::y / call Flatten(Vector3, float)`，
+把那个角的 y 换成弹丸自己的高度。之后 `pos.y = lastExactPos.y` 变成无操作的自我赋值，半径判定、
+`HitShield` 的命中锥/音效/热网结算全部保持原生。锚点数量不为 1 时抛异常，防止 SOS2 更新后静默失效。
+
+**首版踩的坑**：用 `OpCodes.Dup` 把栈上的 Vector3 复制出来当 `HorizontalFrom(object shield, float)` 的
+第 1 个参数，CLR 在 JIT 时抛 `InvalidProgramException: the call argument has a type that can't be implicitly
+converted to the signature type (argument 1 of HorizontalFrom is struct, the signature wants ref)`，
+Harmony 只记一条 `Patch class ... failed and was skipped`，补丁整体失效。**Transpiler 改坏时 Harmony 不会在
+调用点报错，只在加载时打一行跳过——断言里必须同时查「补丁类没被跳过」和「IL 里确实多了预期的调用」。**
+后来改成 `Pop` + `Ldarg_1` 重建（乃至现在直接调用 `Flatten`）都不需要复制栈值，也就没有这个类型问题。
 
 ---
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text.Json;
 using HarmonyLib;
 using RimLayers.Compatibility;
@@ -10,6 +11,7 @@ using RimLayers.Ships;
 using RimLayers.Structure;
 using RimWorld;
 using RimWorld.Planet;
+using UnityEngine;
 using Verse;
 
 namespace RimLayers.Diagnostics;
@@ -460,6 +462,8 @@ internal static partial class V1Integration
     /// </summary>
     private static void Sos2SubsystemStep()
     {
+        CheckShieldInterceptsEveryDeck();
+
         // --- engines: the exhaust cone is a 2D rectangle grown off the footprint ---------------
         Building? engine = SpawnSos2("Ship_Engine_Small", At(1, 58, 58), Rot4.North);
         Check("sos2-engine-spawned-on-the-upper-deck", engine != null);
@@ -2008,6 +2012,42 @@ internal static partial class V1Integration
     /// reads, and RimLayers withdraws it when any occupied cell lacks a surface - so a false there means
     /// the building is not standing on its deck, not that the net failed to form.
     /// </summary>
+
+    /// <summary>
+    /// SOS2's shield interception measures 3D distance to the shield's cell, and a cell's y is its band
+    /// on a layered map. Reading the transpiled method body is the only way to know our rewrite landed:
+    /// the patch failing to apply, or applying to a different call, both leave a build that compiles and
+    /// a shield that still protects nothing.
+    /// </summary>
+    private static void CheckShieldInterceptsEveryDeck()
+    {
+        Type? postfixType = AccessTools.TypeByName("SaveOurShip2.ShieldsWithoutDLC");
+        MethodInfo? postfix = postfixType == null
+            ? null
+            : AccessTools.Method(postfixType, "Postfix",
+                new[] { typeof(Projectile), typeof(Vector3), typeof(Vector3), typeof(bool).MakeByRefType() });
+        Check("sos2-shield-postfix-resolved", postfix != null,
+            postfix != null ? "resolved" : postfixType == null ? "ShieldsWithoutDLC not found" : "Postfix not found");
+        if (postfix == null) return;
+
+        MethodInfo helper = AccessTools.Method(
+            AccessTools.TypeByName("RimLayers.Compatibility.Sos2SubsystemPatches+ShieldSeesEveryDeckPatch"),
+            "Flatten") ?? throw new InvalidOperationException("shield helper not found");
+        int helperCalls = 0;
+        int shiftedCalls = 0;
+        foreach (CodeInstruction instruction in PatchProcessor.GetCurrentInstructions(postfix))
+        {
+            if (instruction.opcode != OpCodes.Call || instruction.operand is not MethodInfo called) continue;
+            if (called == helper) helperCalls++;
+            if (called.Name == nameof(IntVec3.ToVector3Shifted)) shiftedCalls++;
+        }
+        // Both must be present: the anchor is still there and our rewrite sits right after it. A helper
+        // count of zero means the patch silently did nothing, which is exactly the failure mode this
+        // whole check exists for.
+        Check("sos2-the-shield-patch-rewrites-the-measurement", helperCalls == 1 && shiftedCalls == 1,
+            $"helperCalls={helperCalls}, toVector3ShiftedCalls={shiftedCalls}");
+    }
+
     private static string PowerReport(Building? building)
     {
         if (building == null) return "null";
