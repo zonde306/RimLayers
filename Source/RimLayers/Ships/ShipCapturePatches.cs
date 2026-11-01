@@ -14,8 +14,8 @@ internal static class LayerShipLaunchRules
 {
     static void Postfix(Building_GravEngine __instance,ref AcceptanceReport __result)
     {
-        if(!ShipLayers.Eligible(__instance))return;
-        var report=LayerMapComponent.For(__instance.Map)?.Ships.LaunchReport(__instance)??true;
+        if(!ShipLayers.Eligible(__instance)||LayerMapComponent.For(__instance.Map) is not {} owner)return;
+        var report=owner.Ships.LaunchReport(__instance);
         if(!report.Accepted)__result=report;
         else if(__result.Accepted)ShipLayers.Prepare(__instance,out __result);
     }
