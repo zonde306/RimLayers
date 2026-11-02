@@ -75,7 +75,20 @@ internal static class Sos2Compatibility
         mapShipCellsGetter = AccessTools.PropertyGetter(shipMapComp, "MapShipCells");
         shipMapGrid = AccessTools.Field(shipMapComp, "grid");
         // Set for the whole of MoveShip and every cache rebuild; nothing on the map has a room then.
-        MoveShipFlagGet = AccessTools.Field(shipInterior, "MoveShipFlag");
+        //
+        // MoveShipFlag is a PROPERTY on ShipInteriorMod2 forwarding to ShipWorldComp.MoveShipFlag, so
+        // AccessTools.Field on it returns null and every reader silently answered false. That is not a
+        // cosmetic miss: CompShipCachePart.PreDeSpawn reads the same switch to decide whether a hull part
+        // going away means the ship is being dismantled, so a relocation despawned the hull and SOS2
+        // detached the ship under it. Bind the real field on the world component, and keep the property
+        // getter as the fallback for a build that moves the storage form.
+        //
+        // The field itself is an INSTANCE field on the world component, so the flag can only be read
+        // through the live instance: GetValue(null) throws TargetException ("Non-static field requires
+        // a target"), which is fatal inside a gizmo action rather than a silent miss.
+        MoveShipFlagGet = AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.ShipWorldComp"), "MoveShipFlag");
+        MoveShipFlagProperty = AccessTools.Property(shipInterior, "MoveShipFlag");
+        worldCompGetter = AccessTools.PropertyGetter(shipInterior, "WorldComp");
         heatGridDirty = AccessTools.Field(shipMapComp, "heatGridDirty");
         breathableZoneDirty = AccessTools.Field(shipMapComp, "breathableZoneDirty");
 
@@ -341,11 +354,13 @@ internal static class Sos2Compatibility
             MapTransactionRunning = false;
             return false;
         }
-        MapTransactionRunning = MoveShipFlagGet?.GetValue(null) is true || map.regionAndRoomUpdater is { Enabled: false };
+        MapTransactionRunning = MoveFlag || map.regionAndRoomUpdater is { Enabled: false };
         return MapTransactionRunning;
     }
 
     private static FieldInfo? MoveShipFlagGet;
+    private static PropertyInfo? MoveShipFlagProperty;
+    private static MethodInfo? worldCompGetter;
 
     /// <summary>
     /// True while <c>ShipInteriorMod2.MoveShip</c> is running.
@@ -355,7 +370,7 @@ internal static class Sos2Compatibility
     /// refreshed once per frame by the heat patch and would answer "not moving" for the whole of a move
     /// that starts and finishes inside one tick.
     /// </remarks>
-    internal static bool MoveRunning => MoveShipFlagGet?.GetValue(null) is true;
+    internal static bool MoveRunning => MoveFlag;
 
     /// <summary>The live <c>MapShipCells</c> dictionary, or null when SOS2 is absent.</summary>
     internal static IDictionary? ShipCellsOf(Map? map) => ShipCellsOf(ShipCompOf(map));
@@ -464,8 +479,68 @@ internal static class Sos2Compatibility
         breathableZoneDirty?.SetValue(comp, true);
     }
 
+    /// <summary>
+    /// Marks the heat and breathable grids stale after RimLayers' own relocation rewrote the hull's
+    /// cells. Both are per-cell arrays rebuilt in <c>MapComponentTick</c>, so a move that skips this
+    /// leaves every net pointing at the cell a pipe used to stand on.
+    /// </summary>
+    internal static void InvalidateShipCaches(Map? map)
+    {
+        MapComponent? comp = ShipCompOf(map);
+        if (comp == null) return;
+        heatGridDirty?.SetValue(comp, true);
+        breathableZoneDirty?.SetValue(comp, true);
+    }
+
+    /// <summary>
+    /// Brackets RimLayers' own relocation.
+    /// </summary>
+    /// <remarks>
+    /// SOS2's per-tick sweeps (<c>KillAllOffShip</c> in particular) destroy anything standing on a cell
+    /// the ship table does not claim. During a relocation the table is rewritten cell by cell, so
+    /// without this bracket a tick landing inside the move deletes the half already written.
+    /// </remarks>
+    internal static void BeginRelocation() => relocating++;
+
+    internal static void EndRelocation() => relocating = System.Math.Max(0, relocating - 1);
+
+    internal static bool Relocating => relocating > 0;
+
+    private static int relocating;
+
+    /// <summary>
+    /// Sets SOS2's own <c>MoveShipFlag</c> for the duration of a RimLayers relocation.
+    /// </summary>
+    /// <remarks>
+    /// <c>CompShipCachePart.PreDeSpawn</c> opens with <c>if (ShipInteriorMod2.MoveShipFlag) return;</c>,
+    /// and everything after it is detach detection: despawning a hull part tells SOS2 a hull cell lost
+    /// its ship, so it drops the cell from <c>MapShipCells</c> and then throws trying to read the entry
+    /// it just removed. A relocation despawns the entire hull on purpose, so without this flag SOS2
+    /// tears the ship apart while it is being moved. This is the flag SOS2 sets for its own move, which
+    /// is the same situation and therefore the same switch.
+    /// </remarks>
+    internal static bool MoveFlag
+    {
+        get
+        {
+            if (MoveShipFlagGet != null && worldCompGetter?.Invoke(null, null) is { } world)
+                return MoveShipFlagGet.GetValue(world) is true;
+            // Fallback for a build whose flag lives somewhere else: the property owns the single
+            // authoritative answer, including the "no world yet" case.
+            return MoveShipFlagProperty?.GetValue(null) is true;
+        }
+        set
+        {
+            if (MoveShipFlagGet != null && worldCompGetter?.Invoke(null, null) is { } world)
+                MoveShipFlagGet.SetValue(world, value);
+            else
+                MoveShipFlagProperty?.SetValue(null, value);
+        }
+    }
+
     internal static Type? ShipMapCompType => shipMapComp;
-    internal static Type? ShipCachePartType => shipCachePart;    internal static Type? ShipBridgeType => shipBridge;
+    internal static Type? ShipCachePartType => shipCachePart;
+    internal static Type? ShipBridgeType => shipBridge;
     internal static Type? ShipHeatType => shipHeatComp;
     internal static Type? ShipInteriorType => shipInterior;
 

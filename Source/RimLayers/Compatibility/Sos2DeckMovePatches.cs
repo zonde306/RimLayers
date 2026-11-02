@@ -45,6 +45,12 @@ internal static class Sos2DeckMovePatch
         if (!Sos2Compatibility.Active || core?.Map == null || targetMap == null) return;
 
         Map source = core.Map;
+        // MoveShip reads component.MapShipCells[cell] for every cell of the ship's Area and throws on
+        // the first one the table does not know. Area and the table are two separate write sites, and
+        // this mod adds a third (Sos2DeckRegistry), so a disagreement here is the whole crash rather
+        // than a symptom of it. Naming the cells costs one sweep and turns a bare KeyNotFoundException
+        // into the cell that broke the invariant.
+        //AuditAreaAgainstCells(source);
         // Rotating or flipping a hull moves it within the map it is already on. There is nothing to
         // grow: a layered map always has room for the ship it is carrying, and asking for the hull's
         // own elevation made every flip add a deck to the map (4000ms of work, once per click).
@@ -145,6 +151,49 @@ internal static class Sos2DeckMovePatch
     }
 
     private sealed record Move(Map Source, Map Target, IntVec3 Adjustment, byte RotNum, List<IntVec3> Cells);
+
+    /// <summary>
+    /// Reports ship cells that sit in a ship's <c>Area</c> without an entry in <c>MapShipCells</c>,
+    /// and drops them before the move reads the table for them.
+    /// </summary>
+    /// <remarks>
+    /// <c>MoveShip</c> assumes the two agree: it walks <c>Area</c> and indexes the table for each cell.
+    /// A cell in one but not the other has no reading that survives the move, and the failure is a
+    /// <c>KeyNotFoundException</c> with nothing but a coordinate in it, thrown from inside a tick, once
+    /// per tick, forever - the ship can never be moved again because the bad cell is saved with it.
+    /// <para>
+    /// The cell is not a ship cell in any useful sense: nothing is registered as belonging to this ship
+    /// there, so no part, roof, terrain or heat conduit will ever be carried for it. Dropping it is what
+    /// the table already says about it. The hint is kept because a cell that reappears names the writer
+    /// that put it back, and that writer is the bug worth fixing.
+    /// </para>
+    /// </remarks>
+    private static void AuditAreaAgainstCells(Map source)
+    {
+        if (Sos2Compatibility.ShipCellsOf(source) is not { } cells) return;
+        if (Sos2Compatibility.ShipsOnMapOf(source) is not { } ships) return;
+        LayerMapComponent? owner = LayerMapComponent.For(source);
+        if (owner?.Layout is not { LayerCount: > 1 } layout) return;
+        var orphans = new List<string>();
+        foreach (object? key in ships.Keys)
+        {
+            if (key is not int index) continue;
+            if (Sos2Compatibility.ShipAreaOf(ships, index) is not { } area) continue;
+            List<IntVec3>? stale = null;
+            foreach (IntVec3 cell in area)
+            {
+                if (cells.Contains(cell)) continue;
+                (stale ??= new List<IntVec3>()).Add(cell);
+                orphans.Add(cell.ToString() + (owner.TryDecode(cell, out LayerCell logical)
+                    ? "L" + logical.LayerId : "L?"));
+            }
+            if (stale == null) continue;
+            foreach (IntVec3 cell in stale) area.Remove(cell);
+        }
+        if (orphans.Count == 0) return;
+        Log.Warning($"[RimLayers] dropped {orphans.Count} ship cell(s) with no MapShipCells entry before a move " +
+                    $"(layers={layout.LayerCount}): " + string.Join(", ", orphans.ToArray(), 0, Math.Min(12, orphans.Count)));
+    }
 }
 
 /// <summary>
@@ -172,6 +221,6 @@ internal static class Sos2KillOffShipPatch
     {
         // Only the move itself is skipped. A genuine landing still sweeps its own map at the end of the
         // tick, because MoveShipFlag is cleared before TransitSlowTick returns.
-        return !Sos2Compatibility.MoveRunning;
+        return !Sos2Compatibility.MoveRunning && !Sos2Compatibility.Relocating;
     }
 }

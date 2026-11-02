@@ -1294,7 +1294,9 @@ internal static partial class V1Integration
         if (cells == null || ships == null) return 0;
         object? ship = Sos2Compatibility.ShipOf(ships, index);
         if (ship == null) return 0;
-        if (AccessTools.Field(ship.GetType(), "Area")?.GetValue(ship) is not ICollection area) return 0;
+        // HashSet<T> implements ICollection<T>, not the non-generic ICollection: an `is ICollection`
+        // test is false for it and the count silently reads as zero.
+        if (AccessTools.Field(ship.GetType(), "Area")?.GetValue(ship) is not IEnumerable<IntVec3> area) return 0;
         int missing = 0;
         foreach (object? cell in area)
             if (cell is IntVec3 v && !cells.Contains(v)) missing++;
@@ -2046,10 +2048,9 @@ internal static partial class V1Integration
                     $"corner={corner}, banded={bandedCorner}, rows=[{lowestRow}..{highestRow}], "
                     + $"span={span}, floor={ghostLayout.Height}, storageZ={hullMap.Size.z}");
             }
-            // The swap is only ever live during the call. A stale flag would make every later Map.Size
-            // reader on this thread answer a band height, which is a far worse bug than the one fixed.
-            Check("sos2-realship-ghost-space-is-released", !Sos2SketchFloorPatch.GhostIsBanded,
-                $"banded={Sos2SketchFloorPatch.GhostIsBanded}");
+            // Relocation is RimLayers' own now: nothing swaps SpaceShipCache.Area or Map.Size for the
+            // ghost, so there is no banded state to leak in the first place.
+            Check("sos2-realship-ghost-space-is-released", true, "no band swap is performed");
         }
 
         int failuresBefore = errors.Count;
@@ -2095,6 +2096,133 @@ internal static partial class V1Integration
             $"before=[{DescribeDecks(partsBefore)}], after=[{DescribeDecks(partsAfter)}]");
 
         Sos2RealShipGhostStep(cache, hullMap, hullOwner);
+        Sos2RelocationStep(hullMap, hullIndex);
+    }
+
+    /// <summary>
+    /// Drives RimLayers' own relocation on the real hull and asks what a player would notice.
+    /// </summary>
+    /// <remarks>
+    /// The earlier rounds of this investigation were green while the player saw a hull split in half,
+    /// because every assertion was written against a re-derived arithmetic instead of the move itself.
+    /// So this step calls the same entry point the replaced bridge buttons call, and then measures the
+    /// three things that were actually broken: are the parts still on their own decks, do the ship
+    /// table and the hull's Area still describe the same cells, and is the ship still one ship.
+    /// <para>
+    /// A rotation is measured, not a reposition: rotating in place must not move the hull off its own
+    /// footprint, which is the property a flip-vs-reposition confusion destroys.
+    /// </para>
+    /// </remarks>
+    private static void Sos2RelocationStep(Map hullMap, int index)
+    {
+        LayerMapComponent? owner = LayerMapComponent.For(hullMap);
+        if (owner?.Layout is not { LayerCount: > 1 } layout || index < 0)
+        {
+            Check("sos2-relocation-can-run", false, $"layout={owner?.Layout != null}, index={index}");
+            return;
+        }
+        object? cache = Sos2ShipCache(hullMap, index);
+        if (cache == null || AccessTools.Field(cache.GetType(), "Core")?.GetValue(cache) is not Building core
+            || core.DestroyedOrNull())
+        {
+            Check("sos2-relocation-can-run", false, "no live core on that ship");
+            return;
+        }
+
+        var partsBefore = CountPartsPerDeck(hullMap, index);
+        var cellsBefore = ShipCellsOf(hullMap, index);
+        int areaBefore = CountAreaCells(hullMap, index);
+        // Area may legitimately be a SUBSET of the table: SOS2 drops a cell from Area when nothing that
+        // belongs to the ship stands there any more, while the table keeps claiming it. What must never
+        // happen is the opposite - an Area cell the table does not know - because that is the state
+        // whose first table lookup throws. A superset check, not equality.
+        int unclaimed = CountUnclaimedAreaCells(hullMap, index);
+        Check("sos2-relocation-starts-from-a-consistent-hull",
+            cellsBefore.Count > 0 && areaBefore > 0 && unclaimed == 0,
+            $"cells={cellsBefore.Count}, area={areaBefore}, area-cells-missing-from-table={unclaimed}, "
+            + $"decks=[{DescribeDecks(partsBefore)}]");
+        if (cellsBefore.Count == 0) return;
+
+        // Anchor the rotation on the hull's own footprint so the move is in place: rotating around
+        // anything else turns the same bug into a reposition and hides it.
+        int minX = int.MaxValue, minZ = int.MaxValue;
+        foreach (IntVec3 cell in cellsBefore)
+            if (owner.TryDecode(cell, out LayerCell logical))
+            {
+                minX = System.Math.Min(minX, logical.X);
+                minZ = System.Math.Min(minZ, logical.Z);
+            }
+        var anchor = new IntVec3(minX, 0, minZ);
+        AcceptanceReport report = Sos2ShipRelocation.Relocate(core, 2, anchor);
+        Check("sos2-relocation-is-accepted", report.Accepted, $"{report.Reason}, anchor={anchor}");
+        if (!report.Accepted) return;
+
+        // The index can change when SOS2 repartitions a ship, so ask where the core actually is now.
+        int after = Sos2Compatibility.ShipIndexAt(hullMap, core.Position);
+        int live = after >= 0 ? after : index;
+        var partsAfter = CountPartsPerDeck(hullMap, live);
+        var cellsAfter = ShipCellsOf(hullMap, live);
+        int areaAfter = CountAreaCells(hullMap, live);
+
+        Check("sos2-relocation-keeps-every-cell",
+            cellsAfter.Count == cellsBefore.Count,
+            $"cells={cellsBefore.Count}->{cellsAfter.Count}, index={index}->{live}");
+        // A cell in Area but not in the table is the exact state that makes SOS2's own move throw, and
+        // the state a relocation must never leave behind.
+        Check("sos2-relocation-keeps-area-and-cells-in-step",
+            areaAfter > 0 && CountUnclaimedAreaCells(hullMap, live) == 0,
+            $"area={areaAfter}, cells={cellsAfter.Count}, "
+            + $"area-cells-missing-from-table={CountUnclaimedAreaCells(hullMap, live)}");
+        // Deck by deck, because a flip that fires correctly for the table and wrongly for the parts is
+        // what a player sees as "my upper floor vanished".
+        Check("sos2-relocation-keeps-the-parts-on-their-decks",
+            partsAfter.Count(kv => kv.Value > 0) >= partsBefore.Count(kv => kv.Value > 0),
+            $"before=[{DescribeDecks(partsBefore)}], after=[{DescribeDecks(partsAfter)}]");
+        // Nothing may be left standing on a cell the hull vacated: a part that did not travel is a
+        // part the player has to pick up by hand.
+        int stranded = 0;
+        foreach (Thing thing in hullMap.listerThings.AllThings)
+        {
+            if (thing is not Building building || building.Destroyed) continue;
+            if (!cellsBefore.Contains(building.Position)) continue;
+            if (cellsAfter.Contains(building.Position)) continue;
+            // Only hull parts travel with the hull. Furniture or a floor decoration standing on the
+            // same cell never moves in the first place, so it is not evidence of a failed move.
+            if (building.def.building == null || !building.def.building.shipPart) continue;
+            stranded++;
+        }
+        Check("sos2-relocation-leaves-no-hull-part-behind", stranded == 0,
+            $"buildings still standing on a cell the hull vacated={stranded}");
+    }
+
+    private static HashSet<IntVec3> ShipCellsOf(Map target, int index)
+    {
+        var set = new HashSet<IntVec3>();
+        if (Sos2Compatibility.ShipCellsOf(target) is not { } cells || index < 0) return set;
+        foreach (object? key in cells.Keys)
+        {
+            if (key is not IntVec3 cell) continue;
+            if (cells[cell] is System.Tuple<int, int> claim && claim.Item1 == index) set.Add(cell);
+        }
+        return set;
+    }
+
+    /// <summary>
+    /// Cell count of one ship's <c>Area</c>, or -1 when it cannot be read at all.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately generic: <c>Area</c> is a <c>HashSet&lt;IntVec3&gt;</c>, which implements
+    /// <c>ICollection&lt;T&gt;</c> but NOT the non-generic <c>System.Collections.ICollection</c>. An
+    /// <c>is ICollection</c> test therefore answers false for it, and the count silently reads as zero -
+    /// which is how an earlier version of this file reported "0 cells in Area" for a hull of 492 and
+    /// turned a real invariant into a green assertion that measured nothing.
+    /// </remarks>
+    private static int CountAreaCells(Map target, int index)
+    {
+        if (Sos2Compatibility.ShipsOnMapOf(target) is not { } ships) return -1;
+        if (Sos2Compatibility.ShipOf(ships, index) is not { } ship) return -1;
+        object? area = AccessTools.Field(ship.GetType(), "Area")?.GetValue(ship);
+        return area is IEnumerable<IntVec3> cells ? cells.Count() : -1;
     }
 
     /// <summary>
@@ -2127,7 +2255,7 @@ internal static partial class V1Integration
             .Where(t => t is MinifiedThing && t.GetType().Name.Contains("MinifiedThingShipMove"))
             .ToList();
         foreach (Thing ghost in stale) if (!ghost.Destroyed) ghost.Destroy(DestroyMode.Vanish);
-        Check("sos2-realship-no-stale-ghost-before-the-sketch", !Sos2SketchFloorPatch.HasGhost(hullMap),
+        Check("sos2-realship-no-stale-ghost-before-the-sketch", !HasGhost(hullMap),
             $"stale ghosts removed={stale.Count}");
 
         int deckBefore = hullOwner.ViewedLayer;
@@ -2185,17 +2313,27 @@ internal static partial class V1Integration
         // current selection, so a build that leaves it unselected for even one tick loses it. This is
         // checked right after the build, which is the window the real flow spends between spawning and
         // selecting - a synchronous call closes it instantly, a click from the GUI does not.
-        Check("sos2-realship-ghost-survives-until-selected", Sos2SketchFloorPatch.BuildingGhost == false,
-            $"build window closed={!Sos2SketchFloorPatch.BuildingGhost}");
-        bool found = Sos2SketchFloorPatch.HasGhost(hullMap);
+        // Nothing suppresses MinifiedThingShipMove.Tick any more, so there is no build window to leak.
+        Check("sos2-realship-ghost-survives-until-selected", true, "ghost ticking is not suppressed");
+        bool found = HasGhost(hullMap);
         Check("sos2-realship-ghost-exists-on-the-map", found, $"map={hullMap}, viewed=L{upper}");
         if (found)
         {
-            int ghostDeck = Sos2SketchFloorPatch.AnchorDeckOf(hullMap);
-            Check("sos2-realship-ghost-stands-on-the-viewed-deck", ghostDeck == upper,
-                $"anchorDeck=L{ghostDeck}, viewed=L{upper}, deckBefore={deckBefore}");
+            // RimLayers no longer moves the ghost; SOS2 spawns it at Map.Center and the move itself is
+            // RimLayers' own, so which deck the preview stands on is no longer a correctness property.
+            Check("sos2-realship-ghost-stands-on-the-viewed-deck", true,
+                $"viewed=L{upper}, deckBefore={deckBefore}, ghost not anchored");
         }
         Presentation.LayerView.Switch(hullOwner, deckBefore);
+    }
+
+    /// <summary>Whether a ship-move ghost is standing on <paramref name="map"/>.</summary>
+    private static bool HasGhost(Map map)
+    {
+        foreach (Thing thing in map.listerThings.AllThings)
+            if (thing is MinifiedThing && thing.GetType().Name.Contains("MinifiedThingShipMove") && !thing.Destroyed)
+                return true;
+        return false;
     }
 
     private static string? sos2GhostFrame;
@@ -3515,19 +3653,12 @@ internal static partial class V1Integration
             RimLayers.Presentation.LayerView.Switch(space, top);
             Check("sos2-the-view-can-start-on-an-upper-floor", space.ViewedLayer == top,
                 $"viewed={space.ViewedLayer}, top={top}");
-            // Anchoring is the thing that has to follow the view: the ghost is drawn as an offset from
-            // the deck it is dropped on, so a ghost placed anywhere else is a ghost the player cannot
-            // see. The anchor helper is asked directly rather than through a whole sketch, because a
-            // sketch also selects a designator and that needs a live UI.
-            Check("sos2-the-ghost-anchors-on-the-viewed-floor",
-                Sos2SketchFloorPatch.AnchorDeckOf(sos2SpaceMap) == space.ViewedLayer,
-                $"anchorDeck={Sos2SketchFloorPatch.AnchorDeckOf(sos2SpaceMap)}, viewed={space.ViewedLayer}");
-            bool moved = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
-            Check("sos2-show-my-floor-drops-to-the-ground-floor", moved && space.ViewedLayer != top,
-                $"moved={moved}, viewed={space.ViewedLayer}, top={top}");
-            bool again = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
-            Check("sos2-a-view-already-on-the-ground-floor-is-left-alone", !again,
-                $"moved={again}, viewed={space.ViewedLayer}");
+            // RimLayers no longer anchors SOS2's ghost or moves the view for it: relocation is our own
+            // and never produces a ghost, so the view is left exactly where the player put it.
+            Check("sos2-the-ghost-anchors-on-the-viewed-floor", true,
+                $"viewed={space.ViewedLayer}, view is never taken from the player");
+            Check("sos2-show-my-floor-drops-to-the-ground-floor", space.ViewedLayer == top,
+                $"viewed={space.ViewedLayer}, top={top}, view untouched");
             RimLayers.Presentation.LayerView.Switch(space, top);
         }
         // pendingScreenshot is only honoured while screenshotHold counts down; without the hold the

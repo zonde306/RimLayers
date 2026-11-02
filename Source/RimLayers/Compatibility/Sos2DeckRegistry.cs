@@ -80,6 +80,17 @@ internal static class Sos2DeckRegistry
 
         // Walk down the column to the first cell SOS2 already claims. Looking at the table directly
         // (rather than asking ShipIndexOnVec) keeps this non-recursive and independent of any patch.
+        //
+        // A cell already in the table is settled: it is a ship cell whatever stands below it. Skipping
+        // that check made this walk authoritative over the table it reads, so one cell dropping out of
+        // the table (a failed move, a half-written save) cascaded upward - the cell above found nothing
+        // below it, was unregistered, and the next one up found nothing below that either. One glitch
+        // took the whole column, and with it the hull, out of the ship.
+        if (cells.Contains(cell))
+        {
+            owned.Add(cell);
+            return;
+        }
         int index = -1;
         int path = -1;
         for (int layer = logical.LayerId - 1; layer >= 0; layer--)
