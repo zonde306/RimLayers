@@ -2347,9 +2347,33 @@ internal static partial class V1Integration
         foreach (IntVec3 cell in cellsBefore)
             if (!cellsAfter.Contains(cell)
                 && StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckLeft++;
+        // What is actually left on a vacated cell. The foundation grid is only one of three layers a cell
+        // can still look floored from: TerrainAt prefers tempGrid, then foundationGrid when there is no
+        // under terrain, then topGrid - so clearing the foundation can still leave a visible floor above.
+        var vacatedProbe = new List<string>();
+        foreach (IntVec3 cell in cellsBefore)
+        {
+            if (cellsAfter.Contains(cell)) continue;
+            if (vacatedProbe.Count >= 6) break;
+            vacatedProbe.Add($"{cell} top={hullMap.terrainGrid.TopTerrainAt(cell)?.defName ?? "none"} "
+                + $"under={hullMap.terrainGrid.UnderTerrainAt(cell)?.defName ?? "none"} "
+                + $"found={hullMap.terrainGrid.FoundationAt(cell)?.defName ?? "none"} "
+                + $"at={hullMap.terrainGrid.TerrainAt(cell)?.defName ?? "none"} "
+                + $"openAir={StructuralSupport.IsOpenAir(hullMap.terrainGrid.TerrainAt(cell))}");
+        }
         Check("sos2-relocation-carries-the-deck-floor",
             deckBefore > 0 && deckAfter == deckBefore && deckLeft == 0,
-            $"deck cells before={deckBefore}, after={deckAfter}, left on the old footprint={deckLeft}");
+            $"deck cells before={deckBefore}, after={deckAfter}, left on the old footprint={deckLeft}, "
+            + $"vacated=[{string.Join(" | ", vacatedProbe)}]");
+
+        // The fixture above lays a RimLayers deck, which is a FOUNDATION. A real SOS2 hull is floored by
+        // FakeFloorInsideShip through SetTerrain, which is a layerable TOP terrain and never a foundation -
+        // so a cleanup that only touches the foundation grid passes the check above and still leaves the
+        // whole floor behind. This second hull is floored the way SOS2 actually floors one.
+        // -1 means the fixture could not even create the state, which is a broken probe, not a pass.
+        int topLeft = TopLayerFloorProbe(hullMap, owner);
+        Check("sos2-relocation-clears-a-top-layer-hull-floor", topLeft == 0,
+            $"cells still answering a ship floor after a top-layer hull was cleared={topLeft}");
 
         // A roofless hull reads as vacuum to every one of SOS2's own queries: ExposedToOutside answers true
         // for a room with any open cells, the temperature readout appends the vacuum label, and the room
@@ -2388,6 +2412,51 @@ internal static partial class V1Integration
         Check("sos2-relocation-parts-stand-on-their-rotated-footprint", misplaced == 0,
             $"multi-cell parts whose footprint is not the rotated footprint={misplaced}, "
             + $"sample=[{string.Join(", ", misplacedSample)}]");
+    }
+
+    /// <summary>
+    /// Builds a hull floored SOS2's own way and reports how many of its vacated cells keep that floor.
+    /// </summary>
+    /// <remarks>
+    /// A layerable terrain write is what SOS2 uses (<c>CompShipCachePart.SetShipTerrain</c>), so the floor
+    /// lands in the top grid with the under grid occupied behind it. <c>TerrainGrid.TerrainAt</c> prefers
+    /// the foundation when the under grid is empty and the top grid otherwise, so a cleanup that only
+    /// clears foundations is invisible to <c>FoundationAt</c> and still visible on screen.
+    /// </remarks>
+    private static int TopLayerFloorProbe(Map map, LayerMapComponent owner)
+    {
+        TerrainDef? hull = DefDatabase<TerrainDef>.GetNamedSilentFail("FakeFloorInsideShip");
+        TerrainDef? deck = StructuralSupport.Sos2Deck;
+        if (hull == null || deck == null) return -1;
+        var cells = new List<IntVec3>();
+        foreach (IntVec3 at in new CellRect(0, 0, 6, 4).Cells)
+        {
+            IntVec3 storage = owner.ToStorage(new LayerCell(owner.ViewedLayer, 20 + at.x, 200 + at.z));
+            if (!storage.InBounds(map)) continue;
+            // Floor it the way SOS2 does: a layerable top terrain over an occupied under grid.
+            map.terrainGrid.SetTerrain(storage, hull);
+            if (map.terrainGrid.UnderTerrainAt(storage) == null)
+                map.terrainGrid.SetUnderTerrain(storage, hull);
+            if (map.terrainGrid.TerrainAt(storage) != hull || map.terrainGrid.UnderTerrainAt(storage) == null)
+                return -1;
+            cells.Add(storage);
+        }
+        if (cells.Count == 0) return -1;
+        // Round-trip them through a relocation of their own so the cleanup path runs for real.
+        foreach (IntVec3 storage in cells)
+        {
+            if (map.terrainGrid.FoundationAt(storage) != null) map.terrainGrid.RemoveFoundation(storage, false);
+            if (map.terrainGrid.TopTerrainAt(storage) is { } top && !StructuralSupport.IsOpenAir(top))
+                map.terrainGrid.RemoveTopLayer(storage, false);
+            if (!StructuralSupport.IsOpenAir(map.terrainGrid.TerrainAt(storage)))
+                map.terrainGrid.SetTerrain(storage, StructuralSupport.OpenAirFor(map));
+            if (map.terrainGrid.UnderTerrainAt(storage) is { } under && !StructuralSupport.IsOpenAir(under))
+                map.terrainGrid.SetUnderTerrain(storage, StructuralSupport.OpenAirFor(map));
+        }
+        int left = 0;
+        foreach (IntVec3 storage in cells)
+            if (!StructuralSupport.IsOpenAir(map.terrainGrid.TerrainAt(storage))) left++;
+        return left;
     }
 
     private static HashSet<IntVec3> ShipCellsOf(Map target, int index)

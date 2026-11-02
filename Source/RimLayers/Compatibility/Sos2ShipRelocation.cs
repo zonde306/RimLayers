@@ -35,7 +35,8 @@ namespace RimLayers.Compatibility;
 internal static class Sos2ShipRelocation
 {
     /// <summary>What one hull cell carries across the move.</summary>
-    private readonly record struct Load(IntVec3 From, IntVec3 To, List<Thing> Things, TerrainDef? Deck, RoofDef? Roof);
+    private readonly record struct Load(
+        IntVec3 From, IntVec3 To, List<Thing> Things, TerrainDef? Deck, TerrainDef? Top, RoofDef? Roof);
 
     /// <summary>
     /// Rotates <paramref name="core"/> by <paramref name="rotNum"/> (0 none, 1 quarter turn, 2 flip)
@@ -104,12 +105,25 @@ internal static class Sos2ShipRelocation
             var things = new List<Thing>();
             foreach (Thing thing in cell.GetThingList(map))
                 if (!thing.Destroyed && !(thing is Mote) && !(thing is Filth)) things.Add(thing);
-            TerrainDef? deck = StructuralSupport.IsSos2DeckTerrain(map.terrainGrid.FoundationAt(cell))
-                ? map.terrainGrid.FoundationAt(cell)
+            // A hull cell's floor can live in either of two places, and both have to be carried.
+            //
+            // A RimLayers deck is a FOUNDATION. SOS2's own hull floor is not: SetShipTerrain writes
+            // FakeFloorInsideShip through SetTerrain, which puts a layerable terrain in the TOP grid. Only
+            // looking at the foundation therefore found half the cases and cleared none of the other half,
+            // which is a ship that arrives floored and leaves its old floor exactly where it was.
+            TerrainDef? foundation = map.terrainGrid.FoundationAt(cell);
+            TerrainDef? top = map.terrainGrid.TopTerrainAt(cell);
+            TerrainDef? deck = StructuralSupport.IsSos2DeckTerrain(foundation)
+                ? foundation
                 : StructuralSupport.IsSos2DeckTerrain(map.terrainGrid.TerrainAt(cell))
                     ? map.terrainGrid.TerrainAt(cell)
                     : null;
-            plan.Add(new Load(cell, to, things, deck, RoofAtShipHeight(map, cell)));
+            // A finish or a hull floor sitting above the deck, as opposed to empty air. Carried separately
+            // so it lands back on top of the deck at the destination instead of being lost.
+            TerrainDef? surface = top != null && top.layerable && !StructuralSupport.IsOpenAir(top)
+                ? top
+                : null;
+            plan.Add(new Load(cell, to, things, deck, surface, RoofAtShipHeight(map, cell)));
         }
         if (plan.Count == 0) return "The ship has nothing to move.";
 
@@ -252,13 +266,40 @@ internal static class Sos2ShipRelocation
             area.Clear();
             foreach (Load load in plan) area.Add(load.To);
 
-            // 4. Decks. Foundation writes on the source are cleared first so a stationary cell is laid
-            //    once, not removed by a later cell's cleanup.
+            // 4. Decks. The source is cleared first so a stationary cell is laid once, not removed by a
+            //    later cell's cleanup.
+            //
+            //    Three layers can make a cell look floored, and TerrainAt reads them in a fixed order:
+            //    tempGrid, then foundationGrid when underGrid is empty, then topGrid. Clearing only the
+            //    foundation therefore can leave a visible floor above it - which is exactly what a ship
+            //    whose floor is SOS2's FakeFloorInsideShip does, because that one is a layerable TOP
+            //    terrain and never was a foundation.
+            //
+            //    The under terrain is set to open air for the same reason: with underGrid occupied,
+            //    TerrainAt answers topGrid, so anything the top grid still holds stays visible no matter
+            //    what the foundation says.
             foreach (Load load in plan)
-                if (StructuralSupport.IsSos2DeckTerrain(map.terrainGrid.FoundationAt(load.From)))
-                    map.terrainGrid.RemoveFoundation(load.From, false);
+            {
+                var grid = map.terrainGrid;
+                IntVec3 from = load.From;
+                // Top surface first: RemoveTopLayer leaves the under terrain alone, so it can only do its
+                // job while the decks below it are still there.
+                if (grid.TopTerrainAt(from) is { } top && !StructuralSupport.IsOpenAir(top))
+                    grid.RemoveTopLayer(from, false);
+                if (grid.FoundationAt(from) != null) grid.RemoveFoundation(from, false);
+                // Whatever the cell still answers as its terrain has to become open air: with the under
+                // grid occupied, TerrainAt prefers topGrid, and a leftover of either is a floor the hull
+                // no longer stands on.
+                if (!StructuralSupport.IsOpenAir(grid.TerrainAt(from)))
+                    grid.SetTerrain(from, StructuralSupport.OpenAirFor(map));
+                if (grid.UnderTerrainAt(from) is { } under && !StructuralSupport.IsOpenAir(under))
+                    grid.SetUnderTerrain(from, StructuralSupport.OpenAirFor(map));
+            }
             foreach (Load load in plan)
                 if (load.Deck != null) ShipDeckTerrain.InstallDeck(owner, load.To, load.Deck);
+            // A finish or hull floor goes back on top of the deck, not instead of it.
+            foreach (Load load in plan)
+                if (load.Top != null && load.Deck != null) map.terrainGrid.SetTerrain(load.To, load.Top);
 
             // 4b. The ceiling travels with the hull.
             //
