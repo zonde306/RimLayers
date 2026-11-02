@@ -451,7 +451,15 @@ internal static partial class V1Integration
         }
         if (sos2Phase == 13)
         {
+            // The whole flip runs with the ship's map on screen, because that is the state a player
+            // clicks the button in, and because LayerView, the selector and the install designator all
+            // resolve through Find.CurrentMap. Running the flip on a side map made every one of them
+            // take a different path from the real one - and the assertions still went green.
+            Map? before = Find.CurrentMap;
+            if (realShipBridge != null && !realShipBridge.DestroyedOrNull() && before != realShipBridge.Map)
+                Current.Game.CurrentMap = realShipBridge.Map;
             Sos2RealShipFlipStep();
+            if (before != null && Current.Game.CurrentMap != before) Current.Game.CurrentMap = before;
             sos2Phase = 6;
             ticks = 0;
             return;
@@ -2130,13 +2138,32 @@ internal static partial class V1Integration
         // any map that is not the one on screen. Pointing the game at the fixture first is the same
         // thing a player does by looking at their ship, and without it every view assertion below is
         // testing the wrong map.
-        Map? previous = Find.CurrentMap;
-        if (previous != hullMap) Current.Game.CurrentMap = hullMap;
         bool switched = Presentation.LayerView.Switch(hullOwner, upper);
         Check("sos2-realship-the-test-can-view-an-upper-deck", switched && hullOwner.ViewedLayer == upper,
             $"switched={switched}, viewed=L{hullOwner.ViewedLayer}, want=L{upper}");
+        // A leftover selection whose def is null is worse than no selection: Designator_Install checks
+        // the selection for null, not the def it reads a moment later, so a wrecked ghost in the
+        // selector throws inside ProcessInput and takes the whole sketch down with it.
+        Thing? selected = Find.Selector.SingleSelectedThing;
+        bool selectedHealth = selected == null || selected.def != null && !selected.Destroyed;
+        Check("sos2-realship-the-selector-holds-no-wreck",
+            selectedHealth, selected == null ? "nothing selected" : $"{selected} def={(selected.def == null ? "null" : selected.def.defName)} destroyed={selected.Destroyed}");
+        if (!selectedHealth) ClearSelector();
+
         Exception? failure = null;
+        // Every map flag the body walks is dumped first. The NRE that kills the sketch is flattened to
+        // the Harmony frame, so the only way to see which precondition is missing is to print them and
+        // compare against a hull that works.
+        IntVec3 probeCentre = hullMap.Center;
+        Log.Warning($"[RimLayers ghost probe] map={hullMap} size={hullMap.Size} centre={probeCentre} " +
+                    $"centreInBounds={probeCentre.InBounds(hullMap)} areaCount=" +
+                    (AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is IEnumerable<IntVec3> areaProbe ? areaProbe.Count() : -1) +
+                    $" faction={cache.GetType().GetProperty("Faction")?.GetValue(cache)} " +
+                    $"currentMap={Find.CurrentMap} viewed={hullOwner.ViewedLayer} " +
+                    $"designator={Find.DesignatorManager.SelectedDesignator} targeter={Find.Targeter.IsTargeting} " +
+                    $"selected={Find.Selector.SingleSelectedThing}");
         AppDomain.CurrentDomain.FirstChanceException += Sos2FirstChance;
+        AppDomain.CurrentDomain.FirstChanceException += Sos2GhostFirstChance;
         try
         {
             sketch.Invoke(cache, new object[] { hullMap, (byte)0, false, 0f });
@@ -2148,9 +2175,11 @@ internal static partial class V1Integration
         finally
         {
             AppDomain.CurrentDomain.FirstChanceException -= Sos2FirstChance;
+            AppDomain.CurrentDomain.FirstChanceException -= Sos2GhostFirstChance;
             sos2FirstChanceFrame = null;
         }
-        string firstChance = sos2FirstChanceFrame ?? "";
+        string firstChance = sos2GhostFrame ?? "";
+        sos2GhostFrame = null;
         Check("sos2-realship-ghost-is-built", failure == null, $"viewed=L{upper}, " + (failure == null ? "no exception" : failure.GetType().Name + ": " + failure.Message) + (failure == null || failure.StackTrace == null ? "" : System.Environment.NewLine + string.Join(System.Environment.NewLine, failure.StackTrace.Split(new[] { (char)10 }, System.StringSplitOptions.None).Take(6))) + (firstChance.Length == 0 ? "" : System.Environment.NewLine + "FIRST CHANCE: " + firstChance));
         bool found = Sos2SketchFloorPatch.HasGhost(hullMap);
         Check("sos2-realship-ghost-exists-on-the-map", found, $"map={hullMap}, viewed=L{upper}");
@@ -2161,7 +2190,37 @@ internal static partial class V1Integration
                 $"anchorDeck=L{ghostDeck}, viewed=L{upper}, deckBefore={deckBefore}");
         }
         Presentation.LayerView.Switch(hullOwner, deckBefore);
-        if (previous != null && previous != hullMap) Current.Game.CurrentMap = previous;
+    }
+
+    private static string? sos2GhostFrame;
+
+    /// <summary>
+    /// Keeps the first frame that is not Harmony or reflection, which is the only frame that names the
+    /// real throw site once the patched method's stack has been flattened.
+    /// </summary>
+    private static void Sos2GhostFirstChance(object? sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+    {
+        if (sos2GhostFrame != null) return;
+        string? stack = e.Exception.StackTrace;
+        if (stack == null) return;
+        foreach (string line in stack.Split(new[] { (char)10 }, System.StringSplitOptions.None))
+        {
+            string trimmed = line.Trim();
+            if (!trimmed.StartsWith("at ", System.StringComparison.Ordinal)) continue;
+            if (trimmed.Contains("_Patch")) continue;
+            if (trimmed.Contains("System.RuntimeMethodHandle")) continue;
+            if (trimmed.Contains("MethodBaseInvoker")) continue;
+            sos2GhostFrame = trimmed;
+            return;
+        }
+        sos2GhostFrame = stack.Substring(0, System.Math.Min(400, stack.Length));
+    }
+
+    /// <summary>Empties the selector, including entries whose thing no longer exists.</summary>
+    private static void ClearSelector()
+    {
+        foreach (object selected in Find.Selector.SelectedObjectsListForReading.ToList())
+            Find.Selector.Deselect(selected);
     }
 
     private static string DescribeDecks(Dictionary<int, int> perDeck) =>
