@@ -432,6 +432,11 @@ internal static class Sos2ShipRelocation
                 Thing thing = entry.Key;
                 if (thing.Destroyed || thing.Spawned) continue;
                 GenSpawn.Spawn(thing, entry.Value, map, Turn(thing.Rotation, rotNum));
+                // A pawn's path cost grid and its remembered destination are index-based state from the
+                // cell it used to stand on, so a crew member put down on the far side of the map keeps
+                // walking towards wherever it was going before the ship moved. Vanilla's own ship move
+                // resets it for exactly this reason.
+                if (thing is Pawn pawn && pawn.pather != null) pawn.pather.ResetToCurrentPosition();
             }
 
             // 7. Power back to the state the player left it in.

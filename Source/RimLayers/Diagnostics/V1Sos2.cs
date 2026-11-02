@@ -2434,14 +2434,33 @@ internal static partial class V1Integration
         //
         // The ceiling is the roof on the deck cell itself, the same cell SOS2's SetRoof writes and the same
         // one StructuralSupport.HasRequiredRoof reads as "the roof under the cell above".
-        int roofAfter = 0, roofLeft = 0;
-        foreach (IntVec3 cell in cellsAfter)
-            if (Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell))) roofAfter++;
+        //
+        // Counted per source cell rather than as a total. A flip in place only re-covers part of its own
+        // footprint, and a destination cell outside it may already carry a ceiling of its own, so
+        // "after == before" drifts with whatever else the map happens to hold. What must hold is the
+        // mapping: every roofed deck cell ends up roofed at the cell it was carried to.
+        int roofLeft = 0, roofMissed = 0;
+        var roofSample = new List<string>();
         foreach (IntVec3 cell in cellsBefore)
-            if (!cellsAfter.Contains(cell) && Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell))) roofLeft++;
+        {
+            if (!owner.TryDecode(cell, out LayerCell logical)) continue;
+            (int rx, int rz) = (hullWidth - (logical.X - minX) - 1, logical.Z - minZ);
+            IntVec3 landed = owner.ToStorage(new LayerCell(logical.LayerId, minX + rx, minZ + rz));
+            bool hadCeiling = Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell));
+            bool hasCeiling = Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(landed));
+            if (hadCeiling && !hasCeiling)
+            {
+                roofMissed++;
+                if (roofSample.Count < 4) roofSample.Add($"{cell}->{landed}");
+            }
+            if (hadCeiling && !cellsAfter.Contains(cell) && hasCeiling
+                && Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell)))
+                roofLeft++;
+        }
         Check("sos2-relocation-carries-the-ceiling",
-            roofBefore > 0 && roofAfter == roofBefore && roofLeft == 0,
-            $"ceilings before={roofBefore}, after={roofAfter}, left on the old footprint={roofLeft}");
+            roofBefore > 0 && roofMissed == 0 && roofLeft == 0,
+            $"ceilings before={roofBefore}, deck cells that lost their ceiling={roofMissed}, "
+            + $"ceilings left on the old footprint={roofLeft}, sample=[{string.Join(", ", roofSample)}]");
 
         // The question the player actually asked: is a room under this hull sealed? Room.OpenRoofCount is
         // what SOS2's ExposedToOutside reads, so it is the number to check, not the roof grid itself.
