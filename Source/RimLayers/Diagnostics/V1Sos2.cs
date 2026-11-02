@@ -1889,11 +1889,14 @@ internal static partial class V1Integration
         LayerMapComponent? hullOwner = LayerMapComponent.For(hullMap);
         var flipCorner = (IntVec3)lowest.Invoke(cache, new object[] { (byte)2, hullMap })!;
         // SOS2 anchors the ghost at the map centre, but on a layered map Map.Center.z is the middle of
-        // the storage height, which is a different deck. The real flow moves the ghost onto the deck
-        // first (AnchorOnDeck does that), so the adjustment is measured from where a player could
-        // actually place it: the centre of the ground band.
+        // the storage height, which is a different deck. The real flow moves the ghost onto the viewed
+        // deck (AnchorOnDeck does that), so the adjustment is measured from where a player could
+        // actually place it: the centre of the deck the view is on. Asking for the deck by name is the
+        // point of this assertion - the earlier version hard-coded the ground floor here as well, which
+        // is how a ghost placed one deck above the console stayed invisible through a green run.
+        int anchorDeck = hullOwner?.ViewedLayer ?? 0;
         IntVec3 anchor = hullOwner is { Layout: { } hullLayout }
-            ? hullOwner.ToStorage(new LayerCell(0, hullLayout.Width / 2, hullLayout.Height / 2))
+            ? hullOwner.ToStorage(new LayerCell(anchorDeck, hullLayout.Width / 2, hullLayout.Height / 2))
             : hullMap.Center;
         IntVec3 flipAdjustment = anchor - flipCorner;
         Check("sos2-realship-flip-adjustment-stays-in-one-band",
@@ -1996,6 +1999,13 @@ internal static partial class V1Integration
         // install designator, which needs a live selection and a UI, and a failure inside it would look
         // like a RimLayers bug. The geometry is what can be wrong here, so the geometry is what is
         // measured.
+        //
+        // That is also why no click reaches this file: the arithmetic below was green for three rounds
+        // while the player saw nothing at all. What the player needs from the sketch is a ghost on the
+        // map, positioned where the view is, and that is what has to be asserted - so the real method is
+        // called at the end of this step, after the move has been exercised and the map is quiescent.
+        // It cannot run here: CreateShipSketch's last act is to open an install designator, and a
+        // designator running in the middle of a tick is a different failure than one the player clicks.
         if (hullOwner?.Layout is { } ghostLayout
             && AccessTools.Field(cache.GetType(), "Area")?.GetValue(cache) is HashSet<IntVec3> ghostArea
             && ghostArea.Count > 0)
@@ -2075,6 +2085,83 @@ internal static partial class V1Integration
         Check("sos2-realship-flip-keeps-the-parts-on-their-decks",
             partsAfter.Count(kv => kv.Value > 0) >= partsBefore.Count(kv => kv.Value > 0),
             $"before=[{DescribeDecks(partsBefore)}], after=[{DescribeDecks(partsAfter)}]");
+
+        Sos2RealShipGhostStep(cache, hullMap, hullOwner);
+    }
+
+    /// <summary>
+    /// Drives SOS2's real <c>CreateShipSketch</c> and then asks the two questions a player asks: did a
+    /// ghost appear, and is it standing on the deck the view is on.
+    /// </summary>
+    /// <remarks>
+    /// Every earlier version of this check re-derived the arithmetic instead of calling the method, so
+    /// the ghost was never actually built during a run. Three rounds of green assertions later the
+    /// player still saw nothing: the real failure was in the last two lines of the method (it selects
+    /// the ghost and immediately opens an install designator on that selection), which no amount of
+    /// mirroring arithmetic could have found. The exception is caught and reported rather than thrown,
+    /// because a sketch that dies is the finding, not a reason to abandon the run.
+    /// </remarks>
+    private static void Sos2RealShipGhostStep(object cache, Map hullMap, LayerMapComponent? hullOwner)
+    {
+        MethodInfo? sketch = AccessTools.Method(cache.GetType(), "CreateShipSketch", new[]
+        {
+            typeof(Map), typeof(byte), typeof(bool), typeof(float)
+        });
+        if (sketch == null || hullOwner?.Layout is not { LayerCount: > 1 } layout)
+        {
+            Check("sos2-realship-ghost-is-built", false, "CreateShipSketch not found or the map is not layered");
+            return;
+        }
+        // A ghost left behind by an earlier step would answer the questions below by accident, so the
+        // map is cleared of ghosts first. `AllThings` is a snapshot: despawning while enumerating it
+        // throws.
+        var stale = hullMap.listerThings.AllThings
+            .Where(t => t is MinifiedThing && t.GetType().Name.Contains("MinifiedThingShipMove"))
+            .ToList();
+        foreach (Thing ghost in stale) if (!ghost.Destroyed) ghost.Destroy(DestroyMode.Vanish);
+        Check("sos2-realship-no-stale-ghost-before-the-sketch", !Sos2SketchFloorPatch.HasGhost(hullMap),
+            $"stale ghosts removed={stale.Count}");
+
+        int deckBefore = hullOwner.ViewedLayer;
+        // Walk the view to an upper deck first. A ghost anchored on the ground floor passed every check
+        // that existed while the player was standing one deck up watching nothing happen.
+        int upper = layout.LayerCount - 1;
+        // The flip runs on the fixture map, not on Find.CurrentMap, and a floor switch is refused for
+        // any map that is not the one on screen. Pointing the game at the fixture first is the same
+        // thing a player does by looking at their ship, and without it every view assertion below is
+        // testing the wrong map.
+        Map? previous = Find.CurrentMap;
+        if (previous != hullMap) Current.Game.CurrentMap = hullMap;
+        bool switched = Presentation.LayerView.Switch(hullOwner, upper);
+        Check("sos2-realship-the-test-can-view-an-upper-deck", switched && hullOwner.ViewedLayer == upper,
+            $"switched={switched}, viewed=L{hullOwner.ViewedLayer}, want=L{upper}");
+        Exception? failure = null;
+        AppDomain.CurrentDomain.FirstChanceException += Sos2FirstChance;
+        try
+        {
+            sketch.Invoke(cache, new object[] { hullMap, (byte)0, false, 0f });
+        }
+        catch (Exception ex)
+        {
+            failure = ex is TargetInvocationException tie && tie.InnerException != null ? tie.InnerException : ex;
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= Sos2FirstChance;
+            sos2FirstChanceFrame = null;
+        }
+        string firstChance = sos2FirstChanceFrame ?? "";
+        Check("sos2-realship-ghost-is-built", failure == null, $"viewed=L{upper}, " + (failure == null ? "no exception" : failure.GetType().Name + ": " + failure.Message) + (failure == null || failure.StackTrace == null ? "" : System.Environment.NewLine + string.Join(System.Environment.NewLine, failure.StackTrace.Split(new[] { (char)10 }, System.StringSplitOptions.None).Take(6))) + (firstChance.Length == 0 ? "" : System.Environment.NewLine + "FIRST CHANCE: " + firstChance));
+        bool found = Sos2SketchFloorPatch.HasGhost(hullMap);
+        Check("sos2-realship-ghost-exists-on-the-map", found, $"map={hullMap}, viewed=L{upper}");
+        if (found)
+        {
+            int ghostDeck = Sos2SketchFloorPatch.AnchorDeckOf(hullMap);
+            Check("sos2-realship-ghost-stands-on-the-viewed-deck", ghostDeck == upper,
+                $"anchorDeck=L{ghostDeck}, viewed=L{upper}, deckBefore={deckBefore}");
+        }
+        Presentation.LayerView.Switch(hullOwner, deckBefore);
+        if (previous != null && previous != hullMap) Current.Game.CurrentMap = previous;
     }
 
     private static string DescribeDecks(Dictionary<int, int> perDeck) =>

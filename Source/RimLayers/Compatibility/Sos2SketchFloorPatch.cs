@@ -64,19 +64,23 @@ internal static class Sos2SketchFloorPatch
     private static void Prefix(object __instance, Map targetMap)
     {
         savedArea = null;
-        savedDoors = null;
         banded = false;
         if (!Sos2Compatibility.Active) return;
         if (ShipArea == null || __instance == null) return;
+        // The postfix needs the same answer whether or not the footprint below turns out to change, so
+        // the flag is raised first and the footprint is only swapped when it actually differs.
+        banded = true;
+        bandedCall = true;
+        deckHeight = -1;
         if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out int stride, out int height, out _)) return;
         if (owner.Layout!.Width != height) return;
+        deckHeight = height;
         if (ShipArea.GetValue(__instance) is not HashSet<IntVec3> { Count: > 0 } area) return;
-        // From here on the ghost is built in band-local space, which has three parts that all have to
-        // agree: the footprint (flattened here), Map.Size (answered by BandedSize inside the body) and
-        // the outer airlock doors, whose offsets SOS2 takes from Building.Position. Any one of them left
-        // in storage space puts part of the ghost a band away and the whole placement turns red.
-        banded = true;
-        FlattenDoors(__instance, stride);
+        // From here on the ghost is built in band-local space, on both sides that have to agree: the
+        // footprint (flattened below) and Map.Size (answered by BandedSize inside the body). Any one of
+        // them left in storage space puts part of the ghost a band away and the whole placement turns
+        // red. The flag stays raised until the postfix has used it, because the ghost's final position
+        // is storage coordinates and a band-local centre would put it on the wrong deck.
         var flattened = new HashSet<IntVec3>();
         bool changed = false;
         foreach (IntVec3 cell in area)
@@ -91,48 +95,6 @@ internal static class Sos2SketchFloorPatch
         if (!changed) return;
         savedArea = area;
         ShipArea.SetValue(__instance, flattened);
-    }
-
-    /// <summary>A door whose Position was briefly flattened, with the value to put back.</summary>
-    private readonly record struct Door(Thing Part, int StorageZ);
-
-    [System.ThreadStatic] private static List<Door>? savedDoors;
-
-    /// <summary>
-    /// Puts every outer airlock's z inside band 0 for the duration of the sketch.
-    /// </summary>
-    /// <remarks>
-    /// <c>CreateShipSketch</c> lays the ghost out from two sources: <c>Area</c>, which this prefix can
-    /// swap for a flattened copy, and the outer <c>Building_ShipAirlock</c> doors, whose mirrored
-    /// offsets are taken from <c>Building.Position</c> directly. A hull with a door on an upper deck
-    /// therefore grows extender cells one band outside the deck the ghost is being dropped on; those
-    /// fail <c>InBounds</c>, <c>AllowsPlacing</c> rejects every position, and the flip button looks
-    /// dead with no message. The door is only read to compute a decoration offset here, so moving its z
-    /// for the duration of the call is safe and is restored before anything else looks at the ship.
-    /// </remarks>
-    private static void FlattenDoors(object cache, int stride)
-    {
-        if (ShipParts?.GetValue(cache) is not IEnumerable<Thing> parts) return;
-        foreach (Thing part in parts.ToList())
-        {
-            if (!OuterDoor(part)) continue;
-            int local = Sos2Geometry.LocalZ(part.Position.z, stride);
-            if (local == part.Position.z) continue;
-            (savedDoors ??= new List<Door>()).Add(new Door(part, part.Position.z));
-            part.Position = new IntVec3(part.Position.x, 0, local);
-        }
-    }
-
-    /// <summary>Puts every briefly flattened door back where it belongs.</summary>
-    private static void RestoreDoors()
-    {
-        if (savedDoors is not { Count: > 0 } doors) return;
-        foreach (Door door in doors)
-        {
-            if (door.Part == null || door.Part.DestroyedOrNull()) continue;
-            door.Part.Position = new IntVec3(door.Part.Position.x, 0, door.StorageZ);
-        }
-        savedDoors = null;
     }
 
     /// <summary>
@@ -182,11 +144,22 @@ internal static class Sos2SketchFloorPatch
         if (!banded) return map.Size;
         LayerMapComponent? owner = LayerMapComponent.For(map);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return map.Size;
-        return new IntVec3(map.Size.x, 0, layout.Height);
+        // The prefix measured the deck; a sketch started on a map whose width is not the deck height
+        // never raises the swap, and that call has to keep reading the real Map.Size.
+        return new IntVec3(map.Size.x, 0, deckHeight > 0 ? deckHeight : layout.Height);
     }
 
     /// <summary>True while <c>CreateShipSketch</c> is building a ghost in band-local space.</summary>
     [System.ThreadStatic] private static bool banded;
+
+    /// <summary>
+    /// Whether the call in progress raised <see cref="banded"/>. The flag has to survive until the
+    /// postfix has placed the ghost, but it must never leak into a later sketch on the same thread.
+    /// </summary>
+    [System.ThreadStatic] private static bool bandedCall;
+
+    /// <summary>The deck height <c>Map.Size</c> answers while this call is in flight; -1 when untouched.</summary>
+    [System.ThreadStatic] private static int deckHeight;
 
     /// <summary>
     /// Whether the ghost is currently being laid out in band-local space. Exposed for the in-game
@@ -196,9 +169,24 @@ internal static class Sos2SketchFloorPatch
 
     private static void Postfix(Map targetMap, byte rotb, object __instance)
     {
-        RestoreDoors();
-        Restore(__instance);
-        banded = false;
+        // The area is restored after the ghost is anchored, not before: the anchor converts the deck's
+        // local centre into storage coordinates with BandedSize, and a swapped footprint or a cleared
+        // flag at that point silently parks the ghost in the middle band of the map instead.
+        try
+        {
+            AnchorAndTrace(targetMap, rotb);
+        }
+        finally
+        {
+            Restore(__instance);
+            banded = false;
+            bandedCall = false;
+            deckHeight = -1;
+        }
+    }
+
+    private static void AnchorAndTrace(Map targetMap, byte rotb)
+    {
         if (!Sos2Compatibility.Active) return;
         // Lay the ghost on the deck the player is standing on. This used to force the ground floor, on
         // the assumption that a layered map is always viewed from the bottom - but a ship's command
@@ -211,9 +199,10 @@ internal static class Sos2SketchFloorPatch
 
     private static System.Exception? Finalizer(System.Exception? __exception, object __instance)
     {
-        RestoreDoors();
         Restore(__instance);
         banded = false;
+        bandedCall = false;
+        deckHeight = -1;
         // The sketch throws from inside SOS2 and every GUI mod on the stack swallows the exception
         // before the player sees it, so the only place the real fault is still visible is here. Without
         // this line a dead ship command reads as "the blueprint never appeared" with no cause anywhere
@@ -254,18 +243,50 @@ internal static class Sos2SketchFloorPatch
         // reachable from a console whose sketch failed partway, and a selection left over from a
         // previous attempt still looks like a minified thing. So the handle is verified by the inner
         // thing's type before its position is touched.
-        if (Find.Selector.SingleSelectedThing is not Thing minified) return false;
-        if (AccessTools.Field(minified.GetType(), "InnerThing")?.GetValue(minified) is not Thing inner) return false;
-        if (!inner.GetType().Name.Contains("ShipMoveBlueprint")) return false;
+        // The ghost is still at Map.Center when this runs, and Map.Center on a layered map is the
+        // middle of the storage height, which is several decks above anything the player can see. The
+        // selector cannot be trusted to hand it over: CreateShipSketch selects it and then immediately
+        // opens an Install designator on it, and that designator dereferences the same selection. If
+        // anything on the way in refuses, the call throws before this postfix runs and the ghost is
+        // never moved, so it is located by type instead.
+        if (!TryGhost(targetMap, out Thing minified)) return false;
         LayerMapComponent? owner = LayerMapComponent.For(targetMap);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return false;
         int deck = owner.ViewedLayer;
         if (deck < 0 || deck >= layout.LayerCount) return false;
+        // While the sketch is in flight Map.Size is the deck's rectangle, which is exactly where the
+        // ghost was measured against (with y = 0 at the deck's own floor). Converting the deck-local
+        // centre to storage coordinates uses that same rectangle, so the ghost lands on the deck the
+        // player is looking at instead of an elevation's worth of cells below it.
         IntVec3 centre = owner.ToStorage(new LayerCell(deck, layout.Width / 2, layout.Height / 2));
         if (!centre.InBounds(targetMap) || minified.Position == centre) return false;
         minified.Position = centre;
         return true;
     }
+
+    /// <summary>
+    /// The ship ghost standing on <paramref name="targetMap"/>, found by type rather than through the
+    /// selector so a failed selection cannot hide it.
+    /// </summary>
+    private static bool TryGhost(Map targetMap, out Thing ghost)
+    {
+        ghost = null!;
+        foreach (Thing thing in targetMap.listerThings.AllThings)
+        {
+            if (thing is not MinifiedThing) continue;
+            if (!thing.GetType().Name.Contains("MinifiedThingShipMove")) continue;
+            ghost = thing;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="map"/> carries the ship ghost, asked by type so the answer does not
+    /// depend on the selector. The in-game test uses it to prove the ghost was built at all before it
+    /// asks where the ghost ended up.
+    /// </summary>
+    internal static bool HasGhost(Map? map) => map != null && TryGhost(map, out _);
 
     /// <summary>
     /// One line per ghost that says where it ended up and which deck the player is looking at, because
@@ -276,36 +297,16 @@ internal static class Sos2SketchFloorPatch
     private static void TraceGhost(byte rotb, Map targetMap)
     {
         if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out _, out _, out int layers)) return;
-        Thing? ghost = Find.Selector.SingleSelectedThing;
+        TryGhost(targetMap, out Thing found);
+        Thing? ghost = Find.Selector.SingleSelectedThing ?? (found == null ? null : found);
         string at = ghost == null ? "none" : ghost.Position.ToString();
         string ghostDeck = ghost != null && owner.TryDecode(ghost.Position, out LayerCell ghostCell)
             ? "L" + ghostCell.LayerId
             : "?";
         Log.Message($"[RimLayers] SOS2 ghost rotb={rotb} map={targetMap} layers={layers} " +
                     $"viewed=L{owner.ViewedLayer} anchored={(ghostDeck == "L" + owner.ViewedLayer ? "on-view" : "off-view")} " +
-                    $"ghost={at} deck={ghostDeck} centre={targetMap.Center} centreDeck=" +
+                    $"ghost={at} deck={ghostDeck} selected={Find.Selector.SingleSelectedThing != null} centre={targetMap.Center} centreDeck=" +
                     (owner.TryDecode(targetMap.Center, out LayerCell centreCell) ? "L" + centreCell.LayerId : "?"));
-    }
-
-    private static readonly FieldInfo? ShipParts =
-        AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "Parts");
-
-    private static bool DoorCached;
-    private static MethodInfo? DoorMethod;
-
-    /// <summary><c>Building_ShipAirlock.Outerdoor()</c>, which is what decides the extender set.</summary>
-    private static bool OuterDoor(Thing part)
-    {
-        if (!DoorCached)
-        {
-            DoorCached = true;
-            System.Type? airlock = AccessTools.TypeByName("SaveOurShip2.Building_ShipAirlock");
-            DoorMethod = airlock == null ? null : AccessTools.Method(airlock, "Outerdoor");
-        }
-        if (DoorMethod == null || part == null) return false;
-        if (!DoorMethod.DeclaringType!.IsInstanceOfType(part)) return false;
-        try { return DoorMethod.Invoke(part, null) is true; }
-        catch (System.Exception) { return false; }
     }
 
     /// <summary>
