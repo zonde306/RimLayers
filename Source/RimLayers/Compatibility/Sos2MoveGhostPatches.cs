@@ -76,7 +76,13 @@ internal static class Sos2MoveGhostPatches
             if (entity.pos.z > floor || entity.pos.z >= layout.Height) continue;
             // The sketch is drawn relative to the ghost's cursor cell. Without loc the whole test is
             // run against the map origin, which is what made the preview red almost everywhere.
-            var cell = loc + new IntVec3(entity.pos.x, 0, entity.pos.z);
+            //
+            // Both terms are band-local. loc carries the storage offset of the deck the ghost is being
+            // dropped on, and the sketch holds offsets from the hull's own floor, so adding them raw
+            // works only while the two happen to share a band. Once the ghost stands on the deck the
+            // player is looking at, the sum lands a floor too high, where every cell is blocked and the
+            // whole preview turns red. Measuring from the hull's floor keeps the sum on one deck.
+            var cell = new IntVec3(loc.x + entity.pos.x, 0, loc.z + (entity.pos.z - floor));
             if (!cell.InBounds(map))
             {
                 accept = false;
