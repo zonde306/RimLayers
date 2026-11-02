@@ -3349,22 +3349,34 @@ internal static partial class V1Integration
         // And the growth really happens through the shared transaction rather than an ad-hoc resize.
         bool grew = RimLayers.Generation.LiveMapExpansion.EnsureRequirements(sos2SpaceMap);
         Check("sos2-a-tall-enough-map-is-not-grown-again", !grew, $"grew={grew}, highest={space.Layout?.HighestElevation}");
-        // The move ghost is an Install designator, so every cell outside the viewed floor reads as no cell
-        // at all (MouseCellPatch returns IntVec3.Invalid). A player who launched from upstairs and is still
-        // looking upstairs therefore gets a tool that silently accepts nothing. Opening the sketch has to
-        // drop the view to the floor the hull actually stands on.
+        // The ghost lands on whichever deck the player is looking at, and the view must NOT be moved to
+        // make that true. A ship's command console can stand on any deck - the report that prompted this
+        // was a computer core one deck up whose click only switched floors - so jumping the view away
+        // from the console is the bug, not the fix.
+        //
+        // EnsureGroundFloor is now only the explicit "show me the floor" helper the other adapters call
+        // (aerocraft landing). It is still asserted here because its elevation-0 assumption silently did
+        // nothing on a map whose bands sit away from zero.
         if (space.Layout is { LayerCount: > 1 })
         {
-            space.Layout!.TryGetLayerAtElevation(0, out int ground);
-            RimLayers.Presentation.LayerView.Switch(space, ground + 1);
-            Check("sos2-the-view-starts-off-the-ground-floor", space.ViewedLayer != ground,
-                $"viewed={space.ViewedLayer}, ground={ground}");
+            int top = space.Layout!.LayerCount - 1;
+            RimLayers.Presentation.LayerView.Switch(space, top);
+            Check("sos2-the-view-can-start-on-an-upper-floor", space.ViewedLayer == top,
+                $"viewed={space.ViewedLayer}, top={top}");
+            // Anchoring is the thing that has to follow the view: the ghost is drawn as an offset from
+            // the deck it is dropped on, so a ghost placed anywhere else is a ghost the player cannot
+            // see. The anchor helper is asked directly rather than through a whole sketch, because a
+            // sketch also selects a designator and that needs a live UI.
+            Check("sos2-the-ghost-anchors-on-the-viewed-floor",
+                Sos2SketchFloorPatch.AnchorDeckOf(sos2SpaceMap) == space.ViewedLayer,
+                $"anchorDeck={Sos2SketchFloorPatch.AnchorDeckOf(sos2SpaceMap)}, viewed={space.ViewedLayer}");
             bool moved = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
-            Check("sos2-opening-the-move-ghost-drops-to-the-ground-floor", moved && space.ViewedLayer == ground,
-                $"moved={moved}, viewed={space.ViewedLayer}, ground={ground}");
+            Check("sos2-show-my-floor-drops-to-the-ground-floor", moved && space.ViewedLayer != top,
+                $"moved={moved}, viewed={space.ViewedLayer}, top={top}");
             bool again = Sos2SketchFloorPatch.EnsureGroundFloor(sos2SpaceMap);
             Check("sos2-a-view-already-on-the-ground-floor-is-left-alone", !again,
                 $"moved={again}, viewed={space.ViewedLayer}");
+            RimLayers.Presentation.LayerView.Switch(space, top);
         }
         // pendingScreenshot is only honoured while screenshotHold counts down; without the hold the
         // file is requested and the run ends before a frame is ever drawn.

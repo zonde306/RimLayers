@@ -42,8 +42,6 @@ internal static class Sos2SketchFloorPatch
     private static readonly FieldInfo? ShipArea =
         AccessTools.Field(AccessTools.TypeByName("SaveOurShip2.SpaceShipCache"), "Area");
 
-    private static readonly HashSet<byte> Logged = new();
-
     /// <summary>The set that was briefly swapped for a flattened copy, restored by postfix/finaliser.</summary>
     [System.ThreadStatic] private static object? savedArea;
 
@@ -202,9 +200,13 @@ internal static class Sos2SketchFloorPatch
         Restore(__instance);
         banded = false;
         if (!Sos2Compatibility.Active) return;
-        EnsureGroundFloor(targetMap);
+        // Lay the ghost on the deck the player is standing on. This used to force the ground floor, on
+        // the assumption that a layered map is always viewed from the bottom - but a ship's command
+        // console can be on any deck, and jumping the view away from it is what makes a click look like
+        // "it only switched floors and nothing else happened". The ghost is drawn as an offset from the
+        // deck it is dropped on, so it has to land on the viewed deck, whatever that deck is.
         AnchorOnDeck(targetMap);
-        LogOnce(rotb, targetMap);
+        TraceGhost(rotb, targetMap);
     }
 
     private static System.Exception? Finalizer(System.Exception? __exception, object __instance)
@@ -227,34 +229,54 @@ internal static class Sos2SketchFloorPatch
     /// map is <c>z = storageHeight / 2</c> and therefore usually lands in the second band. The player
     /// then sees nothing at all on the floor the view was just moved to.
     /// </summary>
-    private static void AnchorOnDeck(Map targetMap)
+    /// <summary>The deck <see cref="AnchorOnDeck"/> would use for this map, for the in-game test.</summary>
+    internal static int AnchorDeckOf(Map? targetMap)
     {
-        // CreateShipSketch selects the ghost as the very last thing it does, so by the time this runs
-        // the selector is the only handle on it - but it is not the ONLY anchor. The ship command is
-        // also reachable from a bridge whose sketch failed partway, and a selection left over from a
-        // previous ghost still looks like a MinifiedThing. Moving anything that is not this ghost to
-        // the deck centre would relocate an unrelated object on the map, so the handle is verified by
-        // the inner thing's type before its position is touched.
-        if (Find.Selector.SingleSelectedThing is not Thing minified) return;
-        if (AccessTools.Field(minified.GetType(), "InnerThing")?.GetValue(minified) is not Thing inner) return;
-        if (!inner.GetType().Name.Contains("ShipMoveBlueprint")) return;
         LayerMapComponent? owner = LayerMapComponent.For(targetMap);
-        if (owner?.Layout is not { LayerCount: > 1 } layout) return;
-        if (!layout.TryGetLayerAtElevation(0, out int ground)) return;
-        IntVec3 centre = owner.ToStorage(new LayerCell(ground, layout.Width / 2, layout.Height / 2));
-        if (!centre.InBounds(targetMap) || minified.Position == centre) return;
+        return owner?.Layout is { LayerCount: > 1 } ? owner.ViewedLayer : -1;
+    }
+
+    private static bool AnchorOnDeck(Map targetMap)
+    {
+        // The ghost is spawned at Map.Center, which on a layered map is the middle of the storage
+        // height - one band per deck away from anything the player can see. Move it onto the deck the
+        // player is looking at, because that is the deck the ghost's own offsets are measured from.
+        //
+        // What it must never do is move something that is not this ghost: the ship command is also
+        // reachable from a console whose sketch failed partway, and a selection left over from a
+        // previous attempt still looks like a minified thing. So the handle is verified by the inner
+        // thing's type before its position is touched.
+        if (Find.Selector.SingleSelectedThing is not Thing minified) return false;
+        if (AccessTools.Field(minified.GetType(), "InnerThing")?.GetValue(minified) is not Thing inner) return false;
+        if (!inner.GetType().Name.Contains("ShipMoveBlueprint")) return false;
+        LayerMapComponent? owner = LayerMapComponent.For(targetMap);
+        if (owner?.Layout is not { LayerCount: > 1 } layout) return false;
+        int deck = owner.ViewedLayer;
+        if (deck < 0 || deck >= layout.LayerCount) return false;
+        IntVec3 centre = owner.ToStorage(new LayerCell(deck, layout.Width / 2, layout.Height / 2));
+        if (!centre.InBounds(targetMap) || minified.Position == centre) return false;
         minified.Position = centre;
+        return true;
     }
 
     /// <summary>
-    /// One line per rotation mode so a still-red ghost can be diagnosed from the player log without
-    /// asking for a repro. The numbers are the ones SOS2's own arithmetic hinges on.
+    /// One line per ghost that says where it ended up and which deck the player is looking at, because
+    /// those two can disagree: the view is switched to the ground floor, but a ghost anchored by a
+    /// different rule is then drawn on a band the player cannot see. The log is the only way to tell
+    /// "the ghost was never built" from "the ghost was built out of sight".
     /// </summary>
-    private static void LogOnce(byte rotb, Map targetMap)
+    private static void TraceGhost(byte rotb, Map targetMap)
     {
-        if (!Logged.Add(rotb)) return;
-        if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out _, out int height, out int layers)) return;
-        Log.Message($"[RimLayers] SOS2 ship ghost rotb={rotb} map={targetMap} logical={owner.Layout!.Width}x{height} bands={layers}");
+        if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out _, out _, out int layers)) return;
+        Thing? ghost = Find.Selector.SingleSelectedThing;
+        string at = ghost == null ? "none" : ghost.Position.ToString();
+        string ghostDeck = ghost != null && owner.TryDecode(ghost.Position, out LayerCell ghostCell)
+            ? "L" + ghostCell.LayerId
+            : "?";
+        Log.Message($"[RimLayers] SOS2 ghost rotb={rotb} map={targetMap} layers={layers} " +
+                    $"viewed=L{owner.ViewedLayer} anchored={(ghostDeck == "L" + owner.ViewedLayer ? "on-view" : "off-view")} " +
+                    $"ghost={at} deck={ghostDeck} centre={targetMap.Center} centreDeck=" +
+                    (owner.TryDecode(targetMap.Center, out LayerCell centreCell) ? "L" + centreCell.LayerId : "?"));
     }
 
     private static readonly FieldInfo? ShipParts =
@@ -286,7 +308,10 @@ internal static class Sos2SketchFloorPatch
     {
         LayerMapComponent? owner = LayerMapComponent.For(map);
         if (owner?.Layout is not { LayerCount: > 1 } layout) return false;
-        if (!layout.TryGetLayerAtElevation(0, out int ground)) return false;
+        // A deck that is not allocated at elevation 0 is the normal case for an underground map, whose
+        // bands start below zero. Asking for elevation 0 would decline on those maps and leave the view
+        // where it is, so fall back to the lowest deck the ship can actually stand on.
+        int ground = layout.TryGetLayerAtElevation(0, out int atZero) ? atZero : 0;
         if (owner.ViewedLayer == ground) return false;
         // Switch refuses a component that is not the currently viewed map, which is the case while the
         // game is still pointed elsewhere. The caller has already moved CurrentMap by this point, so a
