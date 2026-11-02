@@ -2165,6 +2165,11 @@ internal static partial class V1Integration
         int deckBefore = 0;
         foreach (IntVec3 cell in cellsBefore)
             if (StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckBefore++;
+        // Counted here, before the move: after it the source cells are already cleared, so measuring then
+        // reports zero for a hull whose ceilings travelled perfectly.
+        int roofBefore = 0;
+        foreach (IntVec3 cell in cellsBefore)
+            if (Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell))) roofBefore++;
 
         var anchor = new IntVec3(minX, 0, minZ);
         // Paint a stockpile over part of the hull, so the move can be asked the question a player asks:
@@ -2244,6 +2249,28 @@ internal static partial class V1Integration
             if (building.def.building == null || !building.def.building.shipPart) continue;
             stranded++;
         }
+        // Two buildings on one cell is what a player describes as walls overlapping. Vanilla never allows
+        // it, so any cell with two is a relocation that respawned something on a cell another part already
+        // claimed - the visible symptom of a per-thing landing cell that disagrees with the cell plan.
+        int overlap = 0;
+        var overlapSample = new List<string>();
+        foreach (IntVec3 cell in cellsAfter)
+        {
+            // Only impassable buildings conflict. Conduits, hull tiles and beams share a cell by design -
+            // SOS2 ships are full of that - so counting every building would report the normal state of a
+            // ship as a bug. Two walls on one cell is the thing vanilla never allows.
+            var buildings = new List<string>();
+            foreach (Thing thing in hullMap.thingGrid.ThingsListAt(cell))
+                if (thing is Building building && !building.Destroyed
+                    && building.def.passability == Traversability.Impassable)
+                    buildings.Add(building.def.defName);
+            if (buildings.Count < 2) continue;
+            overlap++;
+            if (overlapSample.Count < 6) overlapSample.Add($"{cell}=[{string.Join("+", buildings)}]");
+        }
+        Check("sos2-relocation-leaves-no-overlapping-parts", overlap == 0,
+            $"cells holding two buildings={overlap}, sample=[{string.Join(", ", overlapSample)}]");
+
         Check("sos2-relocation-leaves-no-hull-part-behind", stranded == 0,
             $"buildings still standing on a cell the hull vacated={stranded}");
 
@@ -2308,7 +2335,13 @@ internal static partial class V1Integration
                 if (cellsAfter.Contains(c)) moved++;
                 else if (cellsBefore.Contains(c)) left++;
             }
-            int deckAfter = 0, deckLeft = 0;
+            Check("sos2-relocation-carries-the-storage-zone",
+                storage.cells.Count > 0 && moved > 0 && left == 0,
+                $"zone cells={storage.cells.Count}, on the new hull={moved}, still on the old footprint={left}, "
+                + $"painted={zoneCells.Count}");
+        }
+
+        int deckAfter = 0, deckLeft = 0;
         foreach (IntVec3 cell in cellsAfter)
             if (StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckAfter++;
         foreach (IntVec3 cell in cellsBefore)
@@ -2318,11 +2351,39 @@ internal static partial class V1Integration
             deckBefore > 0 && deckAfter == deckBefore && deckLeft == 0,
             $"deck cells before={deckBefore}, after={deckAfter}, left on the old footprint={deckLeft}");
 
-        Check("sos2-relocation-carries-the-storage-zone",
-                storage.cells.Count > 0 && moved > 0 && left == 0,
-                $"zone cells={storage.cells.Count}, on the new hull={moved}, still on the old footprint={left}, "
-                + $"painted={zoneCells.Count}");
+        // A roofless hull reads as vacuum to every one of SOS2's own queries: ExposedToOutside answers true
+        // for a room with any open cells, the temperature readout appends the vacuum label, and the room
+        // never forms a sealed interior at all. The ceiling is a separate grid from the floor and the
+        // contents, so it needs its own assertion or it silently stays behind.
+        //
+        // The ceiling is the roof on the deck cell itself, the same cell SOS2's SetRoof writes and the same
+        // one StructuralSupport.HasRequiredRoof reads as "the roof under the cell above".
+        int roofAfter = 0, roofLeft = 0;
+        foreach (IntVec3 cell in cellsAfter)
+            if (Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell))) roofAfter++;
+        foreach (IntVec3 cell in cellsBefore)
+            if (!cellsAfter.Contains(cell) && Sos2Compatibility.IsShipCeiling(hullMap.roofGrid.RoofAt(cell))) roofLeft++;
+        Check("sos2-relocation-carries-the-ceiling",
+            roofBefore > 0 && roofAfter == roofBefore && roofLeft == 0,
+            $"ceilings before={roofBefore}, after={roofAfter}, left on the old footprint={roofLeft}");
+
+        // The question the player actually asked: is a room under this hull sealed? Room.OpenRoofCount is
+        // what SOS2's ExposedToOutside reads, so it is the number to check, not the roof grid itself.
+        int sealedCells = 0, openCells = 0;
+        var openSample = new List<string>();
+        foreach (IntVec3 cell in cellsAfter)
+        {
+            if (!owner.TryDecode(cell, out _)) continue;
+            if (hullMap.roofGrid.RoofAt(cell) == null) continue;
+            Room? room = cell.GetRoom(hullMap);
+            if (room == null) continue;
+            if (room.OpenRoofCount > 0) { openCells++; if (openSample.Count < 4) openSample.Add($"{cell}:open={room.OpenRoofCount}"); }
+            else sealedCells++;
         }
+        Check("sos2-relocation-leaves-no-moved-room-exposed",
+            openCells == 0,
+            $"roofed berths with an open roof={openCells}, sealed={sealedCells}, "
+            + $"sample=[{string.Join(", ", openSample)}]");
 
         Check("sos2-relocation-parts-stand-on-their-rotated-footprint", misplaced == 0,
             $"multi-cell parts whose footprint is not the rotated footprint={misplaced}, "

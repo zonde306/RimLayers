@@ -35,7 +35,7 @@ namespace RimLayers.Compatibility;
 internal static class Sos2ShipRelocation
 {
     /// <summary>What one hull cell carries across the move.</summary>
-    private readonly record struct Load(IntVec3 From, IntVec3 To, List<Thing> Things, TerrainDef? Deck);
+    private readonly record struct Load(IntVec3 From, IntVec3 To, List<Thing> Things, TerrainDef? Deck, RoofDef? Roof);
 
     /// <summary>
     /// Rotates <paramref name="core"/> by <paramref name="rotNum"/> (0 none, 1 quarter turn, 2 flip)
@@ -109,7 +109,7 @@ internal static class Sos2ShipRelocation
                 : StructuralSupport.IsSos2DeckTerrain(map.terrainGrid.TerrainAt(cell))
                     ? map.terrainGrid.TerrainAt(cell)
                     : null;
-            plan.Add(new Load(cell, to, things, deck));
+            plan.Add(new Load(cell, to, things, deck, RoofAtShipHeight(map, cell)));
         }
         if (plan.Count == 0) return "The ship has nothing to move.";
 
@@ -260,6 +260,35 @@ internal static class Sos2ShipRelocation
             foreach (Load load in plan)
                 if (load.Deck != null) ShipDeckTerrain.InstallDeck(owner, load.To, load.Deck);
 
+            // 4b. The ceiling travels with the hull.
+            //
+            //     Without it the ship arrives roofless, and every one of its rooms reports
+            //     OpenRoofCount > 0 - which is exactly the condition SOS2's ExposedToOutside answers true
+            //     for and its temperature readout renders as "vacuum". A hull whose walls are intact and
+            //     whose floor is intact still reads as open space, and no amount of wall or deck
+            //     bookkeeping fixes it, because the missing thing is the roof.
+            //
+            //     The roof lives on the deck cell itself, not one band up. Both sides agree on that: SOS2's
+            //     CompShipCachePart.SetRoof writes it at the cell the part stands on, and this mod's
+            //     StructuralSupport.HasRequiredRoof reads RoofAt(lower) for the cell above - so "the roof
+            //     over this deck" IS RoofAt(deck). Looking one band up instead finds the upper deck's own
+            //     roof, which is a different room's ceiling, and would leave the deck it was meant to
+            //     cover still open.
+            //
+            //     Clearing the source comes with the same overlap rule the decks use, and for the same
+            //     reason: a hull rotated in place re-covers some of the cells it just vacated, and
+            //     stripping the ceiling off those would leave the ship sealed on three sides only.
+            var covered = new HashSet<IntVec3>();
+            foreach (Load load in plan) covered.Add(load.To);
+            foreach (Load load in plan)
+            {
+                if (covered.Contains(load.From)) continue;
+                if (map.roofGrid.RoofAt(load.From) == null) continue;
+                map.roofGrid.SetRoof(load.From, null);
+            }
+            foreach (Load load in plan)
+                if (load.Roof != null) map.roofGrid.SetRoof(load.To, load.Roof);
+
             // 5. Zones back onto the cells their contents are about to occupy.
             //
             //    This has to happen BEFORE the respawn, and the order is the whole point. Vanilla's
@@ -328,6 +357,17 @@ internal static class Sos2ShipRelocation
         }
         return AcceptanceReport.WasAccepted;
     }
+
+
+    /// <summary>
+    /// The roof a hull cell contributes to its room.
+    /// </summary>
+    /// <remarks>
+    /// Read from the deck cell, which is where both SOS2 (<c>CompShipCachePart.SetRoof</c>) and this mod
+    /// (<c>StructuralSupport.HasRequiredRoof</c>, via <c>RoofAt(lower)</c>) keep it. A hull that never had a
+    /// ceiling answers null and is not given one here.
+    /// </remarks>
+    private static RoofDef? RoofAtShipHeight(Map map, IntVec3 deck) => map.roofGrid.RoofAt(deck);
 
     /// <summary>
     /// The rotation a thing ends up with after the hull is turned. Must agree with <see cref="Rotate"/>,
