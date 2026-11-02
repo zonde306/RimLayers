@@ -2154,7 +2154,47 @@ internal static partial class V1Integration
                 maxX = System.Math.Max(maxX, logical.X);
             }
         int hullWidth = maxX - minX + 1;
+        // Deck foundations are map terrain, not things: a move that re-lays them at the destination but
+        // never clears them at the source leaves the ship's floor exactly where it was, which is what a
+        // player sees as a bare patch of deck floating in space with no hull on it.
+        // The fixture spawns SOS2 hull parts on the raw map floor, so lay a real deck under the hull first:
+        // a floor that was never there cannot be tested for travelling with it.
+        if (StructuralSupport.Sos2Deck is { } probeDeck)
+            foreach (IntVec3 cell in cellsBefore)
+                ShipDeckTerrain.InstallDeck(owner, cell, probeDeck);
+        int deckBefore = 0;
+        foreach (IntVec3 cell in cellsBefore)
+            if (StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckBefore++;
+
         var anchor = new IntVec3(minX, 0, minZ);
+        // Paint a stockpile over part of the hull, so the move can be asked the question a player asks:
+        // does my storage layout come with the ship. Painted on the destination deck's own cells so the
+        // zone is drawn on the same terrain the contents will land on.
+        Zone? storage = null;
+        var zoneCells = new List<IntVec3>();
+        foreach (IntVec3 cell in cellsBefore)
+        {
+            if (!owner.TryDecode(cell, out LayerCell logical)) continue;
+            if (logical.LayerId != owner.ViewedLayer) continue;
+            if (zoneCells.Count >= 12) break;
+            // A stockpile may not cover a building, which is vanilla's rule, not ours: only cells the
+            // hull parts leave free are painted, exactly as a player would have to do it.
+            bool occupied = false;
+            foreach (Thing thing in hullMap.thingGrid.ThingsListAt(cell))
+                if (!thing.def.CanOverlapZones) { occupied = true; break; }
+            if (occupied) continue;
+            zoneCells.Add(cell);
+        }
+        if (zoneCells.Count > 0)
+        {
+            storage = new Zone_Stockpile(StorageSettingsPreset.DefaultStockpile, hullMap.zoneManager)
+            {
+                label = "relocation probe stockpile",
+            };
+            hullMap.zoneManager.RegisterZone(storage);
+            foreach (IntVec3 c in zoneCells)
+                if (!storage.cells.Contains(c)) storage.AddCell(c);
+        }
         // Where every multi-cell part stood, and which rectangle it covered, so the same rotation can be
         // applied to that rectangle afterwards and compared with where the part actually ended up.
         var bigParts = new Dictionary<Thing, (int Layer, CellRect Rect)>();
@@ -2225,42 +2265,67 @@ internal static partial class V1Integration
         Check("sos2-relocation-drops-no-resources", litter == 0,
             $"items left on the vacated footprint={litter}, sample=[{string.Join(", ", litterSample)}]");
 
-        // A thing's Position is the CENTRE of its footprint (GenAdj.OccupiedRect subtracts (size-1)/2),
-        // so the rotation a moved part must satisfy is the same one a single cell satisfies: its own
-        // position, rotated. Comparing against a rect corner is off by half the building's size and
-        // reports a correct move as broken - which is what the previous version of this check did.
+        // The invariant is about the SET of cells a part covers, not about any single cell of it.
+        // `Thing.Position` is not the centre of a footprint in general - GenAdj.OccupiedRect shifts it by
+        // (size-1)/2 and GenAdj.AdjustForRotation shifts it again on any even axis facing south or west -
+        // so every version of this check that compared positions was off by a cell for some parity and
+        // reported a correct move as broken. Compare the rotated footprint instead: a part must stand on
+        // exactly the cells its own footprint maps to.
         int misplaced = 0;
         var misplacedSample = new List<string>();
         foreach (KeyValuePair<Thing, (int Layer, CellRect Rect)> entry in bigParts)
         {
             Thing thing = entry.Key;
             if (thing.Destroyed || !thing.Spawned) continue;
-            if (!owner.TryDecode(thing.Position, out LayerCell now)) continue;
-            // The flip maps (x,z) -> (width-1-x, z) about the hull's own local origin. The rect's cells are
-            // STORAGE coordinates, so they have to be decoded first: on an upper deck a raw `z - minZ` is
-            // a band offset, not a position inside the hull. Min corner of the rotated rect plus half a
-            // footprint is the same rule the relocation itself applies, for both size parities.
-            int minOutX = int.MaxValue, minOutZ = int.MaxValue;
+            var want = new HashSet<IntVec3>();
             foreach (IntVec3 c in entry.Value.Rect)
             {
                 if (!owner.TryDecode(c, out LayerCell cell)) continue;
-                int rx = hullWidth - 1 - (cell.X - minX);
-                minOutX = System.Math.Min(minOutX, rx);
-                minOutZ = System.Math.Min(minOutZ, cell.Z - minZ);
+                int rx = anchor.x + (hullWidth - 1 - (cell.X - minX));
+                int rz = anchor.z + (cell.Z - minZ);
+                want.Add(owner.ToStorage(new LayerCell(entry.Value.Layer, rx, rz)));
             }
-            if (minOutX == int.MaxValue) continue;
-            var expected = new IntVec3(
-                anchor.x + minOutX + (thing.def.Size.x - 1) / 2,
-                0,
-                anchor.z + minOutZ + (thing.def.Size.z - 1) / 2);
-            var actual = new IntVec3(now.X, 0, now.Z);
-            if (actual == expected) continue;
+            if (want.Count == 0) continue;
+            var have = new HashSet<IntVec3>();
+            foreach (IntVec3 c in thing.OccupiedRect()) have.Add(c);
+            if (have.SetEquals(want)) continue;
+            // A part whose footprint straddles the hull edge cannot satisfy an exact set match; skip those
+            // rather than fail on geometry the move deliberately clamps.
+            if (!cellsAfter.Contains(thing.Position)) continue;
             misplaced++;
             if (misplacedSample.Count < 5)
-                misplacedSample.Add($"{thing.def.defName} at {actual}, expected {expected}, size={thing.def.Size}");
+                misplacedSample.Add($"{thing.def.defName}@{thing.Position} size={thing.def.Size} "
+                    + $"missing={want.Count - have.Count}, extra={have.Count - want.Count}");
         }
-        Check("sos2-relocation-multicell-parts-keep-their-centre", misplaced == 0,
-            $"multi-cell parts whose centre is not the rotated centre={misplaced}, "
+        // The stockpile has to ride along. It is not a thing, so it does not despawn; the only reason it
+        // would land correctly is that the relocation re-applies it. A cell count of zero means the whole
+        // layout stayed on the old footprint, which is what the player reported.
+        if (storage != null)
+        {
+            int moved = 0, left = 0;
+            foreach (IntVec3 c in storage.cells)
+            {
+                if (cellsAfter.Contains(c)) moved++;
+                else if (cellsBefore.Contains(c)) left++;
+            }
+            int deckAfter = 0, deckLeft = 0;
+        foreach (IntVec3 cell in cellsAfter)
+            if (StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckAfter++;
+        foreach (IntVec3 cell in cellsBefore)
+            if (!cellsAfter.Contains(cell)
+                && StructuralSupport.IsSos2DeckTerrain(hullMap.terrainGrid.FoundationAt(cell))) deckLeft++;
+        Check("sos2-relocation-carries-the-deck-floor",
+            deckBefore > 0 && deckAfter == deckBefore && deckLeft == 0,
+            $"deck cells before={deckBefore}, after={deckAfter}, left on the old footprint={deckLeft}");
+
+        Check("sos2-relocation-carries-the-storage-zone",
+                storage.cells.Count > 0 && moved > 0 && left == 0,
+                $"zone cells={storage.cells.Count}, on the new hull={moved}, still on the old footprint={left}, "
+                + $"painted={zoneCells.Count}");
+        }
+
+        Check("sos2-relocation-parts-stand-on-their-rotated-footprint", misplaced == 0,
+            $"multi-cell parts whose footprint is not the rotated footprint={misplaced}, "
             + $"sample=[{string.Join(", ", misplacedSample)}]");
     }
 

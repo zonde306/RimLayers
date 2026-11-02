@@ -507,7 +507,6 @@ internal static class Sos2Compatibility
     internal static bool Relocating => relocating > 0;
 
     private static int relocating;
-
     /// <summary>
     /// Sets SOS2's own <c>MoveShipFlag</c> for the duration of a RimLayers relocation.
     /// </summary>

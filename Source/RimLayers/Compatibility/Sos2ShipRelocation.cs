@@ -132,46 +132,66 @@ internal static class Sos2ShipRelocation
             }
         }
 
-        // Where each thing is respawned.
+        // Where each thing is respawned, found by solving rather than by arithmetic about a point.
         //
-        // `Thing.Position` is the CENTRE of the footprint for odd sizes but the MIN CORNER for even ones
-        // (GenAdj.OccupiedRect subtracts (size-1)/2, which is 0 when size is 2). Rotating that one cell is
-        // therefore right for a 3x3 and off by one for a 2x2. What is always right: rotate every cell the
-        // thing occupies, take the min corner of the result, and put the position half a footprint in from
-        // it. Both parities come out of the same arithmetic.
+        // `Thing.Position` is not the centre of a footprint in general: GenAdj.OccupiedRect shifts it by
+        // (size-1)/2 for odd sizes and, through GenAdj.AdjustForRotation, by a further cell on any even
+        // axis whose rotation faces south or west. Guessing the shift is how three versions of this got a
+        // 2x2 hardpoint, a bed or a battery one cell off while everything else looked right.
         //
-        // This matters beyond tidiness: a 2x2 hardpoint one cell out is a hardpoint standing on the cell
-        // the player expected to be empty, so parts visibly overlap after a flip.
+        // So it is solved: rotate every cell the thing covers, and then find the position whose
+        // OccupiedRect exactly reproduces that rotated footprint. That uses vanilla's own definition of
+        // where a thing sits instead of a copy of the formula.
         var origin = new Dictionary<Thing, IntVec3>();
         foreach (Load load in plan)
             foreach (Thing thing in load.Things)
             {
                 if (origin.ContainsKey(thing)) continue;
-                if (!thing.Position.InBounds(map) || !owner.TryDecode(thing.Position, out LayerCell at))
-                {
-                    origin[thing] = load.To;
-                    continue;
-                }
-                int minOutX = int.MaxValue, minOutZ = int.MaxValue;
-                CellRect rect = thing.OccupiedRect();
-                foreach (IntVec3 c in rect)
+                Rot4 turned = Turn(thing.Rotation, rotNum);
+                var target = new HashSet<IntVec3>();
+                var sources = new List<IntVec3>();
+                foreach (IntVec3 c in thing.OccupiedRect())
                 {
                     if (!owner.TryDecode(c, out LayerCell cell)) continue;
-                    if (cell.LayerId != at.LayerId) continue;
+                    sources.Add(c);
                     (int rx, int rz) = Rotate(cell.X - minX, cell.Z - minZ, width, depth, rotNum);
-                    minOutX = System.Math.Min(minOutX, rx);
-                    minOutZ = System.Math.Min(minOutZ, rz);
+                    int height = layout.Height;
+                    if (rx < 0 || rz < 0 || rx >= layout.Width || rz >= height) continue;
+                    target.Add(new IntVec3(anchor.x + rx, 0, anchor.z + rz));
                 }
-                if (minOutX == int.MaxValue || minOutZ == int.MaxValue)
+                if (target.Count == 0 || sources.Count == 0)
                 {
-                    // Nothing of this thing could be decoded; the cell it stood on is the honest fallback.
                     origin[thing] = load.To;
                     continue;
                 }
-                int shiftX = (thing.def.Size.x - 1) / 2;
-                int shiftZ = (thing.def.Size.z - 1) / 2;
-                origin[thing] = owner.ToStorage(new LayerCell(
-                    at.LayerId, anchor.x + minOutX + shiftX, anchor.z + minOutZ + shiftZ));
+                int loX = int.MaxValue, loZ = int.MaxValue, hiX = int.MinValue, hiZ = int.MinValue;
+                foreach (IntVec3 c in target)
+                {
+                    loX = System.Math.Min(loX, c.x);
+                    loZ = System.Math.Min(loZ, c.z);
+                    hiX = System.Math.Max(hiX, c.x);
+                    hiZ = System.Math.Max(hiZ, c.z);
+                }
+                IntVec3 found = IntVec3.Invalid;
+                // Searched one cell beyond the footprint on every side: for an even axis facing south or
+                // west, GenAdj.AdjustForRotation moves the centre a further -1, so the position that
+                // covers the wanted cells sits just OUTSIDE their bounding box.
+                for (int px = loX - 1; px <= hiX + 1 && !found.IsValid; px++)
+                    for (int pz = loZ - 1; pz <= hiZ + 1 && !found.IsValid; pz++)
+                    {
+                        var candidate = new IntVec3(px, 0, pz);
+                        var covered = new HashSet<IntVec3>();
+                        foreach (IntVec3 c in GenAdj.OccupiedRect(candidate, turned, thing.def.Size)) covered.Add(c);
+                        if (covered.SetEquals(target)) found = candidate;
+                    }
+                // No exact fit means the thing straddles the hull's edge; the min corner is the closest
+                // honest answer and the caller reports any part that ends up outside the hull.
+                if (!found.IsValid) found = new IntVec3(loX, 0, loZ);
+                // The layer comes from the thing's own cells, never from the found cell's z: on a layered
+                // map z is a storage coordinate, so deriving a layer from a local z answers 0 for every
+                // deck and collapses the whole hull onto the ground floor.
+                int layer = Sos2Geometry.LayerOf(sources[0].z, layout.Stride, layout.LayerCount);
+                origin[thing] = owner.ToStorage(new LayerCell(layer, found.x, found.z));
             }
 
         // Zones and stockpile settings are map bookkeeping, not things, so they do not travel with a
@@ -240,7 +260,51 @@ internal static class Sos2ShipRelocation
             foreach (Load load in plan)
                 if (load.Deck != null) ShipDeckTerrain.InstallDeck(owner, load.To, load.Deck);
 
-            // 5. Everything back in, on the far side, at its own origin and facing the same way.
+            // 5. Zones back onto the cells their contents are about to occupy.
+            //
+            //    This has to happen BEFORE the respawn, and the order is the whole point. Vanilla's
+            //    Zone.AddCell refuses any cell holding a thing whose def does not allow zone overlap, and
+            //    a deck is exactly such a thing - so adding zone cells after the hull is back logs
+            //    "Added zone over zone-incompatible thing" and drops every cell, which is why the storage
+            //    layout stayed on the old footprint. Worse, spawning a thing runs
+            //    ZoneManager.Notify_NoZoneOverlapThingSpawned, which then strips the cells back out again.
+            //
+            //    Added to bare floor first, the zone is simply a zone the contents land inside, which is
+            //    the state a player builds by painting a stockpile and then placing things on it.
+            foreach ((Zone zone, IntVec3 to) in zonePlan)
+            {
+                if (zone == null) continue;
+                // Despawning every part on the footprint strips the zone of all its cells, and a zone
+                // with no cells deregisters itself. Re-registering it is what makes the layout survive
+                // the move at all; the settings object on it is untouched by deregistration.
+                if (!map.zoneManager.AllZones.Contains(zone)) map.zoneManager.RegisterZone(zone);
+                if (zone.cells.Contains(to)) continue;
+                // Vanilla's AddCell refuses a cell holding a thing that does not allow zone overlap and
+                // logs an error. Ask the same question first so a hull part that is somehow already
+                // standing there costs a skipped cell instead of an error in the player's log.
+                bool blocked = false;
+                foreach (Thing thing in map.thingGrid.ThingsListAt(to))
+                    if (!thing.def.CanOverlapZones) { blocked = true; break; }
+                if (blocked) continue;
+                zone.AddCell(to);
+            }
+
+            // 5b. The old cells go. Without this the layout exists twice - once where the hull used to be
+            //     and once where it now is - which is a stockpile the player never drew and cannot
+            //     explain. Only cells that did not also land on the new footprint are removed: a ship
+            //     rotated in place keeps the cells it still covers.
+            var kept = new HashSet<IntVec3>();
+            foreach (Load load in plan) kept.Add(load.To);
+            foreach (Load load in plan)
+            {
+                IntVec3 from = load.From;
+                if (kept.Contains(from)) continue;
+                if (map.zoneManager.ZoneAt(from) is not { } oldZone) continue;
+                if (!oldZone.cells.Contains(from)) continue;
+                oldZone.RemoveCell(from);
+            }
+
+            // 6. Everything back in, on the far side, at its own origin and facing the same way.
             //
             //    Rotation has to turn with the hull. A wall attachment (a lamp, a vent) finds the wall it
             //    belongs to by looking one cell along its own Rotation; keep the old Rotation and it looks
@@ -251,14 +315,6 @@ internal static class Sos2ShipRelocation
                 Thing thing = entry.Key;
                 if (thing.Destroyed || thing.Spawned) continue;
                 GenSpawn.Spawn(thing, entry.Value, map, Turn(thing.Rotation, rotNum));
-            }
-
-            // 6. Zones back onto the cells their contents now occupy.
-            foreach ((Zone zone, IntVec3 to) in zonePlan)
-            {
-                // A deregistered zone (its last cell removed) is no longer the player's layout.
-                if (zone == null || !map.zoneManager.AllZones.Contains(zone)) continue;
-                zone.AddCell(to);
             }
 
             // 7. The caches that cached the old positions. Heat and power nets are rebuilt lazily from
