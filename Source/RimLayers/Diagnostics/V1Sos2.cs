@@ -2145,15 +2145,53 @@ internal static partial class V1Integration
 
         // Anchor the rotation on the hull's own footprint so the move is in place: rotating around
         // anything else turns the same bug into a reposition and hides it.
-        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue;
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+        int minLayer = int.MaxValue, maxLayer = int.MinValue;
         foreach (IntVec3 cell in cellsBefore)
             if (owner.TryDecode(cell, out LayerCell logical))
             {
                 minX = System.Math.Min(minX, logical.X);
                 minZ = System.Math.Min(minZ, logical.Z);
                 maxX = System.Math.Max(maxX, logical.X);
+                maxZ = System.Math.Max(maxZ, logical.Z);
+                minLayer = System.Math.Min(minLayer, logical.LayerId);
+                maxLayer = System.Math.Max(maxLayer, logical.LayerId);
             }
         int hullWidth = maxX - minX + 1;
+        // A flip reuses the hull's own bounding box, so every destination cell lies inside it. The fixture
+        // spawns this hull onto whatever the map generator left there, and a rotation landing on a lump of
+        // ore used to be refused - which made this step pass or fail depending on the seed. Clear the
+        // scenery out of the box first so the move is measured, not the map; the one lump put back below
+        // is there on purpose.
+        var hullCells = new HashSet<IntVec3>(cellsBefore);
+        for (int layer = minLayer; layer <= maxLayer; layer++)
+            for (int x = minX; x <= maxX; x++)
+                for (int z = minZ; z <= maxZ; z++)
+                {
+                    IntVec3 cell = owner.ToStorage(new LayerCell(layer, x, z));
+                    if (hullCells.Contains(cell)) continue;
+                    foreach (Thing scenery in cell.GetThingList(hullMap).ToList())
+                        if (scenery is Building && scenery.def.destroyable) scenery.Destroy(DestroyMode.Vanish);
+                }
+        // One lump of ore, put deliberately in the hull's way: a rotation has to crush map scenery the way
+        // Vanilla's own ship move does, not refuse because the destination is not empty. It goes on a cell
+        // that this flip actually lands a hull cell on and that the hull does not already cover, picked by
+        // running the same mirror the move uses - a lump dropped anywhere in the box would prove nothing.
+        Building? oreInTheWay = null;
+        IntVec3 oreCell = IntVec3.Invalid;
+        if (DefDatabase<ThingDef>.GetNamedSilentFail("MineableSteel") is { } oreDef)
+            foreach (IntVec3 cell in cellsBefore)
+            {
+                if (!owner.TryDecode(cell, out LayerCell logical)) continue;
+                (int rx, int rz) = (hullWidth - (logical.X - minX) - 1, logical.Z - minZ);
+                IntVec3 landed = owner.ToStorage(new LayerCell(logical.LayerId, minX + rx, minZ + rz));
+                if (hullCells.Contains(landed) || !landed.InBounds(hullMap)) continue;
+                oreInTheWay = ThingMaker.MakeThing(oreDef) as Building;
+                if (oreInTheWay == null) break;
+                GenSpawn.Spawn(oreInTheWay, landed, hullMap);
+                oreCell = landed;
+                break;
+            }
         // Deck foundations are map terrain, not things: a move that re-lays them at the destination but
         // never clears them at the source leaves the ship's floor exactly where it was, which is what a
         // player sees as a bare patch of deck floating in space with no hull on it.
@@ -2211,8 +2249,22 @@ internal static partial class V1Integration
             if (!owner.TryDecode(building.Position, out LayerCell at)) continue;
             bigParts[building] = (at.LayerId, building.OccupiedRect());
         }
+        // The fixture's hull has never been on a net, so nothing in it has a PowerOn to preserve. Power
+        // it the way a player's ship is powered before the move, or the assertion measures a state the
+        // player never has.
+        foreach (IntVec3 cell in cellsBefore)
+            foreach (Thing thing in hullMap.thingGrid.ThingsListAt(cell))
+                if (thing is Building building && cell == building.Position)
+                    PowerUp(building);
+        hullMap.powerNetManager.UpdatePowerNetsAndConnections_First();
+
         AcceptanceReport report = Sos2ShipRelocation.Relocate(core, 2, anchor);
         Check("sos2-relocation-is-accepted", report.Accepted, $"{report.Reason}, anchor={anchor}");
+        Check("sos2-relocation-crushes-map-scenery-in-the-way",
+            oreInTheWay == null || oreInTheWay.Destroyed,
+            oreInTheWay == null
+                ? "no ore could be placed in the hull's way"
+                : $"ore at {oreInTheWay.PositionHeld} destroyed={oreInTheWay.Destroyed}");
         if (!report.Accepted) return;
 
         // The index can change when SOS2 repartitions a ship, so ask where the core actually is now.
@@ -2404,6 +2456,49 @@ internal static partial class V1Integration
             if (room.OpenRoofCount > 0) { openCells++; if (openSample.Count < 4) openSample.Add($"{cell}:open={room.OpenRoofCount}"); }
             else sealedCells++;
         }
+        // Every interior the hull had before the move still has to be an interior afterwards. A rebuilt
+        // room starts at the map's outdoor temperature - on a space map that is -100 C - so a hull that
+        // moves and keeps its rooms still freezes its crew unless the climate is carried across.
+        int frozen = 0;
+        var frozenSample = new List<string>();
+        foreach (IntVec3 cell in cellsAfter)
+        {
+            if (!owner.TryDecode(cell, out _)) continue;
+            if (hullMap.roofGrid.RoofAt(cell) == null) continue;
+            Room? room = cell.GetRoom(hullMap);
+            if (room == null || room.UsesOutdoorTemperature) continue;
+            if (room.Temperature > -40f) continue;
+            frozen++;
+            if (frozenSample.Count < 4) frozenSample.Add($"{cell}:{room.Temperature:0.0}C");
+        }
+        Check("sos2-relocation-does-not-freeze-the-interior", frozen == 0,
+            $"rooms rebuilt at the map's outdoor temperature={frozen}, sample=[{string.Join(", ", frozenSample)}]");
+
+        // Power: a life-support unit whose flick switch is on must still be on. CompPower.PostDeSpawn cuts
+        // every net and the trader's PowerOn does not survive a respawn, so a hull that comes back with
+        // its life support switched off suffocates the crew between this tick and the next repower.
+        int darkParts = 0;
+        var darkSample = new List<string>();
+        foreach (IntVec3 cell in cellsAfter)
+        {
+            foreach (Thing thing in hullMap.thingGrid.ThingsListAt(cell))
+            {
+                if (thing is not Building building || building.Destroyed) continue;
+                if (building.TryGetComp<CompPowerTrader>() is not { PowerOn: false } power) continue;
+                if (power.PowerNet == null || !FlickUtility.WantsToBeOn(building)) continue;
+                if (building.IsBrokenDown()) continue;
+                if (cell != building.Position) continue;
+                darkParts++;
+                if (darkSample.Count < 8)
+                    darkSample.Add($"{building.def.defName}@{cell} "
+                        + $"net={(power.PowerNet == null ? "null" : "ok")} "
+                        + $"flick={FlickUtility.WantsToBeOn(building)} broken={building.IsBrokenDown()}");
+            }
+        }
+        Check("sos2-relocation-leaves-ship-power-on", darkParts == 0,
+            $"powered parts left switched off={darkParts}, "
+            + $"sample=[{string.Join(", ", darkSample)}]");
+
         Check("sos2-relocation-leaves-no-moved-room-exposed",
             openCells == 0,
             $"roofed berths with an open roof={openCells}, sealed={sealedCells}, "

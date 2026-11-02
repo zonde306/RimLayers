@@ -131,6 +131,13 @@ internal static class Sos2ShipRelocation
         // already occupies: those are vacated first when the write starts.
         var occupied = new HashSet<IntVec3>();
         foreach (Load load in plan) occupied.Add(load.From);
+        // Natural ore the hull is going to land on. Unlike a player's building this is map scenery, and a
+        // rotation that covers a rectangle including cells the hull never covered will land on it
+        // depending on which corner of the map the ship happens to be in. Refusing would make a rotation
+        // work on one map and fail on another for no reason the player can see, so the ore is crushed the
+        // way Vanilla's own ship move clears its destination. Solid, unmined rock still refuses: a hull
+        // cannot rotate through a mountain.
+        var ore = new List<Building>();
         foreach (Load load in plan)
         {
             if (!load.To.InBounds(map)) return "Part of the ship would leave the map.";
@@ -138,6 +145,12 @@ internal static class Sos2ShipRelocation
             foreach (Thing blocker in load.To.GetThingList(map))
             {
                 if (blocker.Destroyed) continue;
+                if (blocker is Building { def.building.isNaturalRock: true } rock)
+                {
+                    if (rock.def.building.isResourceRock) ore.Add(rock);
+                    else return $"Solid rock at {load.To}.";
+                    continue;
+                }
                 if (blocker is Building) return $"Blocked by {blocker.def.label} at {load.To}.";
                 if (blocker is Pawn pawn && pawn.Faction != null && pawn.Faction != Faction.OfPlayer
                     && pawn.HostileTo(Faction.OfPlayer)) return $"Blocked by {pawn.LabelShort} at {load.To}.";
@@ -208,14 +221,40 @@ internal static class Sos2ShipRelocation
                 origin[thing] = owner.ToStorage(new LayerCell(layer, found.x, found.z));
             }
 
-        // Zones and stockpile settings are map bookkeeping, not things, so they do not travel with a
-        // despawned building: a stockpile covering ten hull cells stays where those cells used to be and
-        // the hull arrives with bare floor. Recording which cells carried which zone and re-applying it
-        // on the destination cells is what keeps a player's storage layout attached to the ship.
+        // Temperature and vacuum live on Room objects, and a Room is derived state: it is rebuilt from
+        // regions, which despawning the whole hull destroys. The hull therefore arrives with whatever the
+        // new map's ambient is - on a space map that is -100 C, which is a frozen crew rather than a
+        // moved one. Same story for power: CompPower.PostDeSpawn cuts every net, and the trader's
+        // PowerOn flag does not survive a respawn, so a life-support unit comes back switched off.
         //
-        // Captured before the despawn loop, because despawning a building runs
-        // ZoneManager.Notify_NoZoneOverlapThingSpawned, which removes the building's cells from whatever
-        // zone covered them.
+        // Both are captured here, before anything is despawned. Rooms are keyed by the storage cell so
+        // the destination can be asked which room it inherited.
+        // regions, which despawning the whole hull destroys. The hull therefore arrives with whatever the
+        // new map's ambient is - on a space map that is -100 C, which is a frozen crew rather than a
+        // moved one. Same story for power: CompPower.PostDeSpawn cuts every net, and the trader's
+        // PowerOn flag does not survive a respawn, so a life-support unit comes back switched off.
+        //
+        // Both are captured here, before anything is despawned. Rooms are keyed by the storage cell so
+        // the destination can be asked which room it inherited.
+        var roomPlan = new List<(IntVec3 To, float Temperature, float Vacuum)>();
+        var seenRooms = new HashSet<Room>();
+        foreach (Load load in plan)
+        {
+            Room? room = load.From.GetRoom(map);
+            if (room == null || room.UsesOutdoorTemperature || !seenRooms.Add(room)) continue;
+            // One destination cell per room is enough: the whole room is being rebuilt on the far side.
+            roomPlan.Add((load.To, room.Temperature, room.Vacuum));
+        }
+        // Parts whose power state has to survive the respawn. CompPower.PostDeSpawn cuts every net and
+        // CompPowerTrader.ResetPowerVars clears powerOnInt, so nothing comes back on by itself.
+        var powered = new HashSet<Thing>();
+        foreach (Load load in plan)
+            foreach (Thing thing in load.Things)
+            {
+                if (thing.Destroyed) continue;
+                if (thing.TryGetComp<CompPowerTrader>() != null) powered.Add(thing);
+            }
+
         var zonePlan = new List<(Zone Zone, IntVec3 To)>();
         foreach (Load load in plan)
             if (map.zoneManager.ZoneAt(load.From) is { } zone)
@@ -232,6 +271,14 @@ internal static class Sos2ShipRelocation
         Sos2Compatibility.MoveFlag = true;
         try
         {
+            // 0. Map scenery the hull is landing on. Destroying it here rather than before the refusal
+            //    check above is deliberate: nothing is written until the whole move is known to be
+            //    possible, so a refused move never leaves a crater behind. Vanished rather than
+            //    deconstructed: this ore is being crushed by a hull, and dropping its yield would carpet
+            //    the deck the ship has just landed on. SOS2's own move does the same.
+            foreach (Building rock in ore)
+                if (!rock.Destroyed) rock.Destroy();
+
             // 1. Everything out. Despawning the whole hull first means no cell is ever written twice,
             //    which is what made a rotated non-square ship collide with itself.
             //
@@ -387,9 +434,49 @@ internal static class Sos2ShipRelocation
                 GenSpawn.Spawn(thing, entry.Value, map, Turn(thing.Rotation, rotNum));
             }
 
-            // 7. The caches that cached the old positions. Heat and power nets are rebuilt lazily from
-            //    their own grids, which key on cells, so both have to be told the cells moved.
+            // 7. Power back to the state the player left it in.
+            //
+            //    CompPower.PostDeSpawn disconnects every net and CompPowerTrader.ResetPowerVars clears
+            //    powerOnInt, so a respawned life-support unit comes back off even though its flick switch
+            //    says on. The caches are invalidated first so the nets are rebuilt from the new cells;
+            //    only then can PowerOn be set without PowerNet being the old, emptied one.
             Sos2Compatibility.InvalidateShipCaches(map);
+            map.powerNetManager.UpdatePowerNetsAndConnections_First();
+            // PowerNet is deliberately NOT required here. Rebuilding nets is deferred - the call above
+            // only queues the work - so a part's net is still null at this point, and waiting for one
+            // would leave every engine, reactor and life-support unit switched off until SOS2's own
+            // repower pass happened to run. An unconnected trader with its flick switch on is also a
+            // normal vanilla state: the part is simply waiting for a source.
+            // Everything in the hull, not only the parts that were on before. A part with its flick switch
+            // on and a live net is a part the player expects running; switching on only what was on before
+            // left the engines and consoles dark, because SOS2's own power bookkeeping had already turned
+            // them off at some earlier point and the player had never noticed.
+            foreach (Load load in plan)
+                foreach (Thing thing in load.Things)
+                {
+                    if (!powered.Contains(thing)) continue;
+                    if (thing is not Building building || building.Destroyed || !building.Spawned) continue;
+                    if (building.TryGetComp<CompPowerTrader>() is not { } power) continue;
+                    if (power.PowerOn) continue;
+                    if (!FlickUtility.WantsToBeOn(building) || building.IsBrokenDown()) continue;
+                    power.PowerOn = true;
+                }
+
+            // 8. The interior climate.
+            //
+            //    Written after the respawn, because room layouts are rebuilt lazily by the region
+            //    updater: asking for a room before the hull is back finds nothing, and writing a
+            //    temperature to a room the updater is about to discard loses it. The updater is told to
+            //    do its work here so the rooms the destination cells belong to actually exist.
+            map.regionAndRoomUpdater.TryRebuildDirtyRegionsAndRooms();
+            foreach ((IntVec3 to, float temperature, float vacuum) in roomPlan)
+            {
+                if (!to.InBounds(map)) continue;
+                Room? room = to.GetRoom(map);
+                if (room == null || room.UsesOutdoorTemperature) continue;
+                room.Temperature = temperature;
+                if (map.Biome.inVacuum) room.Vacuum = vacuum;
+            }
         }
         finally
         {
