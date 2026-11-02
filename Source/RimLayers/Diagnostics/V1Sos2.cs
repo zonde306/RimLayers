@@ -2145,14 +2145,27 @@ internal static partial class V1Integration
 
         // Anchor the rotation on the hull's own footprint so the move is in place: rotating around
         // anything else turns the same bug into a reposition and hides it.
-        int minX = int.MaxValue, minZ = int.MaxValue;
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue;
         foreach (IntVec3 cell in cellsBefore)
             if (owner.TryDecode(cell, out LayerCell logical))
             {
                 minX = System.Math.Min(minX, logical.X);
                 minZ = System.Math.Min(minZ, logical.Z);
+                maxX = System.Math.Max(maxX, logical.X);
             }
+        int hullWidth = maxX - minX + 1;
         var anchor = new IntVec3(minX, 0, minZ);
+        // Where every multi-cell part stood, and which rectangle it covered, so the same rotation can be
+        // applied to that rectangle afterwards and compared with where the part actually ended up.
+        var bigParts = new Dictionary<Thing, (int Layer, CellRect Rect)>();
+        foreach (Thing thing in hullMap.listerThings.AllThings)
+        {
+            if (thing is not Building building || building.Destroyed) continue;
+            if (building.def.Size.Area <= 1) continue;
+            if (Sos2Compatibility.ShipIndexAt(hullMap, building.Position) != index) continue;
+            if (!owner.TryDecode(building.Position, out LayerCell at)) continue;
+            bigParts[building] = (at.LayerId, building.OccupiedRect());
+        }
         AcceptanceReport report = Sos2ShipRelocation.Relocate(core, 2, anchor);
         Check("sos2-relocation-is-accepted", report.Accepted, $"{report.Reason}, anchor={anchor}");
         if (!report.Accepted) return;
@@ -2193,6 +2206,62 @@ internal static partial class V1Integration
         }
         Check("sos2-relocation-leaves-no-hull-part-behind", stranded == 0,
             $"buildings still standing on a cell the hull vacated={stranded}");
+
+        // A despawned hull part tears the top layer off every cell under it and drops that terrain's
+        // resource cost as loose items. Correct for a hull being dismantled, catastrophic for one being
+        // rotated in place: the player finds steel and plasteel scattered over the old footprint.
+        int litter = 0;
+        var litterSample = new List<string>();
+        foreach (Thing thing in hullMap.listerThings.AllThings)
+        {
+            if (thing.Destroyed || thing.Spawned == false) continue;
+            if (cellsBefore.Contains(thing.Position) == false) continue;
+            if (cellsAfter.Contains(thing.Position)) continue;
+            if (thing is not ThingWithComps resource) continue;
+            if (resource.def.category != ThingCategory.Item) continue;
+            litter += resource.stackCount;
+            if (litterSample.Count < 5) litterSample.Add($"{resource.def.defName}x{resource.stackCount}@{resource.Position}");
+        }
+        Check("sos2-relocation-drops-no-resources", litter == 0,
+            $"items left on the vacated footprint={litter}, sample=[{string.Join(", ", litterSample)}]");
+
+        // A thing's Position is the CENTRE of its footprint (GenAdj.OccupiedRect subtracts (size-1)/2),
+        // so the rotation a moved part must satisfy is the same one a single cell satisfies: its own
+        // position, rotated. Comparing against a rect corner is off by half the building's size and
+        // reports a correct move as broken - which is what the previous version of this check did.
+        int misplaced = 0;
+        var misplacedSample = new List<string>();
+        foreach (KeyValuePair<Thing, (int Layer, CellRect Rect)> entry in bigParts)
+        {
+            Thing thing = entry.Key;
+            if (thing.Destroyed || !thing.Spawned) continue;
+            if (!owner.TryDecode(thing.Position, out LayerCell now)) continue;
+            // The flip maps (x,z) -> (width-1-x, z) about the hull's own local origin. The rect's cells are
+            // STORAGE coordinates, so they have to be decoded first: on an upper deck a raw `z - minZ` is
+            // a band offset, not a position inside the hull. Min corner of the rotated rect plus half a
+            // footprint is the same rule the relocation itself applies, for both size parities.
+            int minOutX = int.MaxValue, minOutZ = int.MaxValue;
+            foreach (IntVec3 c in entry.Value.Rect)
+            {
+                if (!owner.TryDecode(c, out LayerCell cell)) continue;
+                int rx = hullWidth - 1 - (cell.X - minX);
+                minOutX = System.Math.Min(minOutX, rx);
+                minOutZ = System.Math.Min(minOutZ, cell.Z - minZ);
+            }
+            if (minOutX == int.MaxValue) continue;
+            var expected = new IntVec3(
+                anchor.x + minOutX + (thing.def.Size.x - 1) / 2,
+                0,
+                anchor.z + minOutZ + (thing.def.Size.z - 1) / 2);
+            var actual = new IntVec3(now.X, 0, now.Z);
+            if (actual == expected) continue;
+            misplaced++;
+            if (misplacedSample.Count < 5)
+                misplacedSample.Add($"{thing.def.defName} at {actual}, expected {expected}, size={thing.def.Size}");
+        }
+        Check("sos2-relocation-multicell-parts-keep-their-centre", misplaced == 0,
+            $"multi-cell parts whose centre is not the rotated centre={misplaced}, "
+            + $"sample=[{string.Join(", ", misplacedSample)}]");
     }
 
     private static HashSet<IntVec3> ShipCellsOf(Map target, int index)

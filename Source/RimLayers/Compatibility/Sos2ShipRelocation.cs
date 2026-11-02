@@ -132,11 +132,16 @@ internal static class Sos2ShipRelocation
             }
         }
 
-        // A multi-cell building occupies several hull cells; the plan carries it once per cell it stands
-        // on, but it can only be respawned once, and only at its ORIGIN. Spawning it at whichever of its
-        // cells happened to come first shifts the whole building by its internal offset - a 5x5 reactor
-        // lands up to four cells away from where it belongs, which is both visibly wrong and how a
-        // relocated hull ends up with two transmitters on one cell.
+        // Where each thing is respawned.
+        //
+        // `Thing.Position` is the CENTRE of the footprint for odd sizes but the MIN CORNER for even ones
+        // (GenAdj.OccupiedRect subtracts (size-1)/2, which is 0 when size is 2). Rotating that one cell is
+        // therefore right for a 3x3 and off by one for a 2x2. What is always right: rotate every cell the
+        // thing occupies, take the min corner of the result, and put the position half a footprint in from
+        // it. Both parities come out of the same arithmetic.
+        //
+        // This matters beyond tidiness: a 2x2 hardpoint one cell out is a hardpoint standing on the cell
+        // the player expected to be empty, so parts visibly overlap after a flip.
         var origin = new Dictionary<Thing, IntVec3>();
         foreach (Load load in plan)
             foreach (Thing thing in load.Things)
@@ -147,9 +152,40 @@ internal static class Sos2ShipRelocation
                     origin[thing] = load.To;
                     continue;
                 }
-                (int ox, int oz) = Rotate(at.X - minX, at.Z - minZ, width, depth, rotNum);
-                origin[thing] = owner.ToStorage(new LayerCell(at.LayerId, anchor.x + ox, anchor.z + oz));
+                int minOutX = int.MaxValue, minOutZ = int.MaxValue;
+                CellRect rect = thing.OccupiedRect();
+                foreach (IntVec3 c in rect)
+                {
+                    if (!owner.TryDecode(c, out LayerCell cell)) continue;
+                    if (cell.LayerId != at.LayerId) continue;
+                    (int rx, int rz) = Rotate(cell.X - minX, cell.Z - minZ, width, depth, rotNum);
+                    minOutX = System.Math.Min(minOutX, rx);
+                    minOutZ = System.Math.Min(minOutZ, rz);
+                }
+                if (minOutX == int.MaxValue || minOutZ == int.MaxValue)
+                {
+                    // Nothing of this thing could be decoded; the cell it stood on is the honest fallback.
+                    origin[thing] = load.To;
+                    continue;
+                }
+                int shiftX = (thing.def.Size.x - 1) / 2;
+                int shiftZ = (thing.def.Size.z - 1) / 2;
+                origin[thing] = owner.ToStorage(new LayerCell(
+                    at.LayerId, anchor.x + minOutX + shiftX, anchor.z + minOutZ + shiftZ));
             }
+
+        // Zones and stockpile settings are map bookkeeping, not things, so they do not travel with a
+        // despawned building: a stockpile covering ten hull cells stays where those cells used to be and
+        // the hull arrives with bare floor. Recording which cells carried which zone and re-applying it
+        // on the destination cells is what keeps a player's storage layout attached to the ship.
+        //
+        // Captured before the despawn loop, because despawning a building runs
+        // ZoneManager.Notify_NoZoneOverlapThingSpawned, which removes the building's cells from whatever
+        // zone covered them.
+        var zonePlan = new List<(Zone Zone, IntVec3 To)>();
+        foreach (Load load in plan)
+            if (map.zoneManager.ZoneAt(load.From) is { } zone)
+                zonePlan.Add((zone, load.To));
 
         // From here on the move happens. Everything that can throw is scoped so a failure leaves the
         // tables describing the ship it actually moved, not the one it was going to.
@@ -164,9 +200,17 @@ internal static class Sos2ShipRelocation
         {
             // 1. Everything out. Despawning the whole hull first means no cell is ever written twice,
             //    which is what made a rotated non-square ship collide with itself.
-            foreach (Load load in plan)
-                foreach (Thing thing in load.Things)
-                    if (thing.Spawned) thing.DeSpawn();
+            //
+            //    The despawn runs with terrain effects suppressed: CompShipCachePart.PostDeSpawn tears
+            //    the top layer off every cell under a departing part and drops that terrain's resource
+            //    cost as loose items - which is right for a hull being torn apart and wrong for one being
+            //    rotated in place, where it leaves a pile of steel and plasteel on the old footprint.
+            using (Sos2TerrainPatches.SuppressedEffects())
+            {
+                foreach (Load load in plan)
+                    foreach (Thing thing in load.Things)
+                        if (thing.Spawned) thing.DeSpawn();
+            }
 
             // 2. The table and the footprint, rewritten to the destination.
             foreach (Load load in plan)
@@ -209,7 +253,15 @@ internal static class Sos2ShipRelocation
                 GenSpawn.Spawn(thing, entry.Value, map, Turn(thing.Rotation, rotNum));
             }
 
-            // 6. The caches that cached the old positions. Heat and power nets are rebuilt lazily from
+            // 6. Zones back onto the cells their contents now occupy.
+            foreach ((Zone zone, IntVec3 to) in zonePlan)
+            {
+                // A deregistered zone (its last cell removed) is no longer the player's layout.
+                if (zone == null || !map.zoneManager.AllZones.Contains(zone)) continue;
+                zone.AddCell(to);
+            }
+
+            // 7. The caches that cached the old positions. Heat and power nets are rebuilt lazily from
             //    their own grids, which key on cells, so both have to be told the cells moved.
             Sos2Compatibility.InvalidateShipCaches(map);
         }
