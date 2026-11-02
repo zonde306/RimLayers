@@ -214,6 +214,14 @@ internal static class Sos2SketchFloorPatch
         RestoreDoors();
         Restore(__instance);
         banded = false;
+        // The sketch throws from inside SOS2 and every GUI mod on the stack swallows the exception
+        // before the player sees it, so the only place the real fault is still visible is here. Without
+        // this line a dead ship command reads as "the blueprint never appeared" with no cause anywhere
+        // in the log.
+        if (__exception != null)
+            Log.Error("[RimLayers] SOS2 CreateShipSketch threw before the ghost existed: "
+                      + __exception.GetType().Name + ": " + __exception.Message
+                      + System.Environment.NewLine + __exception);
         return __exception;
     }
 
