@@ -191,6 +191,7 @@ internal static class Sos2SketchFloorPatch
 
     private static void Postfix(Map targetMap, byte rotb, object __instance)
     {
+        Log.Message($"[RimLayers postfix] reached rotb={rotb} map={targetMap}");
         // The area is restored after the ghost is anchored, not before: the anchor converts the deck's
         // local centre into storage coordinates with BandedSize, and a swapped footprint or a cleared
         // flag at that point silently parks the ghost in the middle band of the map instead.

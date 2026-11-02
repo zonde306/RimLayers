@@ -56,6 +56,11 @@ public static class LayerView
         // Keep that selection and the existing tool instance (including rotation/material).
         var installSource = Find.DesignatorManager.SelectedDesignator is Designator_Install
             ? Find.Selector.SingleSelectedThing : null;
+        // A minified thing is being carried, not looked at. SOS2 selects its ship-move ghost and opens
+        // the install designator on it in the same call, so a selection dropped here leaves that
+        // designator reading null and throwing before the player ever sees the ghost.
+        if (installSource == null && Find.Selector.SingleSelectedThing is MinifiedThing)
+            installSource = Find.Selector.SingleSelectedThing;
         if(!Find.Targeter.IsTargeting)
             foreach(object selected in Find.Selector.SelectedObjectsListForReading.ToList())
                 if(selected is not Pawn && !ReferenceEquals(selected, installSource) &&
@@ -385,6 +390,12 @@ internal static class SelectionLayerPatch
 {
     static void Postfix(object obj)
     {
+        // A minified thing is not scenery, it is something the player is holding. That is doubly true
+        // for SOS2's ship-move ghost, which SOS2 selects and then immediately hands to the install
+        // designator: moving the view for it would deselect it on the way, because a floor switch drops
+        // every non-Pawn selection. The designator then reads an empty selection and dies before the
+        // ghost is ever drawn, which is exactly "the blueprint never appears".
+        if (obj is MinifiedThing) return;
         if (obj is Thing thing && thing.MapHeld == Find.CurrentMap)
         {
             var owner = LayerView.Current;
