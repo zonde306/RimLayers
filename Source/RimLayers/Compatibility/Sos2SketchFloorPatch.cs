@@ -45,6 +45,20 @@ internal static class Sos2SketchFloorPatch
     /// <summary>The set that was briefly swapped for a flattened copy, restored by postfix/finaliser.</summary>
     [System.ThreadStatic] private static object? savedArea;
 
+    /// <summary>
+    /// True while a ghost is being built, from the moment it is spawned until it has been selected.
+    /// </summary>
+    /// <remarks>
+    /// <c>MinifiedThingShipMove.Tick</c> destroys itself whenever the player has not selected it:
+    /// <c>if (Find.Selector.SelectedObjects.Count &gt; 1 || !Contains(this)) { ... Destroy(Vanish); }</c>.
+    /// SOS2 spawns the ghost, switches the current map, and only then selects it - so any tick that
+    /// runs inside that window kills the ghost before it can ever be seen. The kill is quiet and
+    /// leaves a spawned, undestroyed minified thing whose inner thing is already gone, which is what
+    /// makes the install designator that opens next read a null PlacingDef. A synchronous call never
+    /// sees this; a click from the GUI always can.
+    /// </remarks>
+    [System.ThreadStatic] internal static bool BuildingGhost;
+
     private static MethodBase? TargetMethod()
     {
         System.Type? cache = AccessTools.TypeByName("SaveOurShip2.SpaceShipCache");
@@ -72,7 +86,15 @@ internal static class Sos2SketchFloorPatch
         banded = true;
         bandedCall = true;
         deckHeight = -1;
+        BuildingGhost = true;
         if (!Sos2CellGraph.BandOf(targetMap, out LayerMapComponent owner, out int stride, out int height, out _)) return;
+        // The ghost is spawned onto targetMap while Find.CurrentMap may still point somewhere else, and
+        // SOS2 only switches the view after the spawn. Anything that runs between the two and treats a
+        // map the player is not looking at as inactive can kill the fresh ghost, which then makes the
+        // install designator read an empty selection. Recorded rather than corrected here: whether the
+        // two maps differ at this moment is the question, and the answer decides the fix.
+        Log.Message($"[RimLayers sketch enter] targetMap={targetMap} currentMap={Find.CurrentMap} " +
+                    $"same={Find.CurrentMap == targetMap} viewed=L{owner.ViewedLayer} layers={owner.Layout!.LayerCount}");
         if (owner.Layout!.Width != height) return;
         deckHeight = height;
         if (ShipArea.GetValue(__instance) is not HashSet<IntVec3> { Count: > 0 } area) return;
@@ -182,6 +204,7 @@ internal static class Sos2SketchFloorPatch
             banded = false;
             bandedCall = false;
             deckHeight = -1;
+            BuildingGhost = false;
         }
     }
 
@@ -203,12 +226,37 @@ internal static class Sos2SketchFloorPatch
         banded = false;
         bandedCall = false;
         deckHeight = -1;
+        BuildingGhost = false;
         // The sketch throws from inside SOS2 and every GUI mod on the stack swallows the exception
         // before the player sees it, so the only place the real fault is still visible is here. Without
         // this line a dead ship command reads as "the blueprint never appeared" with no cause anywhere
         // in the log.
-        if (__exception != null)
-            Log.Error("[RimLayers] SOS2 CreateShipSketch threw before the ghost existed: "
+        // The ghost does not exist yet when the install designator runs, and the designator reads the
+        // selection it was just given. Anything the chain touches is reported before the exception so
+        // the next failure names its own cause instead of a Harmony-flattened get_PlacingDef frame.
+        if (Sos2Compatibility.Active && __exception != null)
+        {
+            Thing? selected = Find.Selector.SingleSelectedThing;
+            var found = new List<string>();
+            if (Find.CurrentMap != null)
+                foreach (Thing thing in Find.CurrentMap.listerThings.AllThings)
+                    if (thing is MinifiedThing)
+                        found.Add(thing.GetType().Name + "@" + thing.Position + (thing.Destroyed ? ":dead" : ":live")
+                                  + " inner=" + (InnerOf(thing) == null ? "null" : "ok"));
+            Log.Error("[RimLayers ghost state] selected=" + (selected == null ? "none"
+                          : selected.GetType().Name
+                            // Every level of SOS2's chain is pre-evaluated: one of them is null and the
+                            // vanilla designator dereferences it without a second check.
+                            + " def=" + (selected.def == null ? "null" : selected.def.defName)
+                            + " attrDef=" + (AccessTools.Property(typeof(Thing), "def")?.GetValue(selected) == null ? "null" : "ok")
+                            + " inner=" + (InnerOf(selected) == null ? "null" : "ok")
+                            + " destroyed=" + selected.Destroyed)
+                      + " minifiedOnMap=[" + string.Join(", ", found) + "]"
+                      + " designator=" + Find.DesignatorManager.SelectedDesignator
+                      + " targeter=" + Find.Targeter.IsTargeting);
+        }
+        if (__exception == null) return __exception;
+        Log.Error("[RimLayers] SOS2 CreateShipSketch threw before the ghost existed: "
                       + __exception.GetType().Name + ": " + __exception.Message
                       + System.Environment.NewLine + __exception);
         return __exception;
@@ -240,9 +288,11 @@ internal static class Sos2SketchFloorPatch
         // player is looking at, because that is the deck the ghost's own offsets are measured from.
         //
         // What it must never do is move something that is not this ghost: the ship command is also
-        // reachable from a console whose sketch failed partway, and a selection left over from a
-        // previous attempt still looks like a minified thing. So the handle is verified by the inner
-        // thing's type before its position is touched.
+        // reachable from a console whose sketch failed partway, and a leftover from a previous attempt
+        // lays in the lister looking exactly like a ghost. TryGhost is what keeps those out - it
+        // requires a live minified ship-move with a real inner thing, so a half-built leftover is
+        // neither moved nor mistaken for the product of this call.
+        //
         // The ghost is still at Map.Center when this runs, and Map.Center on a layered map is the
         // middle of the storage height, which is several decks above anything the player can see. The
         // selector cannot be trusted to hand it over: CreateShipSketch selects it and then immediately
@@ -260,7 +310,14 @@ internal static class Sos2SketchFloorPatch
         // player is looking at instead of an elevation's worth of cells below it.
         IntVec3 centre = owner.ToStorage(new LayerCell(deck, layout.Width / 2, layout.Height / 2));
         if (!centre.InBounds(targetMap) || minified.Position == centre) return false;
+        IntVec3 from = minified.Position;
         minified.Position = centre;
+        // The anchor is the only code that moves a ghost, so this line answers "who put it there" the
+        // moment the position stops matching Map.Center.
+        Log.Message($"[RimLayers anchor] moved {minified.GetType().Name} {from} -> {centre} " +
+                    $"viewed=L{deck} layers={layout.LayerCount} inner=" +
+                    (InnerOf(minified) == null ? "null" : "ok") +
+                    " destroyed=" + minified.Destroyed);
         return true;
     }
 
@@ -275,11 +332,31 @@ internal static class Sos2SketchFloorPatch
         {
             if (thing is not MinifiedThing) continue;
             if (!thing.GetType().Name.Contains("MinifiedThingShipMove")) continue;
+            // A ghost whose spawn was interrupted is not a ghost. Two states prove that on its own:
+            // Destroyed, and an empty inner thing. The second one is the dangerous one, because the
+            // object itself looks perfectly healthy - it is spawned, alive and positioned - while the
+            // vanilla install designator reads its inner thing for PlacingDef and dereferences the
+            // null that comes back. Moving such a leftover is how a later click gets poisoned: the
+            // designator dies before the ghost is ever placed, and the next attempt finds the same
+            // corpse still sitting there.
+            if (thing.Destroyed) continue;
+            if (InnerOf(thing) == null) continue;
             ghost = thing;
             return true;
         }
         return false;
     }
+
+    /// <summary>
+    /// The thing a minified thing holds, or null when it holds nothing.
+    /// </summary>
+    /// <remarks>
+    /// <c>InnerThing</c> is a property on the base type, not a field, so it has to be read through the
+    /// declared type. Looking for the field on the runtime type finds nothing and yields null for
+    /// every ghost, which silently disables every caller instead of failing loudly.
+    /// </remarks>
+    private static Thing? InnerOf(Thing minified) =>
+        minified is MinifiedThing holder ? holder.InnerThing : null;
 
     /// <summary>
     /// Whether <paramref name="map"/> carries the ship ghost, asked by type so the answer does not
@@ -448,4 +525,29 @@ internal static class Sos2LowestCornerPatch
             : new IntVec3(height - minX, 0, height - minZ);
         return false;
     }
+}
+
+/// <summary>
+/// Stops a ship ghost from destroying itself while SOS2 is still putting it in place.
+/// </summary>
+/// <remarks>
+/// <c>MinifiedThingShipMove.Tick</c> is written for a ghost the player owns: whenever it is not the
+/// current selection it destroys itself, because that normally means the player cancelled the move.
+/// <c>CreateShipSketch</c> spawns the ghost, switches the current map and only then selects it, so a
+/// tick landing inside that window sees an unselected ghost and kills it. The result is not an
+/// obvious failure: the thing stays spawned and undestroyed while its inner thing is already gone,
+/// which makes the install designator SOS2 opens next dereference a null PlacingDef. Suppressing the
+/// decision for the build window is the smallest fix that leaves the cancel path intact - outside the
+/// window the ghost behaves exactly as before.
+/// </remarks>
+[HarmonyPatch]
+internal static class Sos2GhostTickSuppressPatch
+{
+    private static MethodBase? TargetMethod()
+    {
+        System.Type? ghost = AccessTools.TypeByName("SaveOurShip2.MinifiedThingShipMove");
+        return ghost == null ? null : AccessTools.Method(ghost, "Tick");
+    }
+
+    private static bool Prefix() => !Sos2SketchFloorPatch.BuildingGhost;
 }

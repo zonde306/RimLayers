@@ -2181,6 +2181,12 @@ internal static partial class V1Integration
         string firstChance = sos2GhostFrame ?? "";
         sos2GhostFrame = null;
         Check("sos2-realship-ghost-is-built", failure == null, $"viewed=L{upper}, " + (failure == null ? "no exception" : failure.GetType().Name + ": " + failure.Message) + (failure == null || failure.StackTrace == null ? "" : System.Environment.NewLine + string.Join(System.Environment.NewLine, failure.StackTrace.Split(new[] { (char)10 }, System.StringSplitOptions.None).Take(6))) + (firstChance.Length == 0 ? "" : System.Environment.NewLine + "FIRST CHANCE: " + firstChance));
+        // The ghost is a tanky thing: MinifiedThingShipMove.Tick destroys itself whenever it is not the
+        // current selection, so a build that leaves it unselected for even one tick loses it. This is
+        // checked right after the build, which is the window the real flow spends between spawning and
+        // selecting - a synchronous call closes it instantly, a click from the GUI does not.
+        Check("sos2-realship-ghost-survives-until-selected", Sos2SketchFloorPatch.BuildingGhost == false,
+            $"build window closed={!Sos2SketchFloorPatch.BuildingGhost}");
         bool found = Sos2SketchFloorPatch.HasGhost(hullMap);
         Check("sos2-realship-ghost-exists-on-the-map", found, $"map={hullMap}, viewed=L{upper}");
         if (found)
